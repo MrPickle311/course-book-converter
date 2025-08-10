@@ -1,0 +1,630 @@
+---
+globs: **/*.tsx,frontend/**
+alwaysApply: false
+---
+
+# React Security Best Practices (Bulletproof React)
+
+Based on [Bulletproof React](https://github.com/alan2207/bulletproof-react) security guidelines for React applications.
+
+## Authentication and Authorization
+
+### 1. Secure Token Storage
+
+```typescript
+// ✅ Good - Secure token management
+class TokenManager {
+  private static readonly ACCESS_TOKEN_KEY = 'accessToken';
+  private static readonly REFRESH_TOKEN_KEY = 'refreshToken';
+
+  static setTokens(accessToken: string, refreshToken: string) {
+    // Store access token in memory for short-term use
+    sessionStorage.setItem(this.ACCESS_TOKEN_KEY, accessToken);
+
+    // Store refresh token in httpOnly cookie (server-side implementation needed)
+    // For client-side only, use localStorage with caution
+    localStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
+  }
+
+  static getAccessToken(): string | null {
+    return sessionStorage.getItem(this.ACCESS_TOKEN_KEY);
+  }
+
+  static getRefreshToken(): string | null {
+    return localStorage.getItem(this.REFRESH_TOKEN_KEY);
+  }
+
+  static clearTokens() {
+    sessionStorage.removeItem(this.ACCESS_TOKEN_KEY);
+    localStorage.removeItem(this.REFRESH_TOKEN_KEY);
+  }
+}
+
+// ❌ Avoid - Storing sensitive data in localStorage without encryption
+localStorage.setItem('userPassword', password); // Never do this
+localStorage.setItem('apiKey', apiKey); // Never do this
+```
+
+### 2. Protected Routes Implementation
+
+```typescript
+// components/ProtectedRoute.tsx
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  requiredRole?: string[];
+  redirectTo?: string;
+}
+
+export const ProtectedRoute = ({
+  children,
+  requiredRole,
+  redirectTo = '/login'
+}: ProtectedRouteProps) => {
+  const { user, isLoading } = useAuth();
+  const location = useLocation();
+
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
+
+  if (!user) {
+    // Redirect to login with return URL
+    return <Navigate to={redirectTo} state={{ from: location }} replace />;
+  }
+
+  if (requiredRole && !requiredRole.includes(user.role)) {
+    return <Navigate to="/unauthorized" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// Usage in routes
+<Routes>
+  <Route path="/login" element={<LoginPage />} />
+  <Route
+    path="/dashboard"
+    element={
+      <ProtectedRoute>
+        <Dashboard />
+      </ProtectedRoute>
+    }
+  />
+  <Route
+    path="/admin"
+    element={
+      <ProtectedRoute requiredRole={['admin']}>
+        <AdminPanel />
+      </ProtectedRoute>
+    }
+  />
+</Routes>
+```
+
+### 3. Permission-Based UI Components
+
+```typescript
+// hooks/usePermissions.ts
+export const usePermissions = () => {
+  const { user } = useAuth();
+
+  const hasPermission = useCallback((permission: string): boolean => {
+    if (!user) return false;
+    return user.permissions.includes(permission);
+  }, [user]);
+
+  const hasRole = useCallback((role: string): boolean => {
+    if (!user) return false;
+    return user.role === role;
+  }, [user]);
+
+  const hasAnyRole = useCallback((roles: string[]): boolean => {
+    if (!user) return false;
+    return roles.includes(user.role);
+  }, [user]);
+
+  return { hasPermission, hasRole, hasAnyRole };
+};
+
+// components/PermissionGate.tsx
+interface PermissionGateProps {
+  permission?: string;
+  role?: string;
+  roles?: string[];
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+}
+
+export const PermissionGate = ({
+  permission,
+  role,
+  roles,
+  children,
+  fallback = null
+}: PermissionGateProps) => {
+  const { hasPermission, hasRole, hasAnyRole } = usePermissions();
+
+  const hasAccess = useMemo(() => {
+    if (permission) return hasPermission(permission);
+    if (role) return hasRole(role);
+    if (roles) return hasAnyRole(roles);
+    return true;
+  }, [permission, role, roles, hasPermission, hasRole, hasAnyRole]);
+
+  return hasAccess ? <>{children}</> : <>{fallback}</>;
+};
+
+// Usage
+<PermissionGate permission="user:delete">
+  <button onClick={handleDeleteUser}>Delete User</button>
+</PermissionGate>
+
+<PermissionGate roles={['admin', 'moderator']} fallback={<p>Access denied</p>}>
+  <AdminControls />
+</PermissionGate>
+```
+
+## Input Validation and Sanitization
+
+### 1. Client-Side Validation
+
+```typescript
+// utils/validation.ts
+import DOMPurify from 'dompurify';
+
+// Input sanitization
+export const sanitizeInput = (input: string): string => {
+  return DOMPurify.sanitize(input, {
+    ALLOWED_TAGS: [],
+    ALLOWED_ATTR: []
+  });
+};
+
+export const sanitizeHtml = (html: string): string => {
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u'],
+    ALLOWED_ATTR: []
+  });
+};
+
+// Validation schemas with Zod
+import { z } from 'zod';
+
+export const userRegistrationSchema = z.object({
+  email: z.string()
+    .email('Invalid email format')
+    .min(1, 'Email is required'),
+
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+      'Password must contain at least one uppercase letter, one lowercase letter, and one number'),
+
+  name: z.string()
+    .min(2, 'Name must be at least 2 characters')
+    .max(50, 'Name must be less than 50 characters')
+    .regex(/^[a-zA-Z\s]+$/, 'Name can only contain letters and spaces'),
+});
+
+// Custom hook for form validation
+export const useFormValidation = <T>(schema: z.ZodSchema<T>) => {
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validate = useCallback((data: unknown): data is T => {
+    try {
+      schema.parse(data);
+      setErrors({});
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const fieldErrors: Record<string, string> = {};
+        error.errors.forEach((err) => {
+          if (err.path.length > 0) {
+            fieldErrors[err.path[0] as string] = err.message;
+          }
+        });
+        setErrors(fieldErrors);
+      }
+      return false;
+    }
+  }, [schema]);
+
+  return { validate, errors, clearErrors: () => setErrors({}) };
+};
+```
+
+### 2. Safe Form Handling
+
+```typescript
+// components/SafeForm.tsx
+interface SafeFormProps {
+  onSubmit: (data: any) => void;
+  validationSchema: z.ZodSchema<any>;
+  children: React.ReactNode;
+}
+
+export const SafeForm = ({ onSubmit, validationSchema, children }: SafeFormProps) => {
+  const { validate, errors } = useFormValidation(validationSchema);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const formData = new FormData(event.currentTarget);
+    const data = Object.fromEntries(formData.entries());
+
+    // Sanitize all string inputs
+    const sanitizedData = Object.entries(data).reduce((acc, [key, value]) => {
+      acc[key] = typeof value === 'string' ? sanitizeInput(value) : value;
+      return acc;
+    }, {} as Record<string, any>);
+
+    if (!validate(sanitizedData)) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await onSubmit(sanitizedData);
+    } catch (error) {
+      console.error('Form submission error:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} noValidate>
+      {children}
+      {Object.entries(errors).map(([field, error]) => (
+        <div key={field} className="error-message">
+          {error}
+        </div>
+      ))}
+      <button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? 'Submitting...' : 'Submit'}
+      </button>
+    </form>
+  );
+};
+```
+
+## XSS Prevention
+
+### 1. Safe HTML Rendering
+
+```typescript
+// ✅ Good - Safe HTML rendering
+interface SafeHtmlProps {
+  content: string;
+  allowedTags?: string[];
+  className?: string;
+}
+
+export const SafeHtml = ({
+  content,
+  allowedTags = ['p', 'br', 'strong', 'em'],
+  className
+}: SafeHtmlProps) => {
+  const sanitizedContent = useMemo(() => {
+    return DOMPurify.sanitize(content, {
+      ALLOWED_TAGS: allowedTags,
+      ALLOWED_ATTR: ['href', 'title'],
+      ALLOWED_URI_REGEXP: /^https?:\/\//
+    });
+  }, [content, allowedTags]);
+
+  return (
+    <div
+      className={className}
+      dangerouslySetInnerHTML={{ __html: sanitizedContent }}
+    />
+  );
+};
+
+// ❌ Avoid - Direct dangerouslySetInnerHTML without sanitization
+<div dangerouslySetInnerHTML={{ __html: userContent }} /> // Dangerous!
+```
+
+### 2. Safe Link Handling
+
+```typescript
+// components/SafeLink.tsx
+interface SafeLinkProps {
+  href: string;
+  children: React.ReactNode;
+  external?: boolean;
+  className?: string;
+}
+
+export const SafeLink = ({ href, children, external, className }: SafeLinkProps) => {
+  // Validate URL to prevent javascript: and data: protocols
+  const isValidUrl = useMemo(() => {
+    try {
+      const url = new URL(href, window.location.origin);
+      return ['http:', 'https:', 'mailto:'].includes(url.protocol);
+    } catch {
+      return false;
+    }
+  }, [href]);
+
+  if (!isValidUrl) {
+    console.warn(`Invalid URL detected: ${href}`);
+    return <span className={className}>{children}</span>;
+  }
+
+  const linkProps = external
+    ? { target: '_blank', rel: 'noopener noreferrer' }
+    : {};
+
+  return (
+    <a href={href} className={className} {...linkProps}>
+      {children}
+    </a>
+  );
+};
+```
+
+## CSRF Protection
+
+### 1. CSRF Token Handling
+
+```typescript
+// lib/csrf.ts
+export class CSRFManager {
+  private static token: string | null = null;
+
+  static async getToken(): Promise<string> {
+    if (this.token) return this.token;
+
+    try {
+      const response = await fetch('/api/csrf-token', {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      this.token = data.csrfToken;
+      return this.token;
+    } catch (error) {
+      throw new Error('Failed to obtain CSRF token');
+    }
+  }
+
+  static clearToken() {
+    this.token = null;
+  }
+}
+
+// Add CSRF token to API requests
+api.interceptors.request.use(async (config) => {
+  if (['post', 'put', 'delete', 'patch'].includes(config.method?.toLowerCase() || '')) {
+    const csrfToken = await CSRFManager.getToken();
+    config.headers['X-CSRF-Token'] = csrfToken;
+  }
+  return config;
+});
+```
+
+## Security Headers and Configuration
+
+### 1. Content Security Policy
+
+```typescript
+// utils/security.ts
+export const initializeSecurityHeaders = () => {
+  // Content Security Policy
+  const csp = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' https://trusted-scripts.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "img-src 'self' data: https:",
+    "font-src 'self' https://fonts.gstatic.com",
+    "connect-src 'self' https://api.yourdomain.com",
+    "frame-ancestors 'none'",
+    "object-src 'none'",
+    "base-uri 'self'"
+  ].join('; ');
+
+  // Create meta tag for CSP if not set by server
+  if (!document.querySelector('meta[http-equiv="Content-Security-Policy"]')) {
+    const meta = document.createElement('meta');
+    meta.httpEquiv = 'Content-Security-Policy';
+    meta.content = csp;
+    document.head.appendChild(meta);
+  }
+};
+
+// Call in main.tsx
+initializeSecurityHeaders();
+```
+
+### 2. Secure Storage Utilities
+
+```typescript
+// utils/secureStorage.ts
+interface StorageOptions {
+  encrypt?: boolean;
+  expiry?: number; // in milliseconds
+}
+
+class SecureStorage {
+  private static encrypt(data: string, key: string): string {
+    // Simple encryption - use a proper library like crypto-js in production
+    return btoa(data + key);
+  }
+
+  private static decrypt(encryptedData: string, key: string): string {
+    try {
+      const decoded = atob(encryptedData);
+      return decoded.replace(key, '');
+    } catch {
+      throw new Error('Failed to decrypt data');
+    }
+  }
+
+  static setItem(key: string, value: any, options: StorageOptions = {}) {
+    const data = {
+      value,
+      timestamp: Date.now(),
+      expiry: options.expiry ? Date.now() + options.expiry : null
+    };
+
+    let serialized = JSON.stringify(data);
+
+    if (options.encrypt) {
+      serialized = this.encrypt(serialized, key);
+    }
+
+    try {
+      localStorage.setItem(key, serialized);
+    } catch (error) {
+      console.error('Failed to store data:', error);
+    }
+  }
+
+  static getItem<T>(key: string, options: StorageOptions = {}): T | null {
+    try {
+      let stored = localStorage.getItem(key);
+      if (!stored) return null;
+
+      if (options.encrypt) {
+        stored = this.decrypt(stored, key);
+      }
+
+      const data = JSON.parse(stored);
+
+      // Check expiry
+      if (data.expiry && Date.now() > data.expiry) {
+        this.removeItem(key);
+        return null;
+      }
+
+      return data.value;
+    } catch (error) {
+      console.error('Failed to retrieve data:', error);
+      return null;
+    }
+  }
+
+  static removeItem(key: string) {
+    localStorage.removeItem(key);
+  }
+}
+
+// Usage
+SecureStorage.setItem('userPreferences', preferences, {
+  encrypt: true,
+  expiry: 7 * 24 * 60 * 60 * 1000 // 7 days
+});
+```
+
+## Error Handling Security
+
+### 1. Secure Error Messages
+
+```typescript
+// utils/errorHandler.ts
+interface SecureError {
+  message: string;
+  code: string;
+  isUserFacing: boolean;
+}
+
+export const createSecureError = (
+  error: any,
+  userMessage: string = 'An error occurred'
+): SecureError => {
+  // Log detailed error for developers
+  console.error('Application error:', error);
+
+  // Return sanitized error for users
+  return {
+    message: userMessage,
+    code: error.code || 'UNKNOWN_ERROR',
+    isUserFacing: true
+  };
+};
+
+// Error boundary with secure error handling
+export const SecureErrorBoundary = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <ErrorBoundary
+      FallbackComponent={({ error, resetErrorBoundary }) => {
+        const secureError = createSecureError(error, 'Something went wrong');
+
+        return (
+          <div className="error-container">
+            <h2>Oops! Something went wrong</h2>
+            <p>{secureError.message}</p>
+            <button onClick={resetErrorBoundary}>Try again</button>
+          </div>
+        );
+      }}
+      onError={(error, errorInfo) => {
+        // Send error to monitoring service (without sensitive data)
+        // logErrorToService(createSecureError(error));
+      }}
+    >
+      {children}
+    </ErrorBoundary>
+  );
+};
+```
+
+### 2. Rate Limiting on Client Side
+
+```typescript
+// hooks/useRateLimit.ts
+interface RateLimitOptions {
+  maxRequests: number;
+  windowMs: number;
+  keyExtractor?: () => string;
+}
+
+export const useRateLimit = ({
+  maxRequests,
+  windowMs,
+  keyExtractor = () => 'default'
+}: RateLimitOptions) => {
+  const requestCounts = useRef<Map<string, { count: number; resetTime: number }>>(new Map());
+
+  const isAllowed = useCallback((): boolean => {
+    const key = keyExtractor();
+    const now = Date.now();
+    const current = requestCounts.current.get(key);
+
+    if (!current || now > current.resetTime) {
+      requestCounts.current.set(key, { count: 1, resetTime: now + windowMs });
+      return true;
+    }
+
+    if (current.count >= maxRequests) {
+      return false;
+    }
+
+    current.count++;
+    return true;
+  }, [maxRequests, windowMs, keyExtractor]);
+
+  return { isAllowed };
+};
+
+// Usage
+export const ApiCallComponent = () => {
+  const { isAllowed } = useRateLimit({
+    maxRequests: 5,
+    windowMs: 60000 // 5 requests per minute
+  });
+
+  const handleApiCall = async () => {
+    if (!isAllowed()) {
+      toast.error('Too many requests. Please wait a moment.');
+      return;
+    }
+
+    // Make API call
+    await apiCall();
+  };
+
+  return <button onClick={handleApiCall}>Call API</button>;
+};
+```

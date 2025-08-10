@@ -1,0 +1,110 @@
+---
+globs: **/*.py
+alwaysApply: false
+---
+# FastAPI Dependency Injection Rules
+
+## Core Principles
+
+1. **Beyond Dependency Injection**: Use FastAPI's dependency system for more than just DI
+2. **Chain Dependencies**: Create complex dependency chains for better code organization
+3. **Reuse Dependencies**: Leverage dependency caching for performance
+4. **Prefer Async**: Use async dependencies whenever possible
+
+## Dependency Patterns
+
+### Authentication and Authorization
+
+```python
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer
+
+security = HTTPBearer()
+
+async def get_current_user(token: str = Depends(security)):
+    # Validate token and return user
+    return user
+
+async def require_admin(user = Depends(get_current_user)):
+    if not user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    return user
+```
+
+### Database Dependencies
+
+```python
+async def get_db_session():
+    async with async_session() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
+```
+
+### Validation Dependencies
+
+```python
+async def valid_user_id(user_id: int) -> dict:
+    user = await get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+```
+
+## Dependency Chaining Rules
+
+1. **Logical Flow**: Chain dependencies in a logical order
+2. **Single Responsibility**: Each dependency should have a single, clear purpose
+3. **Error Handling**: Handle errors appropriately at each level
+4. **Caching**: Leverage FastAPI's automatic dependency caching
+
+### Example Dependency Chain
+
+```python
+# Base dependency
+async def get_db() -> AsyncSession:
+    # Database connection logic
+    pass
+
+# Service dependency
+async def get_user_service(db: AsyncSession = Depends(get_db)) -> UserService:
+    return UserService(db)
+
+# Authentication dependency
+async def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    user_service: UserService = Depends(get_user_service)
+) -> User:
+    return await user_service.get_user_by_token(token)
+
+# Authorization dependency
+async def require_admin_user(
+    current_user: User = Depends(get_current_user)
+) -> User:
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403)
+    return current_user
+```
+
+## Best Practices
+
+1. **Async First**: Prefer async dependencies for better performance
+2. **Separation**: Keep dependencies in separate `dependencies.py` files
+3. **Testing**: Make dependencies easily mockable for testing
+4. **Documentation**: Document complex dependency chains
+5. **Reusability**: Design dependencies to be reusable across routes
+
+## Common Dependency Uses
+
+- Authentication and authorization
+- Database session management
+- Input validation and transformation
+- Rate limiting
+- Logging and monitoring
+- Configuration injection
+- Service layer initialization

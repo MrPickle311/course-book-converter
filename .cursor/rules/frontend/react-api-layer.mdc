@@ -1,0 +1,525 @@
+---
+globs: **/*.tsx,frontend/**
+alwaysApply: false
+---
+
+# React API Layer Rules (Bulletproof React)
+
+Based on [Bulletproof React](https://github.com/alan2207/bulletproof-react) API integration patterns.
+
+## API Layer Architecture
+
+### Single Source of Truth for API Configuration
+
+```typescript
+// lib/axios.ts
+import axios from 'axios';
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+
+export const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor for auth tokens
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor for error handling
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        const refreshToken = localStorage.getItem('refreshToken');
+        const response = await axios.post('/auth/refresh', { refreshToken });
+        const { accessToken } = response.data;
+
+        localStorage.setItem('accessToken', accessToken);
+        return api(originalRequest);
+      } catch (refreshError) {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        window.location.href = '/login';
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+```
+
+## API Module Organization
+
+### Feature-Based API Files
+
+```typescript
+// features/users/api/userApi.ts
+import { api } from '@/lib/axios';
+import type { User, CreateUserDTO, UpdateUserDTO, UserQueryParams } from '../types';
+
+export const userApi = {
+  // Get all users with optional filtering
+  getUsers: async (params?: UserQueryParams): Promise<User[]> => {
+    const response = await api.get('/users', { params });
+    return response.data;
+  },
+
+  // Get user by ID
+  getUser: async (userId: string): Promise<User> => {
+    const response = await api.get(`/users/${userId}`);
+    return response.data;
+  },
+
+  // Create new user
+  createUser: async (userData: CreateUserDTO): Promise<User> => {
+    const response = await api.post('/users', userData);
+    return response.data;
+  },
+
+  // Update existing user
+  updateUser: async ({ id, ...userData }: UpdateUserDTO & { id: string }): Promise<User> => {
+    const response = await api.put(`/users/${id}`, userData);
+    return response.data;
+  },
+
+  // Delete user
+  deleteUser: async (userId: string): Promise<void> => {
+    await api.delete(`/users/${userId}`);
+  },
+
+  // Upload user avatar
+  uploadAvatar: async (userId: string, file: File): Promise<User> => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    const response = await api.post(`/users/${userId}/avatar`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+};
+```
+
+### API Types Definition
+
+```typescript
+// features/users/types/api.types.ts
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  avatar?: string;
+  role: 'admin' | 'user';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateUserDTO {
+  email: string;
+  name: string;
+  password: string;
+  role?: 'admin' | 'user';
+}
+
+export interface UpdateUserDTO {
+  email?: string;
+  name?: string;
+  role?: 'admin' | 'user';
+}
+
+export interface UserQueryParams {
+  search?: string;
+  role?: 'admin' | 'user';
+  limit?: number;
+  offset?: number;
+  sortBy?: 'name' | 'email' | 'createdAt';
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface ApiResponse<T> {
+  data: T;
+  message: string;
+  success: boolean;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+```
+
+## React Query Integration
+
+### Custom Hooks for Data Fetching
+
+```typescript
+// features/users/hooks/useUsers.ts
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { userApi } from '../api/userApi';
+import type { User, CreateUserDTO, UpdateUserDTO, UserQueryParams } from '../types';
+
+// Query keys factory
+export const userKeys = {
+  all: ['users'] as const,
+  lists: () => [...userKeys.all, 'list'] as const,
+  list: (params: UserQueryParams) => [...userKeys.lists(), params] as const,
+  details: () => [...userKeys.all, 'detail'] as const,
+  detail: (id: string) => [...userKeys.details(), id] as const,
+};
+
+// Fetch users with filtering
+export const useUsers = (params?: UserQueryParams) => {
+  return useQuery({
+    queryKey: userKeys.list(params || {}),
+    queryFn: () => userApi.getUsers(params),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
+  });
+};
+
+// Fetch single user
+export const useUser = (userId: string) => {
+  return useQuery({
+    queryKey: userKeys.detail(userId),
+    queryFn: () => userApi.getUser(userId),
+    enabled: !!userId,
+  });
+};
+
+// Create user mutation
+export const useCreateUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: userApi.createUser,
+    onSuccess: (newUser) => {
+      // Invalidate and refetch users list
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+
+      // Add the new user to cache
+      queryClient.setQueryData(userKeys.detail(newUser.id), newUser);
+    },
+    onError: (error) => {
+      // Handle error (show toast, etc.)
+      console.error('Failed to create user:', error);
+    },
+  });
+};
+
+// Update user mutation
+export const useUpdateUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: userApi.updateUser,
+    onMutate: async (variables) => {
+      const { id, ...updateData } = variables;
+
+      // Cancel outgoing queries
+      await queryClient.cancelQueries({ queryKey: userKeys.detail(id) });
+
+      // Get previous data for rollback
+      const previousUser = queryClient.getQueryData<User>(userKeys.detail(id));
+
+      // Optimistically update cache
+      if (previousUser) {
+        queryClient.setQueryData(userKeys.detail(id), {
+          ...previousUser,
+          ...updateData,
+        });
+      }
+
+      return { previousUser };
+    },
+    onError: (error, variables, context) => {
+      // Rollback on error
+      if (context?.previousUser) {
+        queryClient.setQueryData(
+          userKeys.detail(variables.id),
+          context.previousUser
+        );
+      }
+    },
+    onSettled: (data, error, variables) => {
+      // Always invalidate after mutation
+      queryClient.invalidateQueries({ queryKey: userKeys.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+    },
+  });
+};
+
+// Delete user mutation
+export const useDeleteUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: userApi.deleteUser,
+    onSuccess: (_, userId) => {
+      // Remove from cache
+      queryClient.removeQueries({ queryKey: userKeys.detail(userId) });
+
+      // Update lists by removing the deleted user
+      queryClient.setQueriesData<User[]>(
+        { queryKey: userKeys.lists() },
+        (oldData) => oldData?.filter(user => user.id !== userId)
+      );
+    },
+  });
+};
+```
+
+### Infinite Queries for Pagination
+
+```typescript
+// hooks/useInfiniteUsers.ts
+export const useInfiniteUsers = (params?: Omit<UserQueryParams, 'offset'>) => {
+  return useInfiniteQuery({
+    queryKey: userKeys.list({ ...params, infinite: true }),
+    queryFn: ({ pageParam = 0 }) =>
+      userApi.getUsers({ ...params, offset: pageParam, limit: 20 }),
+    getNextPageParam: (lastPage, allPages) => {
+      const totalFetched = allPages.flat().length;
+      return lastPage.length === 20 ? totalFetched : undefined;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+// Usage in component
+export const UserList = () => {
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetching,
+    isFetchingNextPage,
+  } = useInfiniteUsers();
+
+  const users = data?.pages.flat() ?? [];
+
+  return (
+    <div>
+      {users.map(user => (
+        <UserCard key={user.id} user={user} />
+      ))}
+
+      {hasNextPage && (
+        <button
+          onClick={() => fetchNextPage()}
+          disabled={isFetchingNextPage}
+        >
+          {isFetchingNextPage ? 'Loading...' : 'Load More'}
+        </button>
+      )}
+    </div>
+  );
+};
+```
+
+## Error Handling Patterns
+
+### Global Error Handler
+
+```typescript
+// lib/errorHandler.ts
+export interface ApiError {
+  message: string;
+  status: number;
+  code?: string;
+  details?: Record<string, any>;
+}
+
+export const handleApiError = (error: any): ApiError => {
+  if (error.response) {
+    // Server responded with error status
+    return {
+      message: error.response.data.message || 'An error occurred',
+      status: error.response.status,
+      code: error.response.data.code,
+      details: error.response.data.details,
+    };
+  } else if (error.request) {
+    // Network error
+    return {
+      message: 'Network error. Please check your connection.',
+      status: 0,
+    };
+  } else {
+    // Other error
+    return {
+      message: error.message || 'An unexpected error occurred',
+      status: 500,
+    };
+  }
+};
+
+// Custom error boundary for API errors
+export const ApiErrorBoundary = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <ErrorBoundary
+      FallbackComponent={({ error, resetErrorBoundary }) => (
+        <div className="error-container">
+          <h2>Something went wrong</h2>
+          <p>{error.message}</p>
+          <button onClick={resetErrorBoundary}>Try again</button>
+        </div>
+      )}
+      onError={(error) => {
+        // Log error to monitoring service
+        console.error('API Error:', error);
+      }}
+    >
+      {children}
+    </ErrorBoundary>
+  );
+};
+```
+
+### Hook for Error Handling
+
+```typescript
+// hooks/useApiError.ts
+export const useApiError = () => {
+  const [error, setError] = useState<ApiError | null>(null);
+
+  const handleError = useCallback((error: any) => {
+    const apiError = handleApiError(error);
+    setError(apiError);
+
+    // Show toast notification
+    toast.error(apiError.message);
+  }, []);
+
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  return { error, handleError, clearError };
+};
+```
+
+## Loading States and Skeletons
+
+```typescript
+// components/ui/UserSkeleton.tsx
+export const UserSkeleton = () => (
+  <div className="user-card skeleton">
+    <div className="skeleton-avatar" />
+    <div className="skeleton-content">
+      <div className="skeleton-line skeleton-title" />
+      <div className="skeleton-line skeleton-subtitle" />
+    </div>
+  </div>
+);
+
+// Usage with loading states
+export const UserList = () => {
+  const { data: users, isLoading, error } = useUsers();
+
+  if (error) return <ErrorMessage error={error} />;
+
+  return (
+    <div className="user-list">
+      {isLoading
+        ? Array.from({ length: 6 }, (_, i) => <UserSkeleton key={i} />)
+        : users?.map(user => <UserCard key={user.id} user={user} />)
+      }
+    </div>
+  );
+};
+```
+
+## File Upload Handling
+
+```typescript
+// hooks/useFileUpload.ts
+interface UseFileUploadOptions {
+  maxSize?: number; // in bytes
+  allowedTypes?: string[];
+  onProgress?: (progress: number) => void;
+}
+
+export const useFileUpload = (options: UseFileUploadOptions = {}) => {
+  const [isUploading, setIsUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  const upload = useCallback(async (file: File, uploadFn: (file: File) => Promise<any>) => {
+    // Validate file
+    if (options.maxSize && file.size > options.maxSize) {
+      throw new Error(`File size must be less than ${options.maxSize} bytes`);
+    }
+
+    if (options.allowedTypes && !options.allowedTypes.includes(file.type)) {
+      throw new Error(`File type ${file.type} is not allowed`);
+    }
+
+    setIsUploading(true);
+    setProgress(0);
+
+    try {
+      const result = await uploadFn(file);
+      setProgress(100);
+      return result;
+    } finally {
+      setIsUploading(false);
+      setProgress(0);
+    }
+  }, [options]);
+
+  return { upload, isUploading, progress };
+};
+
+// Usage
+export const UserAvatarUpload = ({ userId }: { userId: string }) => {
+  const updateUser = useUpdateUser();
+  const { upload, isUploading, progress } = useFileUpload({
+    maxSize: 5 * 1024 * 1024, // 5MB
+    allowedTypes: ['image/jpeg', 'image/png'],
+  });
+
+  const handleFileSelect = async (file: File) => {
+    try {
+      await upload(file, (file) => userApi.uploadAvatar(userId, file));
+      // File uploaded successfully
+    } catch (error) {
+      // Handle upload error
+    }
+  };
+
+  return (
+    <div>
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleFileSelect(file);
+        }}
+        disabled={isUploading}
+      />
+      {isUploading && <ProgressBar progress={progress} />}
+    </div>
+  );
+};
+```

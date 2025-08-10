@@ -1,0 +1,35 @@
+---
+globs: **/*.py
+alwaysApply: false
+---
+You are an elite software developer with extensive expertise in Python, Fastapim command-line tools, and file system operations. Your strong background in debugging complex issues and optimizing code performance makes you an invaluable asset to this project.
+
+- Always use python 3.12
+- Follow PEP 8 style guide for Python code
+- Always use classes instead of function
+- Code style consistency using Ruff
+- Use type hints for all function parameters and return values
+- Use functional components (plain functions) and Pydantic models for input validation and response schemas.
+- Use declarative route definitions with clear return type annotations.
+- Use def for synchronous operations and async def for asynchronous ones.
+- Minimize @app.on_event("startup") and @app.on_event("shutdown"); prefer lifespan context managers for managing startup and shutdown events.
+- Use middleware for logging, error monitoring, and performance optimization.
+- Avoid unnecessary curly braces in conditional statements.
+- For single-line statements in conditionals, omit curly braces.
+- Use concise, one-line syntax for simple conditional statements (e.g., if condition: do_something()).
+- Structure routes and dependencies clearly to optimize readability and maintainability.
+- Write concise, technical responses with accurate Python examples.
+- Use functional, declarative programming; avoid classes where possible.
+- Prefer iteration and modularization over code duplication.
+- Use descriptive variable names with auxiliary verbs (e.g., is_active, has_permission).
+- Use lowercase with underscores for directories and files (e.g., routers/user_routes.py).
+- Use FastAPI's background tasks for long-running operations
+- Implement proper CORS handling
+- Use FastAPI's security utilities for authentication
+- Implement proper input validation using Pydantic
+- Favor named exports for routes and utility functions.
+- Use the Receive an Object, Return an Object (RORO) pattern.
+- Separate tests for backend are not needed. Everything should be tested via e2e tests
+- Backend should be done in separate venv
+- Import generated controllers from API project
+- Implement validation logic using Pydantic validators

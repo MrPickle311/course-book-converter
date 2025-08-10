@@ -1,0 +1,16 @@
+---
+globs: **/*.tsx,frontend/**
+alwaysApply: false
+---
+- You are a senior full-stack developer. One of those rare 10x developers that has incredible knowledge.
+- Only modify sections of the code related to the task at hand.
+- Avoid modifying unrelated pieces of code.
+- Accomplish goals with minimal code changes.
+- Focus on simplicity, readability, performance, maintainability, testability, and reusability.
+- Remember less code is better.
+- Lines of code = Debt.
+- Order functions with those that are composing other functions appearing earlier in the file. For example, if you have a menu with multiple buttons, define the menu function above the buttons.
+- Descriptive Names: Use descriptive names for variables and functions. Prefix event handler functions with "handle" (e.g., handleClick, handleKeyDown).
+- Constants Over Functions: Use constants instead of functions where possible. Define types if applicable.
+- Utilize Early Returns: Use early returns to avoid nested conditions and improve readability.
+- Conditional Classes: Prefer conditional classes over ternary operators for class attributes.

@@ -1,0 +1,544 @@
+---
+globs: **/*.tsx,frontend/**
+alwaysApply: false
+---
+
+# React Performance Optimization Rules (Bulletproof React)
+
+Based on [Bulletproof React](https://github.com/alan2207/bulletproof-react) performance best practices.
+
+## Component Optimization
+
+### 1. Memoization Strategies
+
+#### React.memo for Component Memoization
+```typescript
+// ✅ Good - Memoize expensive components
+interface UserCardProps {
+  user: User;
+  onEdit: (user: User) => void;
+  onDelete: (userId: string) => void;
+}
+
+export const UserCard = memo(({ user, onEdit, onDelete }: UserCardProps) => {
+  return (
+    <div className="user-card">
+      <img src={user.avatar} alt={user.name} />
+      <h3>{user.name}</h3>
+      <p>{user.email}</p>
+      <button onClick={() => onEdit(user)}>Edit</button>
+      <button onClick={() => onDelete(user.id)}>Delete</button>
+    </div>
+  );
+});
+
+// ✅ Good - Custom comparison for complex props
+export const ExpensiveChart = memo(({ data, config }: ChartProps) => {
+  // Expensive rendering logic
+  return <Chart data={data} config={config} />;
+}, (prevProps, nextProps) => {
+  // Only re-render if data length or config changed
+  return (
+    prevProps.data.length === nextProps.data.length &&
+    JSON.stringify(prevProps.config) === JSON.stringify(nextProps.config)
+  );
+});
+```
+
+#### useMemo for Expensive Calculations
+```typescript
+export const DataAnalytics = ({ data }: { data: DataPoint[] }) => {
+  // ✅ Good - Memoize expensive calculations
+  const analytics = useMemo(() => {
+    return {
+      average: data.reduce((sum, point) => sum + point.value, 0) / data.length,
+      maximum: Math.max(...data.map(point => point.value)),
+      minimum: Math.min(...data.map(point => point.value)),
+      trend: calculateTrend(data), // Expensive calculation
+    };
+  }, [data]);
+
+  // ✅ Good - Memoize filtered data
+  const filteredData = useMemo(() =>
+    data.filter(point => point.value > analytics.average),
+    [data, analytics.average]
+  );
+
+  return (
+    <div>
+      <AnalyticsCard analytics={analytics} />
+      <DataChart data={filteredData} />
+    </div>
+  );
+};
+```
+
+#### useCallback for Function Memoization
+```typescript
+export const TodoList = ({ todos }: { todos: Todo[] }) => {
+  const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
+
+  // ✅ Good - Memoize event handlers
+  const handleToggle = useCallback((todoId: string) => {
+    // Toggle todo logic
+  }, []);
+
+  const handleDelete = useCallback((todoId: string) => {
+    // Delete todo logic
+  }, []);
+
+  const handleFilterChange = useCallback((newFilter: typeof filter) => {
+    setFilter(newFilter);
+  }, []);
+
+  // ✅ Good - Memoize filtered todos
+  const filteredTodos = useMemo(() =>
+    todos.filter(todo => {
+      if (filter === 'active') return !todo.completed;
+      if (filter === 'completed') return todo.completed;
+      return true;
+    }), [todos, filter]
+  );
+
+  return (
+    <div>
+      <FilterButtons onFilterChange={handleFilterChange} activeFilter={filter} />
+      {filteredTodos.map(todo => (
+        <TodoItem
+          key={todo.id}
+          todo={todo}
+          onToggle={handleToggle}
+          onDelete={handleDelete}
+        />
+      ))}
+    </div>
+  );
+};
+```
+
+### 2. Code Splitting and Lazy Loading
+
+#### Route-Based Code Splitting
+```typescript
+// ✅ Good - Lazy load route components
+import { lazy, Suspense } from 'react';
+import { Routes, Route } from 'react-router-dom';
+
+const HomePage = lazy(() => import('@/pages/HomePage'));
+const UserProfile = lazy(() => import('@/pages/UserProfile'));
+const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const AdminPanel = lazy(() =>
+  import('@/pages/AdminPanel').then(module => ({
+    default: module.AdminPanel
+  }))
+);
+
+export const AppRoutes = () => (
+  <Suspense fallback={<PageLoadingSpinner />}>
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/profile" element={<UserProfile />} />
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/admin" element={<AdminPanel />} />
+    </Routes>
+  </Suspense>
+);
+```
+
+#### Component-Based Code Splitting
+```typescript
+// ✅ Good - Lazy load heavy components
+const HeavyChart = lazy(() => import('./HeavyChart'));
+const DataTable = lazy(() => import('./DataTable'));
+const ImageEditor = lazy(() => import('./ImageEditor'));
+
+export const Dashboard = () => {
+  const [activeTab, setActiveTab] = useState('overview');
+
+  return (
+    <div className="dashboard">
+      <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+
+      <Suspense fallback={<ComponentSkeleton />}>
+        {activeTab === 'charts' && <HeavyChart />}
+        {activeTab === 'data' && <DataTable />}
+        {activeTab === 'editor' && <ImageEditor />}
+      </Suspense>
+    </div>
+  );
+};
+```
+
+#### Dynamic Imports for Conditional Loading
+```typescript
+// ✅ Good - Load components based on user permissions
+export const ConditionalFeatures = ({ user }: { user: User }) => {
+  const [AdminComponents, setAdminComponents] = useState<any>(null);
+
+  useEffect(() => {
+    if (user.role === 'admin') {
+      import('@/features/admin').then(module => {
+        setAdminComponents(module);
+      });
+    }
+  }, [user.role]);
+
+  return (
+    <div>
+      <UserFeatures />
+      {user.role === 'admin' && AdminComponents && (
+        <AdminComponents.AdminDashboard />
+      )}
+    </div>
+  );
+};
+```
+
+### 3. Virtual Scrolling for Large Lists
+
+```typescript
+// ✅ Good - Virtual scrolling for large datasets
+import { FixedSizeList as List } from 'react-window';
+
+interface VirtualizedListProps {
+  items: any[];
+  itemHeight: number;
+  containerHeight: number;
+}
+
+const ListItem = memo(({ index, style, data }: {
+  index: number;
+  style: React.CSSProperties;
+  data: any[];
+}) => (
+  <div style={style}>
+    <ItemComponent item={data[index]} />
+  </div>
+));
+
+export const VirtualizedList = ({
+  items,
+  itemHeight,
+  containerHeight
+}: VirtualizedListProps) => (
+  <List
+    height={containerHeight}
+    itemCount={items.length}
+    itemSize={itemHeight}
+    itemData={items}
+  >
+    {ListItem}
+  </List>
+);
+
+// Usage
+export const UserList = () => {
+  const { data: users } = useUsers();
+
+  return (
+    <VirtualizedList
+      items={users || []}
+      itemHeight={80}
+      containerHeight={600}
+    />
+  );
+};
+```
+
+### 4. Image Optimization
+
+```typescript
+// ✅ Good - Lazy loading images with placeholder
+interface OptimizedImageProps {
+  src: string;
+  alt: string;
+  width?: number;
+  height?: number;
+  placeholder?: string;
+  className?: string;
+}
+
+export const OptimizedImage = ({
+  src,
+  alt,
+  width,
+  height,
+  placeholder = '/placeholder.jpg',
+  className,
+}: OptimizedImageProps) => {
+  const [imageSrc, setImageSrc] = useState(placeholder);
+  const [isLoading, setIsLoading] = useState(true);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    const img = imgRef.current;
+    if (!img) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          const image = new Image();
+          image.onload = () => {
+            setImageSrc(src);
+            setIsLoading(false);
+          };
+          image.src = src;
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(img);
+    return () => observer.disconnect();
+  }, [src]);
+
+  return (
+    <div className={cn('image-container', className)}>
+      <img
+        ref={imgRef}
+        src={imageSrc}
+        alt={alt}
+        width={width}
+        height={height}
+        className={cn('optimized-image', { loading: isLoading })}
+      />
+      {isLoading && <div className="image-loading-overlay" />}
+    </div>
+  );
+};
+```
+
+## Bundle Optimization
+
+### 1. Tree Shaking and Dead Code Elimination
+
+```typescript
+// ✅ Good - Import only what you need
+import { debounce } from 'lodash/debounce';
+import { formatDate } from 'date-fns/formatDate';
+
+// ❌ Avoid - Imports entire library
+import _ from 'lodash';
+import dateFns from 'date-fns';
+
+// ✅ Good - Use babel-plugin-import for automatic tree shaking
+import { Button, Input, Modal } from 'antd';
+```
+
+### 2. Bundle Analysis and Monitoring
+
+```bash
+# Analyze bundle size
+npm install --save-dev webpack-bundle-analyzer
+
+# Add to package.json scripts
+{
+  "scripts": {
+    "analyze": "npm run build && npx webpack-bundle-analyzer build/static/js/*.js"
+  }
+}
+```
+
+### 3. Preloading Critical Resources
+
+```typescript
+// ✅ Good - Preload critical routes
+export const HomePage = () => {
+  useEffect(() => {
+    // Preload likely next routes
+    import('@/pages/UserProfile');
+    import('@/pages/Dashboard');
+  }, []);
+
+  return <div>Home Page Content</div>;
+};
+
+// ✅ Good - Prefetch on hover
+export const NavigationLink = ({ to, children }: { to: string; children: React.ReactNode }) => {
+  const handleMouseEnter = () => {
+    // Prefetch route component
+    import(`@/pages${to}`);
+  };
+
+  return (
+    <Link to={to} onMouseEnter={handleMouseEnter}>
+      {children}
+    </Link>
+  );
+};
+```
+
+## State and Rendering Optimization
+
+### 1. Avoid Unnecessary Re-renders
+
+```typescript
+// ✅ Good - Split state to minimize re-renders
+export const UserForm = () => {
+  // Separate frequently changing state
+  const [formData, setFormData] = useState({ name: '', email: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Use functional updates to avoid dependencies
+  const updateField = useCallback((field: string) => (value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  return (
+    <form>
+      <Input
+        value={formData.name}
+        onChange={(e) => updateField('name')(e.target.value)}
+        error={errors.name}
+      />
+      <Input
+        value={formData.email}
+        onChange={(e) => updateField('email')(e.target.value)}
+        error={errors.email}
+      />
+      <SubmitButton isLoading={isSubmitting} />
+    </form>
+  );
+};
+```
+
+### 2. Optimize Context Usage
+
+```typescript
+// ✅ Good - Split contexts by update frequency
+interface UserContextType {
+  user: User | null;
+  updateUser: (user: User) => void;
+}
+
+interface UIContextType {
+  theme: 'light' | 'dark';
+  toggleTheme: () => void;
+  sidebarOpen: boolean;
+  setSidebarOpen: (open: boolean) => void;
+}
+
+// Separate contexts to prevent unnecessary re-renders
+export const UserContext = createContext<UserContextType | null>(null);
+export const UIContext = createContext<UIContextType | null>(null);
+
+// ✅ Good - Memoize context values
+export const UserProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
+
+  const updateUser = useCallback((newUser: User) => {
+    setUser(newUser);
+  }, []);
+
+  const value = useMemo(() => ({ user, updateUser }), [user, updateUser]);
+
+  return (
+    <UserContext.Provider value={value}>
+      {children}
+    </UserContext.Provider>
+  );
+};
+```
+
+### 3. Debounce and Throttle User Interactions
+
+```typescript
+// Custom hook for debounced API calls
+export const useDebouncedApi = <T>(
+  apiCall: (query: string) => Promise<T>,
+  delay: number = 300
+) => {
+  const [data, setData] = useState<T | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const debouncedApiCall = useMemo(
+    () => debounce(async (query: string) => {
+      setIsLoading(true);
+      try {
+        const result = await apiCall(query);
+        setData(result);
+      } finally {
+        setIsLoading(false);
+      }
+    }, delay),
+    [apiCall, delay]
+  );
+
+  return { data, isLoading, search: debouncedApiCall };
+};
+
+// Usage
+export const SearchInput = () => {
+  const [query, setQuery] = useState('');
+  const { data: results, isLoading, search } = useDebouncedApi(searchApi, 300);
+
+  useEffect(() => {
+    if (query.length > 2) {
+      search(query);
+    }
+  }, [query, search]);
+
+  return (
+    <div>
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search..."
+      />
+      {isLoading && <LoadingSpinner />}
+      {results && <SearchResults results={results} />}
+    </div>
+  );
+};
+```
+
+## Monitoring and Profiling
+
+### 1. Performance Monitoring
+
+```typescript
+// ✅ Good - Custom performance hook
+export const usePerformanceMonitor = (componentName: string) => {
+  useEffect(() => {
+    const startTime = performance.now();
+
+    return () => {
+      const endTime = performance.now();
+      const renderTime = endTime - startTime;
+
+      if (renderTime > 16) { // More than one frame
+        console.warn(`${componentName} took ${renderTime.toFixed(2)}ms to render`);
+      }
+    };
+  });
+};
+
+// Usage in components
+export const ExpensiveComponent = () => {
+  usePerformanceMonitor('ExpensiveComponent');
+
+  // Component logic
+  return <div>...</div>;
+};
+```
+
+### 2. Web Vitals Tracking
+
+```typescript
+// lib/webVitals.ts
+import { getCLS, getFID, getFCP, getLCP, getTTFB } from 'web-vitals';
+
+export const trackWebVitals = () => {
+  getCLS(console.log);
+  getFID(console.log);
+  getFCP(console.log);
+  getLCP(console.log);
+  getTTFB(console.log);
+};
+
+// In main.tsx
+trackWebVitals();
+```

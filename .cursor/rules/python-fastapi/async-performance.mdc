@@ -1,0 +1,85 @@
+---
+globs: **/*.py
+alwaysApply: false
+---
+# FastAPI Async Routes and Performance Rules
+
+## Async Route Guidelines
+
+### When to Use Async Routes
+
+- **I/O Intensive Tasks**: File operations, database queries, HTTP requests
+- **Default Choice**: Use async routes by default unless you have a specific reason not to
+
+### When to Use Sync Routes
+
+- **CPU Intensive Tasks**: Heavy computations, data processing
+- **Sync Libraries**: When working with libraries that don't support async
+
+### Implementation Rules
+
+1. **Async by Default**: Always prefer async routes unless dealing with CPU-intensive tasks
+2. **Thread Pool for Sync**: If you must use sync SDK, run it in a thread pool:
+
+```python
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+
+async def call_sync_function():
+    loop = asyncio.get_event_loop()
+    with ThreadPoolExecutor() as executor:
+        result = await loop.run_in_executor(executor, sync_function)
+    return result
+```
+
+3. **Avoid Blocking**: Never use blocking operations in async routes
+4. **Database Operations**: Always use async database drivers (asyncpg, aiomysql, motor)
+5. **HTTP Requests**: Use async HTTP clients (httpx, aiohttp)
+
+### Performance Best Practices
+
+- Use async/await for I/O operations
+- Implement proper connection pooling for databases
+- Use background tasks for non-critical operations
+- Implement caching strategies where appropriate
+- Monitor and profile async operations# FastAPI Async Routes and Performance Rules
+
+## Async Route Guidelines
+
+### When to Use Async Routes
+
+- **I/O Intensive Tasks**: File operations, database queries, HTTP requests
+- **Default Choice**: Use async routes by default unless you have a specific reason not to
+
+### When to Use Sync Routes
+
+- **CPU Intensive Tasks**: Heavy computations, data processing
+- **Sync Libraries**: When working with libraries that don't support async
+
+### Implementation Rules
+
+1. **Async by Default**: Always prefer async routes unless dealing with CPU-intensive tasks
+2. **Thread Pool for Sync**: If you must use sync SDK, run it in a thread pool:
+
+```python
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+
+async def call_sync_function():
+    loop = asyncio.get_event_loop()
+    with ThreadPoolExecutor() as executor:
+        result = await loop.run_in_executor(executor, sync_function)
+    return result
+```
+
+3. **Avoid Blocking**: Never use blocking operations in async routes
+4. **Database Operations**: Always use async database drivers (asyncpg, aiomysql, motor)
+5. **HTTP Requests**: Use async HTTP clients (httpx, aiohttp)
+
+### Performance Best Practices
+
+- Use async/await for I/O operations
+- Implement proper connection pooling for databases
+- Use background tasks for non-critical operations
+- Implement caching strategies where appropriate
+- Monitor and profile async operations

@@ -1,0 +1,53 @@
+---
+globs: **/*.py
+alwaysApply: false
+---
+
+# FastAPI Project Structure Rules
+
+## Domain-Driven Directory Organization
+
+- Store all domain directories inside `src/` folder
+- Each package should have its own router, schemas, models, etc.
+- Use consistent file naming across all modules
+
+### Required Files per Domain Module
+
+Each domain module should contain:
+
+- `router.py` - Core module with all endpoints
+- `schemas.py` - Pydantic models
+- `models.py` - Database models
+- `service.py` - Module-specific business logic
+- `dependencies.py` - Router dependencies
+- `constants.py` - Module-specific constants and error codes
+- `config.py` - Environment variables and configuration
+- `utils.py` - Non-business logic functions (response normalization, data enrichment)
+
+### Global Structure
+
+```
+src/
+├── domain_module/
+│   ├── router.py
+│   ├── schemas.py
+│   ├── models.py
+│   ├── dependencies.py
+│   ├── config.py
+│   ├── constants.py
+│   ├── exceptions.py
+│   ├── service.py
+│   └── utils.py
+├── config.py          # Global configs
+├── models.py          # Global models
+├── exceptions.py      # Global exceptions
+├── database.py        # DB connection related stuff
+└── main.py           # FastAPI app initialization
+```
+
+### Rules
+
+1. **Consistency**: Follow the same structure across all domain modules
+2. **Separation of Concerns**: Keep business logic in `service.py`, API logic in `router.py`
+3. **Global vs Local**: Use global files for shared functionality, local files for domain-specific logic
+4. **No Mixing**: Don't mix database models with Pydantic schemas in the same file

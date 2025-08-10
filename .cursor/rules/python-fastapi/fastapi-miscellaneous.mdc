@@ -1,0 +1,180 @@
+---
+globs: **/*.py
+alwaysApply: false
+---
+# FastAPI Miscellaneous Best Practices
+
+## REST API Design
+
+### Follow REST Principles
+- Use appropriate HTTP methods (GET, POST, PUT, DELETE, PATCH)
+- Use meaningful resource URLs
+- Return appropriate HTTP status codes
+- Implement consistent error responses
+
+### Status Codes
+```python
+from fastapi import status
+
+# Use explicit status codes
+@router.post("/users", status_code=status.HTTP_201_CREATED)
+@router.get("/users/{user_id}", status_code=status.HTTP_200_OK)
+@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+```
+
+## Response Serialization
+
+### Leverage FastAPI's Built-in Serialization
+- Use `response_model` parameter for automatic serialization
+- Let FastAPI handle JSON conversion
+- Don't manually serialize Pydantic models to dict
+
+```python
+@router.get("/users/{user_id}", response_model=UserResponse)
+async def get_user(user_id: int):
+    user = await get_user_by_id(user_id)
+    return user  # FastAPI handles serialization automatically
+```
+
+## Documentation Best Practices
+
+### Environment-Based Documentation
+```python
+from fastapi import FastAPI
+
+SHOW_DOCS_ENVIRONMENT = ("local", "staging")
+
+app_configs = {"title": "My Cool API"}
+if ENVIRONMENT not in SHOW_DOCS_ENVIRONMENT:
+    app_configs["openapi_url"] = None  # Hide docs in production
+
+app = FastAPI(**app_configs)
+```
+
+### Rich API Documentation
+```python
+@router.post(
+    "/posts",
+    response_model=PostResponse,
+    status_code=status.HTTP_201_CREATED,
+    description="Create a new blog post",
+    tags=["Posts"],
+    summary="Create Post",
+    responses={
+        status.HTTP_201_CREATED: {
+            "model": PostResponse,
+            "description": "Post created successfully",
+        },
+        status.HTTP_400_BAD_REQUEST: {
+            "model": ErrorResponse,
+            "description": "Invalid post data",
+        },
+    },
+)
+async def create_post(post_data: PostCreate):
+    pass
+```
+
+## Testing Setup
+
+### Async Test Client from Day One
+```python
+import pytest
+from httpx import AsyncClient
+from fastapi.testclient import TestClient
+
+@pytest.fixture
+async def client():
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        yield client
+
+@pytest.mark.asyncio
+async def test_create_post(client: AsyncClient):
+    response = await client.post("/posts", json={"title": "Test"})
+    assert response.status_code == 201
+```
+
+## Code Quality Tools
+
+### Use Ruff for Linting and Formatting
+```bash
+#!/bin/sh -e
+set -x
+
+ruff check --fix src
+ruff format src
+```
+
+### Ruff Configuration
+```toml
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+```
+
+## Error Handling
+
+### Consistent Error Responses
+```python
+from fastapi import HTTPException
+
+class CustomHTTPException(HTTPException):
+    def __init__(self, status_code: int, detail: str, error_code: str = None):
+        super().__init__(status_code=status_code, detail=detail)
+        self.error_code = error_code
+
+# Usage
+raise CustomHTTPException(
+    status_code=400,
+    detail="Invalid user data",
+    error_code="INVALID_USER_DATA"
+)
+```
+
+### Global Exception Handler
+```python
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(CustomHTTPException)
+async def custom_exception_handler(request: Request, exc: CustomHTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": exc.detail,
+            "error_code": exc.error_code,
+            "path": request.url.path
+        }
+    )
+```
+
+## Security Best Practices
+
+1. **Environment Variables**: Never commit secrets to version control
+2. **CORS**: Configure CORS properly for production
+3. **Rate Limiting**: Implement rate limiting for public endpoints
+4. **Input Validation**: Validate all inputs with Pydantic
+5. **Authentication**: Use proper authentication mechanisms
+6. **HTTPS**: Always use HTTPS in production
+
+## Performance Tips
+
+1. **Database Connection Pooling**: Configure proper connection pools
+2. **Caching**: Implement caching for frequently accessed data
+3. **Background Tasks**: Use background tasks for non-critical operations
+4. **Pagination**: Implement pagination for large data sets
+5. **Compression**: Enable response compression

@@ -1,0 +1,69 @@
+---
+description: General rules
+globs:
+alwaysApply: true
+---
+
+Don't perform git stuff. Only create/edit .gitignore. I will do commits/branches manually.
+
+## API-First Development
+
+### Overview
+
+All API development follows an **API-First** approach where the OpenAPI specification serves as the single source of truth for API contracts between frontend and backend teams.
+
+### Development Workflow
+
+When implementing any new feature or API endpoint, follow this enhanced workflow:
+
+1. **🎯 Task Assignment** - Understand requirements and scope
+2. **📋 API Design** - Create/update OpenAPI specification in `api-spec/` project
+3. **⚙️ Code Generation** - Generate FastAPI controllers and TypeScript clients
+4. **🔧 Backend Implementation** - Implement business logic in services layer
+5. **🎨 Frontend Implementation** - Build UI components using generated clients
+6. **🧪 E2E Testing** - Validate complete workflow with Cypress
+7. **📖 Documentation** - Update PROJECT_PLAN.md and mark task completed
+8. **🔍 Quality Review** - Ensure all standards are followed
+9. **✅ Regression Testing** - Validate all existing functionality still works
+
+### Project Structure with OpenAPI
+
+```
+book-course-converter/
+├── api-spec/                    # Separate OpenAPI project
+│   ├── openapi/
+│   │   ├── schemas/            # Reusable schemas
+│   │   │   ├── book.yaml
+│   │   │   ├── course.yaml
+│   │   │   └── common.yaml
+│   │   ├── paths/              # API endpoints
+│   │   │   ├── books/
+│   │   │   │   ├── upload.yaml
+│   │   │   │   ├── list.yaml
+│   │   │   │   └── get.yaml
+│   │   │   └── courses/
+│   │   ├── spec.yaml           # Main OpenAPI spec
+│   │   └── package.json        # Generation scripts
+│   ├── generated/              # Generated code output
+│   │   ├── python/            # FastAPI models & routes
+│   │   └── typescript/        # Axios clients & types
+│   └── scripts/               # Code generation scripts
+├── backend/                    # FastAPI backend
+│   ├── app/
+│   │   ├── services/          # Business logic implementation
+│   │   └── main.py
+└── frontend/                   # React frontend
+    ├── src/
+    │   └── features/
+```
+
+- Frontend and backend should import openapi generated artifacts directly.
+- Backend and frontend must not contain tests theirselves. Only e2e testing is allowed in separate project
+
+### Testing Strategy
+
+- **Full Stack Testing**: Backend and frontend running together
+- **Real User Scenarios**: Test actual user workflows
+- **API Contract Validation**: Ensure frontend and backend communicate correctly
+- **Data Persistence**: Verify data flows through the entire system
+- **Error Handling**: Test error scenarios and edge cases

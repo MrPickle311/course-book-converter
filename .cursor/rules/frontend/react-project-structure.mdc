@@ -1,0 +1,186 @@
+---
+globs: **/*.tsx,frontend/**
+alwaysApply: false
+---
+
+# React Project Structure Rules (Bulletproof React)
+
+Based on [Bulletproof React](https://github.com/alan2207/bulletproof-react) best practices for scalable React applications.
+
+## Feature-Driven Architecture
+
+### Core Principle
+- Organize code by **features** rather than file types
+- Each feature should be self-contained and reusable
+- Shared components and utilities live in global directories
+
+### Directory Structure
+
+```
+src/
+├── assets/                    # Static files
+│   ├── images/
+│   ├── icons/
+│   └── fonts/
+├── components/               # Shared UI components
+│   ├── ui/                  # Basic UI elements
+│   │   ├── Button/
+│   │   ├── Input/
+│   │   ├── Modal/
+│   │   └── index.ts
+│   ├── forms/               # Reusable form components
+│   └── layout/              # Layout components
+├── features/                # Feature-based modules
+│   ├── authentication/
+│   │   ├── api/            # Auth API calls
+│   │   ├── components/     # Auth-specific components
+│   │   ├── hooks/          # Auth custom hooks
+│   │   ├── stores/         # Auth state management
+│   │   ├── types/          # Auth TypeScript types
+│   │   └── index.ts        # Feature exports
+│   ├── dashboard/
+│   └── profile/
+├── hooks/                   # Shared custom hooks
+├── lib/                     # External library configs
+├── providers/               # Context providers
+├── services/                # API service layer
+├── stores/                  # Global state management
+├── types/                   # Global TypeScript types
+├── utils/                   # Utility functions
+└── main.tsx                # App entry point
+```
+
+## Feature Module Structure
+
+Each feature should follow this internal structure:
+
+```
+feature/
+├── api/                     # API calls for this feature
+│   ├── featureApi.ts
+│   ├── types.ts
+│   └── index.ts
+├── components/              # Feature-specific components
+│   ├── FeatureComponent/
+│   │   ├── FeatureComponent.tsx
+│   │   ├── FeatureComponent.test.tsx
+│   │   ├── FeatureComponent.stories.tsx
+│   │   └── index.ts
+│   └── index.ts
+├── hooks/                   # Feature-specific hooks
+│   ├── useFeature.ts
+│   └── index.ts
+├── stores/                  # Feature state management
+│   ├── featureStore.ts
+│   └── index.ts
+├── types/                   # Feature TypeScript types
+│   ├── feature.types.ts
+│   └── index.ts
+└── index.ts                # Feature public API
+```
+
+## File Naming Conventions
+
+### Components
+- Use **PascalCase** for component files: `UserProfile.tsx`
+- Component directory matches component name: `UserProfile/UserProfile.tsx`
+- Always include `index.ts` for clean imports
+
+### Hooks
+- Use **camelCase** with `use` prefix: `useUserProfile.ts`
+- Custom hooks should return object with named properties
+
+### Types
+- Use **PascalCase** for type names: `UserProfile`, `ApiResponse`
+- Use `.types.ts` suffix for type files: `user.types.ts`
+
+### API Files
+- Use **camelCase**: `userApi.ts`
+- Group related API calls in single file
+
+## Import/Export Rules
+
+### Feature Index Files
+Each feature should export its public API through `index.ts`:
+
+```typescript
+// features/authentication/index.ts
+export { LoginForm, SignupForm } from './components';
+export { useAuth, useLogin } from './hooks';
+export type { User, AuthState } from './types';
+export { authApi } from './api';
+```
+
+### Component Exports
+Always use named exports for components:
+
+```typescript
+// ✅ Good
+export const UserProfile = () => {
+  // component logic
+};
+
+// ❌ Avoid default exports
+export default UserProfile;
+```
+
+### Import Ordering
+1. External libraries
+2. Internal absolute imports
+3. Relative imports
+
+```typescript
+// ✅ Good import order
+import React from 'react';
+import { Button } from 'antd';
+
+import { api } from '@/services/api';
+import { User } from '@/types/user.types';
+
+import { useUserProfile } from './hooks/useUserProfile';
+import './UserProfile.css';
+```
+
+## Absolute Imports Configuration
+
+Configure path mapping in `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "baseUrl": "src",
+    "paths": {
+      "@/*": ["*"],
+      "@/components/*": ["components/*"],
+      "@/features/*": ["features/*"],
+      "@/hooks/*": ["hooks/*"],
+      "@/services/*": ["services/*"],
+      "@/types/*": ["types/*"],
+      "@/utils/*": ["utils/*"]
+    }
+  }
+}
+```
+
+## Component Organization Rules
+
+### UI Components (`components/ui/`)
+- Basic, reusable UI elements
+- No business logic
+- Highly configurable through props
+- Well-documented with TypeScript interfaces
+
+### Form Components (`components/forms/`)
+- Reusable form elements
+- Include validation logic
+- Can be composed into larger forms
+
+### Layout Components (`components/layout/`)
+- Page structure components
+- Navigation, headers, footers
+- Responsive design handling
+
+### Feature Components (`features/*/components/`)
+- Business logic specific to the feature
+- Can use feature-specific hooks and state
+- Should not be imported by other features directly

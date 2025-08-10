@@ -1,0 +1,323 @@
+---
+globs: **/*.tsx,frontend/**
+alwaysApply: false
+---
+
+# React Component Design Rules (Bulletproof React)
+
+Based on [Bulletproof React](https://github.com/alan2207/bulletproof-react) component design patterns.
+
+## Component Creation Principles
+
+### 1. Anti-Corruption Layer Pattern
+Create wrapper components around external libraries to maintain flexibility:
+
+```typescript
+// ✅ Good - Wrapper component
+interface ButtonProps {
+  variant?: 'primary' | 'secondary' | 'danger';
+  size?: 'small' | 'medium' | 'large';
+  onClick?: () => void;
+  children: React.ReactNode;
+}
+
+export const Button = ({ variant = 'primary', size = 'medium', ...props }: ButtonProps) => {
+  // Map internal props to external library props
+  const antdVariant = variant === 'danger' ? 'dashed' : variant;
+
+  return <AntdButton type={antdVariant} size={size} {...props} />;
+};
+
+// ❌ Avoid - Direct library usage in components
+import { Button as AntdButton } from 'antd';
+export const MyComponent = () => (
+  <AntdButton type="primary">Click me</AntdButton>
+);
+```
+
+### 2. Component Composition Over Inheritance
+
+```typescript
+// ✅ Good - Composition
+interface CardProps {
+  children: React.ReactNode;
+  header?: React.ReactNode;
+  footer?: React.ReactNode;
+  className?: string;
+}
+
+export const Card = ({ children, header, footer, className }: CardProps) => (
+  <div className={cn('card', className)}>
+    {header && <div className="card-header">{header}</div>}
+    <div className="card-body">{children}</div>
+    {footer && <div className="card-footer">{footer}</div>}
+  </div>
+);
+
+// Usage
+<Card
+  header={<h2>User Profile</h2>}
+  footer={<Button>Edit</Button>}
+>
+  <UserDetails />
+</Card>
+```
+
+### 3. Props Interface Design
+
+```typescript
+// ✅ Good - Well-defined interface
+interface UserCardProps {
+  user: User;
+  variant?: 'compact' | 'detailed';
+  showActions?: boolean;
+  onEdit?: (user: User) => void;
+  onDelete?: (userId: string) => void;
+  className?: string;
+}
+
+export const UserCard = ({
+  user,
+  variant = 'detailed',
+  showActions = true,
+  onEdit,
+  onDelete,
+  className,
+}: UserCardProps) => {
+  // Component implementation
+};
+```
+
+## Component Types and Patterns
+
+### 1. Presentational Components
+- Focus on how things look
+- No business logic or state management
+- Receive data via props
+- Highly reusable
+
+```typescript
+interface ProductCardProps {
+  product: Product;
+  onAddToCart: (productId: string) => void;
+  className?: string;
+}
+
+export const ProductCard = ({ product, onAddToCart, className }: ProductCardProps) => (
+  <div className={cn('product-card', className)}>
+    <img src={product.image} alt={product.name} />
+    <h3>{product.name}</h3>
+    <p>{product.price}</p>
+    <Button onClick={() => onAddToCart(product.id)}>
+      Add to Cart
+    </Button>
+  </div>
+);
+```
+
+### 2. Container Components
+- Handle business logic and state
+- Connect to external data sources
+- Pass data to presentational components
+
+```typescript
+interface ProductListContainerProps {
+  categoryId?: string;
+}
+
+export const ProductListContainer = ({ categoryId }: ProductListContainerProps) => {
+  const { data: products, isLoading, error } = useProducts({ categoryId });
+  const { mutate: addToCart } = useAddToCart();
+
+  if (isLoading) return <LoadingSpinner />;
+  if (error) return <ErrorMessage error={error} />;
+
+  return (
+    <div className="product-grid">
+      {products?.map(product => (
+        <ProductCard
+          key={product.id}
+          product={product}
+          onAddToCart={addToCart}
+        />
+      ))}
+    </div>
+  );
+};
+```
+
+### 3. Compound Components
+For complex UI patterns with multiple related parts:
+
+```typescript
+interface TabsContextType {
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+}
+
+const TabsContext = createContext<TabsContextType | null>(null);
+
+export const Tabs = ({ children, defaultTab }: TabsProps) => {
+  const [activeTab, setActiveTab] = useState(defaultTab);
+
+  return (
+    <TabsContext.Provider value={{ activeTab, setActiveTab }}>
+      <div className="tabs">{children}</div>
+    </TabsContext.Provider>
+  );
+};
+
+export const TabList = ({ children }: { children: React.ReactNode }) => (
+  <div className="tab-list" role="tablist">{children}</div>
+);
+
+export const Tab = ({ value, children }: TabProps) => {
+  const { activeTab, setActiveTab } = useContext(TabsContext)!;
+
+  return (
+    <button
+      className={cn('tab', { active: activeTab === value })}
+      onClick={() => setActiveTab(value)}
+      role="tab"
+    >
+      {children}
+    </button>
+  );
+};
+
+export const TabPanels = ({ children }: { children: React.ReactNode }) => (
+  <div className="tab-panels">{children}</div>
+);
+
+export const TabPanel = ({ value, children }: TabPanelProps) => {
+  const { activeTab } = useContext(TabsContext)!;
+
+  if (activeTab !== value) return null;
+
+  return <div className="tab-panel" role="tabpanel">{children}</div>;
+};
+
+// Usage
+<Tabs defaultTab="profile">
+  <TabList>
+    <Tab value="profile">Profile</Tab>
+    <Tab value="settings">Settings</Tab>
+  </TabList>
+  <TabPanels>
+    <TabPanel value="profile"><UserProfile /></TabPanel>
+    <TabPanel value="settings"><UserSettings /></TabPanel>
+  </TabPanels>
+</Tabs>
+```
+
+## Component Performance Patterns
+
+### 1. Memoization
+```typescript
+// ✅ Good - Memoize expensive components
+export const ExpensiveComponent = memo(({ data, onUpdate }: Props) => {
+  const processedData = useMemo(() =>
+    expensiveDataProcessing(data), [data]
+  );
+
+  const handleUpdate = useCallback((id: string) =>
+    onUpdate(id), [onUpdate]
+  );
+
+  return <div>{/* Render processed data */}</div>;
+});
+
+// ✅ Good - Memoize with custom comparison
+export const UserCard = memo(({ user }: { user: User }) => (
+  <div>{user.name}</div>
+), (prevProps, nextProps) =>
+  prevProps.user.id === nextProps.user.id &&
+  prevProps.user.updatedAt === nextProps.user.updatedAt
+);
+```
+
+### 2. Code Splitting for Components
+```typescript
+// ✅ Good - Lazy load heavy components
+const HeavyChart = lazy(() => import('./HeavyChart'));
+const DataTable = lazy(() => import('./DataTable'));
+
+export const Dashboard = () => (
+  <Suspense fallback={<LoadingSpinner />}>
+    <div className="dashboard">
+      <HeavyChart />
+      <DataTable />
+    </div>
+  </Suspense>
+);
+```
+
+## Accessibility Guidelines
+
+### 1. Semantic HTML
+```typescript
+// ✅ Good - Semantic structure
+export const Navigation = ({ items }: NavigationProps) => (
+  <nav role="navigation" aria-label="Main navigation">
+    <ul>
+      {items.map(item => (
+        <li key={item.id}>
+          <a href={item.href}>{item.label}</a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+);
+```
+
+### 2. ARIA Attributes
+```typescript
+// ✅ Good - Proper ARIA usage
+export const Modal = ({ isOpen, onClose, title, children }: ModalProps) => (
+  <div
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modal-title"
+    className={cn('modal', { open: isOpen })}
+  >
+    <h2 id="modal-title">{title}</h2>
+    <div>{children}</div>
+    <button onClick={onClose} aria-label="Close modal">×</button>
+  </div>
+);
+```
+
+## Error Boundaries
+
+```typescript
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error?: Error;
+}
+
+export class ErrorBoundary extends Component<
+  PropsWithChildren<{ fallback?: ComponentType<{ error: Error }> }>,
+  ErrorBoundaryState
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Error boundary caught error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      const FallbackComponent = this.props.fallback || DefaultErrorFallback;
+      return <FallbackComponent error={this.state.error!} />;
+    }
+
+    return this.props.children;
+  }
+}

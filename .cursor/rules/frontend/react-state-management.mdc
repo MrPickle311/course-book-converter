@@ -1,0 +1,925 @@
+---
+globs: **/*.tsx,frontend/**
+alwaysApply: false
+---
+
+# React State Management Rules (Bulletproof React)
+
+Based on [Bulletproof React](https://github.com/alan2207/bulletproof-react) state management best practices.
+
+## State Management Strategy
+
+### Three Categories of State
+
+1. **Component State** - Local to a specific component
+2. **Application State** - Shared across multiple components
+3. **Server State** - Data from external servers
+
+### State Management Tools by Category
+
+```typescript
+// Component State - useState, useReducer
+const [isOpen, setIsOpen] = useState(false);
+
+// Application State - Context API, Zustand, Redux
+const { user, setUser } = useAuthStore();
+
+// Server State - React Query, SWR, Apollo Client
+const { data: users, isLoading } = useQuery('users', fetchUsers);
+```
+
+## Component State Patterns
+
+### 1. Simple State with useState
+```typescript
+interface LoginFormState {
+  email: string;
+  password: string;
+  isSubmitting: boolean;
+}
+
+export const LoginForm = () => {
+  const [formData, setFormData] = useState<LoginFormState>({
+    email: '',
+    password: '',
+    isSubmitting: false,
+  });
+
+  const updateField = (field: keyof LoginFormState) => (value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  return (
+    <form>
+      <input
+        value={formData.email}
+        onChange={(e) => updateField('email')(e.target.value)}
+      />
+      <input
+        type="password"
+        value={formData.password}
+        onChange={(e) => updateField('password')(e.target.value)}
+      />
+    </form>
+  );
+};
+```
+
+### 2. Complex State with useReducer
+```typescript
+interface TodoState {
+  todos: Todo[];
+  filter: 'all' | 'active' | 'completed';
+  isLoading: boolean;
+}
+
+type TodoAction =
+  | { type: 'ADD_TODO'; payload: Todo }
+  | { type: 'TOGGLE_TODO'; payload: string }
+  | { type: 'SET_FILTER'; payload: 'all' | 'active' | 'completed' }
+  | { type: 'SET_LOADING'; payload: boolean };
+
+const todoReducer = (state: TodoState, action: TodoAction): TodoState => {
+  switch (action.type) {
+    case 'ADD_TODO':
+      return { ...state, todos: [...state.todos, action.payload] };
+    case 'TOGGLE_TODO':
+      return {
+        ...state,
+        todos: state.todos.map(todo =>
+          todo.id === action.payload
+            ? { ...todo, completed: !todo.completed }
+            : todo
+        ),
+      };
+    case 'SET_FILTER':
+      return { ...state, filter: action.payload };
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.payload };
+    default:
+      return state;
+  }
+};
+
+export const TodoApp = () => {
+  const [state, dispatch] = useReducer(todoReducer, {
+    todos: [],
+    filter: 'all',
+    isLoading: false,
+  });
+
+  const addTodo = (text: string) => {
+    const newTodo = { id: Date.now().toString(), text, completed: false };
+    dispatch({ type: 'ADD_TODO', payload: newTodo });
+  };
+
+  return (
+    <div>
+      {/* Todo app implementation */}
+    </div>
+  );
+};
+```
+
+## Application State Management
+
+### 1. Context API for Simple Global State
+```typescript
+// ✅ Good - Theme context
+interface ThemeContextType {
+  theme: 'light' | 'dark';
+  toggleTheme: () => void;
+}
+
+const ThemeContext = createContext<ThemeContextType | null>(null);
+
+export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+  const toggleTheme = useCallback(() => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  }, []);
+
+  return (
+    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+};
+
+export const useTheme = () => {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error('useTheme must be used within ThemeProvider');
+  }
+  return context;
+};
+```
+
+### 2. Zustand for Complex Global State
+```typescript
+// stores/authStore.ts
+interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (credentials: LoginCredentials) => Promise<void>;
+  logout: () => void;
+  refreshUser: () => Promise<void>;
+}
+
+export const useAuthStore = create<AuthState>((set, get) => ({
+  user: null,
+  isAuthenticated: false,
+  isLoading: false,
+
+  login: async (credentials) => {
+    set({ isLoading: true });
+    try {
+      const user = await authApi.login(credentials);
+      set({ user, isAuthenticated: true, isLoading: false });
+    } catch (error) {
+      set({ isLoading: false });
+      throw error;
+    }
+  },
+
+  logout: () => {
+    authApi.logout();
+    set({ user: null, isAuthenticated: false });
+  },
+
+  refreshUser: async () => {
+    try {
+      const user = await authApi.getCurrentUser();
+      set({ user, isAuthenticated: true });
+    } catch (error) {
+      set({ user: null, isAuthenticated: false });
+    }
+  },
+}));
+
+// Usage in components
+export const UserProfile = () => {
+  const { user, logout } = useAuthStore();
+
+  return (
+    <div>
+      <h1>Welcome, {user?.name}</h1>
+      <button onClick={logout}>Logout</button>
+    </div>
+  );
+};
+```
+
+### 3. Redux Toolkit for Enterprise Applications
+```typescript
+// features/users/userSlice.ts
+interface UserState {
+  users: User[];
+  currentUser: User | null;
+  status: 'idle' | 'loading' | 'succeeded' | 'failed';
+  error: string | null;
+}
+
+const initialState: UserState = {
+  users: [],
+  currentUser: null,
+  status: 'idle',
+  error: null,
+};
+
+export const fetchUsers = createAsyncThunk(
+  'users/fetchUsers',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await userApi.getUsers();
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+const userSlice = createSlice({
+  name: 'users',
+  initialState,
+  reducers: {
+    clearError: (state) => {
+      state.error = null;
+    },
+    setCurrentUser: (state, action) => {
+      state.currentUser = action.payload;
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchUsers.pending, (state) => {
+        state.status = 'loading';
+      })
+      .addCase(fetchUsers.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.users = action.payload;
+      })
+      .addCase(fetchUsers.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string;
+      });
+  },
+});
+
+export const { clearError, setCurrentUser } = userSlice.actions;
+export default userSlice.reducer;
+```
+
+## Server State Management
+
+### 1. React Query for Server State
+```typescript
+// hooks/useUsers.ts
+export const useUsers = (params?: UserQueryParams) => {
+  return useQuery({
+    queryKey: ['users', params],
+    queryFn: () => userApi.getUsers(params),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
+  });
+};
+
+export const useUser = (userId: string) => {
+  return useQuery({
+    queryKey: ['users', userId],
+    queryFn: () => userApi.getUser(userId),
+    enabled: !!userId,
+  });
+};
+
+export const useCreateUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: userApi.createUser,
+    onSuccess: (newUser) => {
+      // Update the users list cache
+      queryClient.setQueryData<User[]>(['users'], (old) =>
+        old ? [...old, newUser] : [newUser]
+      );
+
+      // Or invalidate to refetch
+      queryClient.invalidateQueries(['users']);
+    },
+  });
+};
+
+// Usage in components
+export const UserList = () => {
+  const { data: users, isLoading, error } = useUsers();
+  const createUser = useCreateUser();
+
+  if (isLoading) return <LoadingSpinner />;
+  if (error) return <ErrorMessage error={error} />;
+
+  return (
+    <div>
+      {users?.map(user => (
+        <UserCard key={user.id} user={user} />
+      ))}
+      <button onClick={() => createUser.mutate(newUserData)}>
+        Add User
+      </button>
+    </div>
+  );
+};
+```
+
+### 2. Optimistic Updates
+```typescript
+export const useUpdateUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: userApi.updateUser,
+    onMutate: async (updatedUser) => {
+      // Cancel outgoing queries
+      await queryClient.cancelQueries(['users', updatedUser.id]);
+
+      // Snapshot previous value
+      const previousUser = queryClient.getQueryData(['users', updatedUser.id]);
+
+      // Optimistically update
+      queryClient.setQueryData(['users', updatedUser.id], updatedUser);
+
+      return { previousUser };
+    },
+    onError: (error, updatedUser, context) => {
+      // Rollback on error
+      queryClient.setQueryData(
+        ['users', updatedUser.id],
+        context?.previousUser
+      );
+    },
+    onSettled: (updatedUser) => {
+      // Always refetch after error or success
+      queryClient.invalidateQueries(['users', updatedUser?.id]);
+    },
+  });
+};
+```
+
+## State Management Best Practices
+
+### 1. Keep State Minimal and Derived
+```typescript
+// ✅ Good - Minimal state
+interface TodoState {
+  todos: Todo[];
+  filter: FilterType;
+}
+
+const TodoApp = () => {
+  const [state, setState] = useState<TodoState>({ todos: [], filter: 'all' });
+
+  // Derive computed values
+  const filteredTodos = useMemo(() =>
+    state.todos.filter(todo => {
+      if (state.filter === 'active') return !todo.completed;
+      if (state.filter === 'completed') return todo.completed;
+      return true;
+    }), [state.todos, state.filter]
+  );
+
+  const completedCount = useMemo(() =>
+    state.todos.filter(todo => todo.completed).length,
+    [state.todos]
+  );
+
+  return (
+    <div>
+      {/* Use derived values */}
+      <TodoCount completed={completedCount} total={state.todos.length} />
+      <TodoList todos={filteredTodos} />
+    </div>
+  );
+};
+```
+
+### 2. Normalize Complex State
+```typescript
+// ✅ Good - Normalized state structure
+interface NormalizedState {
+  users: {
+    byId: Record<string, User>;
+    allIds: string[];
+  };
+  posts: {
+    byId: Record<string, Post>;
+    allIds: string[];
+  };
+}
+
+// Helper selectors
+const selectUser = (state: NormalizedState, userId: string) =>
+  state.users.byId[userId];
+
+const selectAllUsers = (state: NormalizedState) =>
+  state.users.allIds.map(id => state.users.byId[id]);
+
+const selectUserPosts = (state: NormalizedState, userId: string) =>
+  state.posts.allIds
+    .map(id => state.posts.byId[id])
+    .filter(post => post.authorId === userId);
+```
+
+### 3. Handle Loading and Error States
+```typescript
+interface AsyncState<T> {
+  data: T | null;
+  isLoading: boolean;
+  error: string | null;
+}
+
+export const useAsyncState = <T>() => {
+  const [state, setState] = useState<AsyncState<T>>({
+    data: null,
+    isLoading: false,
+    error: null,
+  });
+
+  const execute = useCallback(async (asyncFn: () => Promise<T>) => {
+    setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+    try {
+      const data = await asyncFn();
+      setState({ data, isLoading: false, error: null });
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error.message
+      }));
+    }
+  }, []);
+
+  return { ...state, execute };
+};
+```
+# React State Management Rules (Bulletproof React)
+
+Based on [Bulletproof React](https://github.com/alan2207/bulletproof-react) state management best practices.
+
+## State Management Strategy
+
+### Three Categories of State
+
+1. **Component State** - Local to a specific component
+2. **Application State** - Shared across multiple components
+3. **Server State** - Data from external servers
+
+### State Management Tools by Category
+
+```typescript
+// Component State - useState, useReducer
+const [isOpen, setIsOpen] = useState(false);
+
+// Application State - Context API, Zustand, Redux
+const { user, setUser } = useAuthStore();
+
+// Server State - React Query, SWR, Apollo Client
+const { data: users, isLoading } = useQuery('users', fetchUsers);
+```
+
+## Component State Patterns
+
+### 1. Simple State with useState
+```typescript
+interface LoginFormState {
+  email: string;
+  password: string;
+  isSubmitting: boolean;
+}
+
+export const LoginForm = () => {
+  const [formData, setFormData] = useState<LoginFormState>({
+    email: '',
+    password: '',
+    isSubmitting: false,
+  });
+
+  const updateField = (field: keyof LoginFormState) => (value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  return (
+    <form>
+      <input
+        value={formData.email}
+        onChange={(e) => updateField('email')(e.target.value)}
+      />
+      <input
+        type="password"
+        value={formData.password}
+        onChange={(e) => updateField('password')(e.target.value)}
+      />
+    </form>
+  );
+};
+```
+
+### 2. Complex State with useReducer
+```typescript
+interface TodoState {
+  todos: Todo[];
+  filter: 'all' | 'active' | 'completed';
+  isLoading: boolean;
+}
+
+type TodoAction =
+  | { type: 'ADD_TODO'; payload: Todo }
+  | { type: 'TOGGLE_TODO'; payload: string }
+  | { type: 'SET_FILTER'; payload: 'all' | 'active' | 'completed' }
+  | { type: 'SET_LOADING'; payload: boolean };
+
+const todoReducer = (state: TodoState, action: TodoAction): TodoState => {
+  switch (action.type) {
+    case 'ADD_TODO':
+      return { ...state, todos: [...state.todos, action.payload] };
+    case 'TOGGLE_TODO':
+      return {
+        ...state,
+        todos: state.todos.map(todo =>
+          todo.id === action.payload
+            ? { ...todo, completed: !todo.completed }
+            : todo
+        ),
+      };
+    case 'SET_FILTER':
+      return { ...state, filter: action.payload };
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.payload };
+    default:
+      return state;
+  }
+};
+
+export const TodoApp = () => {
+  const [state, dispatch] = useReducer(todoReducer, {
+    todos: [],
+    filter: 'all',
+    isLoading: false,
+  });
+
+  const addTodo = (text: string) => {
+    const newTodo = { id: Date.now().toString(), text, completed: false };
+    dispatch({ type: 'ADD_TODO', payload: newTodo });
+  };
+
+  return (
+    <div>
+      {/* Todo app implementation */}
+    </div>
+  );
+};
+```
+
+## Application State Management
+
+### 1. Context API for Simple Global State
+```typescript
+// ✅ Good - Theme context
+interface ThemeContextType {
+  theme: 'light' | 'dark';
+  toggleTheme: () => void;
+}
+
+const ThemeContext = createContext<ThemeContextType | null>(null);
+
+export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+  const toggleTheme = useCallback(() => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  }, []);
+
+  return (
+    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+};
+
+export const useTheme = () => {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error('useTheme must be used within ThemeProvider');
+  }
+  return context;
+};
+```
+
+### 2. Zustand for Complex Global State
+```typescript
+// stores/authStore.ts
+interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (credentials: LoginCredentials) => Promise<void>;
+  logout: () => void;
+  refreshUser: () => Promise<void>;
+}
+
+export const useAuthStore = create<AuthState>((set, get) => ({
+  user: null,
+  isAuthenticated: false,
+  isLoading: false,
+
+  login: async (credentials) => {
+    set({ isLoading: true });
+    try {
+      const user = await authApi.login(credentials);
+      set({ user, isAuthenticated: true, isLoading: false });
+    } catch (error) {
+      set({ isLoading: false });
+      throw error;
+    }
+  },
+
+  logout: () => {
+    authApi.logout();
+    set({ user: null, isAuthenticated: false });
+  },
+
+  refreshUser: async () => {
+    try {
+      const user = await authApi.getCurrentUser();
+      set({ user, isAuthenticated: true });
+    } catch (error) {
+      set({ user: null, isAuthenticated: false });
+    }
+  },
+}));
+
+// Usage in components
+export const UserProfile = () => {
+  const { user, logout } = useAuthStore();
+
+  return (
+    <div>
+      <h1>Welcome, {user?.name}</h1>
+      <button onClick={logout}>Logout</button>
+    </div>
+  );
+};
+```
+
+### 3. Redux Toolkit for Enterprise Applications
+```typescript
+// features/users/userSlice.ts
+interface UserState {
+  users: User[];
+  currentUser: User | null;
+  status: 'idle' | 'loading' | 'succeeded' | 'failed';
+  error: string | null;
+}
+
+const initialState: UserState = {
+  users: [],
+  currentUser: null,
+  status: 'idle',
+  error: null,
+};
+
+export const fetchUsers = createAsyncThunk(
+  'users/fetchUsers',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await userApi.getUsers();
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+const userSlice = createSlice({
+  name: 'users',
+  initialState,
+  reducers: {
+    clearError: (state) => {
+      state.error = null;
+    },
+    setCurrentUser: (state, action) => {
+      state.currentUser = action.payload;
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchUsers.pending, (state) => {
+        state.status = 'loading';
+      })
+      .addCase(fetchUsers.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.users = action.payload;
+      })
+      .addCase(fetchUsers.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string;
+      });
+  },
+});
+
+export const { clearError, setCurrentUser } = userSlice.actions;
+export default userSlice.reducer;
+```
+
+## Server State Management
+
+### 1. React Query for Server State
+```typescript
+// hooks/useUsers.ts
+export const useUsers = (params?: UserQueryParams) => {
+  return useQuery({
+    queryKey: ['users', params],
+    queryFn: () => userApi.getUsers(params),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
+  });
+};
+
+export const useUser = (userId: string) => {
+  return useQuery({
+    queryKey: ['users', userId],
+    queryFn: () => userApi.getUser(userId),
+    enabled: !!userId,
+  });
+};
+
+export const useCreateUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: userApi.createUser,
+    onSuccess: (newUser) => {
+      // Update the users list cache
+      queryClient.setQueryData<User[]>(['users'], (old) =>
+        old ? [...old, newUser] : [newUser]
+      );
+
+      // Or invalidate to refetch
+      queryClient.invalidateQueries(['users']);
+    },
+  });
+};
+
+// Usage in components
+export const UserList = () => {
+  const { data: users, isLoading, error } = useUsers();
+  const createUser = useCreateUser();
+
+  if (isLoading) return <LoadingSpinner />;
+  if (error) return <ErrorMessage error={error} />;
+
+  return (
+    <div>
+      {users?.map(user => (
+        <UserCard key={user.id} user={user} />
+      ))}
+      <button onClick={() => createUser.mutate(newUserData)}>
+        Add User
+      </button>
+    </div>
+  );
+};
+```
+
+### 2. Optimistic Updates
+```typescript
+export const useUpdateUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: userApi.updateUser,
+    onMutate: async (updatedUser) => {
+      // Cancel outgoing queries
+      await queryClient.cancelQueries(['users', updatedUser.id]);
+
+      // Snapshot previous value
+      const previousUser = queryClient.getQueryData(['users', updatedUser.id]);
+
+      // Optimistically update
+      queryClient.setQueryData(['users', updatedUser.id], updatedUser);
+
+      return { previousUser };
+    },
+    onError: (error, updatedUser, context) => {
+      // Rollback on error
+      queryClient.setQueryData(
+        ['users', updatedUser.id],
+        context?.previousUser
+      );
+    },
+    onSettled: (updatedUser) => {
+      // Always refetch after error or success
+      queryClient.invalidateQueries(['users', updatedUser?.id]);
+    },
+  });
+};
+```
+
+## State Management Best Practices
+
+### 1. Keep State Minimal and Derived
+```typescript
+// ✅ Good - Minimal state
+interface TodoState {
+  todos: Todo[];
+  filter: FilterType;
+}
+
+const TodoApp = () => {
+  const [state, setState] = useState<TodoState>({ todos: [], filter: 'all' });
+
+  // Derive computed values
+  const filteredTodos = useMemo(() =>
+    state.todos.filter(todo => {
+      if (state.filter === 'active') return !todo.completed;
+      if (state.filter === 'completed') return todo.completed;
+      return true;
+    }), [state.todos, state.filter]
+  );
+
+  const completedCount = useMemo(() =>
+    state.todos.filter(todo => todo.completed).length,
+    [state.todos]
+  );
+
+  return (
+    <div>
+      {/* Use derived values */}
+      <TodoCount completed={completedCount} total={state.todos.length} />
+      <TodoList todos={filteredTodos} />
+    </div>
+  );
+};
+```
+
+### 2. Normalize Complex State
+```typescript
+// ✅ Good - Normalized state structure
+interface NormalizedState {
+  users: {
+    byId: Record<string, User>;
+    allIds: string[];
+  };
+  posts: {
+    byId: Record<string, Post>;
+    allIds: string[];
+  };
+}
+
+// Helper selectors
+const selectUser = (state: NormalizedState, userId: string) =>
+  state.users.byId[userId];
+
+const selectAllUsers = (state: NormalizedState) =>
+  state.users.allIds.map(id => state.users.byId[id]);
+
+const selectUserPosts = (state: NormalizedState, userId: string) =>
+  state.posts.allIds
+    .map(id => state.posts.byId[id])
+    .filter(post => post.authorId === userId);
+```
+
+### 3. Handle Loading and Error States
+```typescript
+interface AsyncState<T> {
+  data: T | null;
+  isLoading: boolean;
+  error: string | null;
+}
+
+export const useAsyncState = <T>() => {
+  const [state, setState] = useState<AsyncState<T>>({
+    data: null,
+    isLoading: false,
+    error: null,
+  });
+
+  const execute = useCallback(async (asyncFn: () => Promise<T>) => {
+    setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+    try {
+      const data = await asyncFn();
+      setState({ data, isLoading: false, error: null });
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error.message
+      }));
+    }
+  }, []);
+
+  return { ...state, execute };
+};
+```

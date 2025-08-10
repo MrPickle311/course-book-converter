@@ -1,0 +1,111 @@
+---
+globs: **/*.py
+alwaysApply: false
+---
+
+- Async database libraries like asyncpg or aiomysql
+- SQLAlchemy 2.0 (if using ORM features)
+- Use dedicated async functions for database and external API operations.
+
+# Database Naming Conventions and Best Practices
+
+## Database Key Naming Conventions
+
+Set explicit naming conventions for database indexes and constraints:
+
+```python
+from sqlalchemy import MetaData
+
+POSTGRES_INDEXES_NAMING_CONVENTION = {
+    "ix": "%(column_0_label)s_idx",
+    "uq": "%(table_name)s_%(column_0_name)s_key",
+    "ck": "%(table_name)s_%(constraint_name)s_check",
+    "fk": "%(table_name)s_%(column_0_name)s_fkey",
+    "pk": "%(table_name)s_pkey",
+}
+
+metadata = MetaData(naming_convention=POSTGRES_INDEXES_NAMING_CONVENTION)
+```
+
+## Table and Column Naming Rules
+
+### General Conventions
+1. **Case**: Use `lower_case_snake` for all names
+2. **Form**: Use singular form (e.g., `post`, `post_like`, `user_playlist`)
+3. **Grouping**: Group similar tables with module prefix (e.g., `payment_account`, `payment_bill`)
+4. **Consistency**: Stay consistent across tables, but concrete naming is acceptable
+
+### Specific Naming Rules
+
+#### Foreign Keys
+- Use `profile_id` consistently across tables
+- Use concrete naming when context is specific (e.g., `creator_id` for creator profiles)
+- Use `post_id` for abstract relationships, `course_id` for specific contexts
+
+#### Datetime Fields
+- Use `_at` suffix for datetime fields (e.g., `created_at`, `updated_at`)
+- Use `_date` suffix for date-only fields (e.g., `birth_date`, `start_date`)
+
+#### Boolean Fields
+- Use `is_` prefix for boolean flags (e.g., `is_active`, `is_verified`)
+- Use descriptive names without prefix when context is clear (e.g., `published`, `deleted`)
+
+## SQL-First Approach
+
+### Core Principle
+- **Database First**: Let the database handle data processing - it's faster than Python
+- **Complex Joins in SQL**: Perform complex joins and data manipulation in SQL
+- **JSON Aggregation**: Aggregate nested objects as JSON in the database
+
+### Example Implementation
+
+```python
+from sqlalchemy import select, func, text
+
+async def get_posts_with_creator(creator_id: UUID4, limit: int = 10, offset: int = 0):
+    query = (
+        select(
+            posts.c.id,
+            posts.c.slug,
+            posts.c.title,
+            func.json_build_object(
+                text("'id', profiles.id"),
+                text("'name', profiles.name"),
+                text("'username', profiles.username")
+            ).label("creator")
+        )
+        .select_from(posts.join(profiles, posts.c.creator_id == profiles.c.id))
+        .where(posts.c.creator_id == creator_id)
+        .limit(limit)
+        .offset(offset)
+    )
+    return await database.fetch_all(query)
+```
+
+## Migration Best Practices
+
+### Alembic Configuration
+
+1. **Static Migrations**: Ensure migrations are static and revertable
+2. **Descriptive Names**: Use descriptive names with date and slug pattern
+3. **File Template**: Set human-readable file template
+
+```ini
+# alembic.ini
+file_template = %%(year)d-%%(month).2d-%%(day).2d_%%(slug)s
+```
+
+### Migration Rules
+- Generate migrations with meaningful slugs explaining the changes
+- Review all auto-generated migrations before applying
+- Test migrations on copy of production data
+- Always provide rollback capability
+- Document complex migrations
+
+## Performance Considerations
+
+1. **Indexing Strategy**: Create indexes based on query patterns
+2. **Query Optimization**: Use SQL for complex data processing
+3. **Connection Pooling**: Implement proper connection pooling
+4. **Lazy Loading**: Be mindful of N+1 query problems
+5. **Bulk Operations**: Use bulk operations for large data sets
