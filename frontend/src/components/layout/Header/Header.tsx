@@ -1,6 +1,10 @@
-import { Layout, Typography, Button } from 'antd';
-import { BookOutlined } from '@ant-design/icons';
+import { Layout, Typography, Button, Tag, Space } from 'antd';
+import { BookOutlined, CloudServerOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
+import { useEffect, useState } from 'react';
+import { getHealth } from '@/services/health.service';
+import type { HealthStatus } from '@/services/health.service';
+import { Link } from 'react-router-dom';
 
 const { Header: AntHeader } = Layout;
 const { Title } = Typography;
@@ -39,7 +43,26 @@ const NavSection = styled.div`
   gap: ${({ theme }) => theme.spacing.md};
 `;
 
+const statusColor = (status: HealthStatus | 'unknown') => {
+  switch (status) {
+    case 'healthy':
+      return 'green';
+    case 'degraded':
+      return 'orange';
+    default:
+      return 'default';
+  }
+};
+
 export const Header = () => {
+  const [status, setStatus] = useState<HealthStatus | 'unknown'>('unknown');
+
+  useEffect(() => {
+    getHealth()
+      .then(res => setStatus(res.status))
+      .catch(() => setStatus('unknown'));
+  }, []);
+
   return (
     <StyledHeader>
       <LogoSection>
@@ -47,7 +70,13 @@ export const Header = () => {
         <StyledTitle level={3}>Book to Course Converter</StyledTitle>
       </LogoSection>
       <NavSection>
-        <Button type="primary">Get Started</Button>
+        <Space size="middle">
+          <Link to="/upload"><Button>Process PDF</Button></Link>
+          <Tag icon={<CloudServerOutlined />} color={statusColor(status)}>
+            {status === 'unknown' ? 'backend: n/a' : `backend: ${status}`}
+          </Tag>
+          <Link to="/"><Button type="primary">Get Started</Button></Link>
+        </Space>
       </NavSection>
     </StyledHeader>
   );
