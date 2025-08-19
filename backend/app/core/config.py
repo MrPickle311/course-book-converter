@@ -2,6 +2,8 @@
 Application configuration using Pydantic Settings.
 """
 
+from typing import List
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -24,12 +26,12 @@ class Settings(BaseSettings):
     port: int = Field(default=8000, description="Server port")
 
     # CORS settings
-    allowed_origins: list[str] = Field(
+    allowed_origins: List[str] = Field(
         default=["http://localhost:3000", "http://localhost:5173"],
         description="Allowed CORS origins",
     )
 
-    # Database settings (for future MongoDB integration)
+    # Database settings
     database_url: str = Field(
         default="mongodb://localhost:27017", description="Database connection URL"
     )
@@ -37,26 +39,53 @@ class Settings(BaseSettings):
         default="book_course_converter", description="Database name"
     )
 
+    # Database connection pool settings
+    db_max_connections: int = Field(default=100)
+    db_min_connections: int = Field(default=10)
+    db_max_idle_time_ms: int = Field(default=30000)
+    db_server_selection_timeout_ms: int = Field(default=5000)
+    db_connect_timeout_ms: int = Field(default=10000)
+    db_socket_timeout_ms: int = Field(default=30000)
+
     # File storage settings
-    upload_dir: str = Field(
-        default="./uploads", description="Directory for uploaded files"
+    upload_dir: str = Field(default="./uploads")
+    max_file_size: int = Field(default=50 * 1024 * 1024)
+
+    # PDF Processing defaults (text-only)
+    pdf_ocr_enabled: bool = Field(default=False)
+    pdf_ocr_language: str = Field(default="eng")
+    pdf_max_file_size: int = Field(default=100 * 1024 * 1024)
+    pdf_extract_images: bool = Field(default=False)
+    pdf_extract_tables: bool = Field(default=False)
+
+    # PDF cleaning and ToC behavior
+    pdf_discard_titles: List[str] = Field(
+        default=[
+            "foreword",
+            "preface",
+            "acknowledgments",
+            "praise",
+            "about the author",
+            "copyright",
+            "index",
+        ],
+        description="Headings to discard from chapters/ToC",
     )
-    max_file_size: int = Field(
-        default=50 * 1024 * 1024, description="Maximum file size in bytes"  # 50MB
+    pdf_discard_before_page: int = Field(
+        default=1, description="Discard items before this zero-based page index"
+    )
+    pdf_toc_title_keywords: List[str] = Field(
+        default=["table of contents", "contents"],
+        description="Keywords to detect ToC pages",
     )
 
     # AI/OpenAI settings (for future implementation)
-    openai_api_key: str = Field(default="", description="OpenAI API key")
-    openai_model: str = Field(default="gpt-4", description="OpenAI model to use")
+    openai_api_key: str = Field(default="")
+    openai_model: str = Field(default="gpt-4")
 
     # Security settings
-    secret_key: str = Field(
-        default="your-secret-key-change-this-in-production",
-        description="Secret key for JWT tokens",
-    )
-    access_token_expire_minutes: int = Field(
-        default=30, description="Access token expiration time in minutes"
-    )
+    secret_key: str = Field(default="your-secret-key-change-this-in-production")
+    access_token_expire_minutes: int = Field(default=30)
 
 
 # Create global settings instance

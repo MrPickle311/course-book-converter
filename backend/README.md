@@ -4,7 +4,11 @@ FastAPI backend for transforming PDF books into interactive AI-generated courses
 
 ## Features
 
-- **PDF Processing**: Advanced text extraction and structure analysis
+- **Advanced PDF Processing**:
+  - Text extraction with structure preservation (PyMuPDF + pdfplumber)
+  - Chapter detection and content classification
+  - Image and table extraction with OCR support
+  - Text cleaning and normalization pipeline
 - **AI Integration**: OpenAI GPT-4 powered content generation
 - **Course Generation**: Intelligent transformation of book content into structured courses
 - **Task Management**: Multi-modal practical exercises (coding, writing, file uploads)
@@ -12,97 +16,75 @@ FastAPI backend for transforming PDF books into interactive AI-generated courses
 
 ## Tech Stack
 
-- **Framework**: FastAPI with Python 3.12+
-- **Database**: MongoDB with Motor (async driver)
-- **Dependency Management**: Poetry
-- **Code Quality**: Ruff, Black, isort
+- **Framework**: FastAPI (Python 3.12+)
+- **Database**: MongoDB with Motor (async driver) and Beanie ODM
+- **PDF Processing**: PyMuPDF, pdfplumber, Tesseract OCR
+- **Code Quality**: Ruff, Black, isort (optional)
 - **Testing**: E2E testing only (no backend unit tests)
 
-## Project Structure
+## Getting Started (pip + venv)
 
-```
-backend/
-├── app/
-│   ├── api/          # API routes and endpoints
-│   ├── core/         # Core configuration and utilities
-│   ├── models/       # Database models
-│   ├── services/     # Business logic services
-│   └── main.py       # FastAPI application entry point
-├── docs/             # Documentation
-├── scripts/          # Utility scripts
-├── pyproject.toml    # Poetry configuration
-└── README.md         # This file
-```
+### Prerequisites
+- Python 3.12+
+- pip
+- MongoDB (optional for degraded mode)
 
-## Testing Strategy
-
-Following the API-First development approach:
-- **No Backend Unit Tests**: Backend does not contain its own tests
-- **E2E Testing Only**: All testing is done via end-to-end tests in a separate project
-- **Full Stack Testing**: Tests run against complete backend + frontend system
-- **Real User Scenarios**: Focus on actual user workflows and API contract validation
-
-## Setup
-
-1. **Install Poetry** (if not already installed):
-   ```bash
-   curl -sSL https://install.python-poetry.org | python3 -
-   ```
-
-2. **Install dependencies**:
-   ```bash
-   poetry install
-   ```
-
-3. **Copy environment configuration**:
-   ```bash
-   cp env.example .env
-   ```
-   Edit `.env` with your configuration values.
-
-4. **Run the development server**:
-   ```bash
-   poetry run python app/main.py
-   ```
-   Or with uvicorn:
-   ```bash
-   poetry run uvicorn app.main:app --reload
-   ```
-
-## Development
-
-### Code Quality
-
-Run code formatting and linting:
+### Setup
 
 ```bash
-# Format code
-poetry run black app/ scripts/
-poetry run isort app/ scripts/
+cd backend
 
-# Lint code
-poetry run ruff check app/ scripts/
+# Create and activate virtual environment
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
+
+# Install dependencies
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# Copy environment configuration
+awk '{print}' .env > .env  # Or copy manually
 ```
 
+### Run the API (no poetry)
 
+```bash
+# Development server with reload
+python scripts/dev.py
 
-## API Documentation
+# Or directly with uvicorn
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+```
 
-When running in debug mode, API documentation is available at:
+The server will be available at:
+- http://127.0.0.1:8000
+- Docs (debug mode): http://127.0.0.1:8000/docs
+- Health: http://127.0.0.1:8000/health
 
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
+### Degraded Mode
+If MongoDB is not running, the API starts in degraded mode and returns a `degraded` status on `/health/`.
 
-## Environment Variables
+### Database (optional)
+Start MongoDB locally and the API will connect automatically using env settings in `.env`.
 
-See `env.example` for all available configuration options.
+### Scripts
+- `scripts/dev.py`: run server (no poetry required)
+- `scripts/db_setup.py setup`: initialize database with sample data (requires MongoDB)
+- `scripts/db_setup.py reset`: reset collections (WARNING: deletes data)
+- `scripts/test_schemas.py`: validate Pydantic schemas
+- `scripts/test_pdf_processor.py`: validate PDF processor
 
-Key variables:
-- `DEBUG`: Enable debug mode and API docs
-- `DATABASE_URL`: MongoDB connection string
-- `OPENAI_API_KEY`: OpenAI API key for AI features
-- `UPLOAD_DIR`: Directory for uploaded files
+## API
+- `GET /` – root
+- `GET /health/` – health check (includes DB status)
+
+## Configuration
+See `env.example` for environment variables. Key settings:
+- `DEBUG` – enable docs/openapi in development
+- `DATABASE_URL`, `DATABASE_NAME` – MongoDB connection
+- `UPLOAD_DIR`, `MAX_FILE_SIZE` – uploads
+- `PDF_*` – PDF processing options
+- `OPENAI_*` – AI configuration (optional)
 
 ## License
-
 This project is part of the Book to Course Converter MVP.

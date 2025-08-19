@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Development server startup script.
+Development server startup script (no Poetry required).
 """
 import subprocess
 import sys
@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 def main():
-    """Start the development server."""
+    """Start the development server using the current Python interpreter."""
     backend_dir = Path(__file__).parent.parent
 
     # Change to backend directory
@@ -16,10 +16,10 @@ def main():
 
     os.chdir(backend_dir)
 
-    # Start the server
+    # Start the server using python -m uvicorn
     cmd = [
-        "poetry",
-        "run",
+        sys.executable,
+        "-m",
         "uvicorn",
         "app.main:app",
         "--host",

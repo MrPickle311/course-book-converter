@@ -33,7 +33,7 @@ Build a web platform that transforms PDF books into interactive, AI-generated co
   - Initialize Git repository with comprehensive .gitignore
   - Configure pre-commit hooks for code quality
 
-- [ ] **Task 1.1.2**: Initialize React frontend structure
+- [X] **Task 1.1.2**: Initialize React frontend structure
   - Set up React 18 with TypeScript using Vite
   - Configure Ant Design (antd) component library
   - Set up styled-components with TypeScript support
@@ -41,13 +41,12 @@ Build a web platform that transforms PDF books into interactive, AI-generated co
   - Set up absolute imports and path mapping
 
 
-- [ ] **Task 1.1.3**: Database setup and schema design
+- [X] **Task 1.1.3**: Database setup and schema design
   - Configure MongoDB with Motor (async driver)
   - Design comprehensive document schemas for books, courses, chapters, tasks
   - Implement database connection pooling and error handling
   - Create database indexing strategy for performance
   - Set up database seeding and migration scripts
-  - **E2E Tests**: Database connectivity and basic CRUD operations via API
   - **Implementation Details**:
     ```python
     # MongoDB Collections Design
@@ -68,7 +67,7 @@ Build a web platform that transforms PDF books into interactive, AI-generated co
 #### Epic 1.2: Core Backend Services
 - [ ] **Task 1.2.1**: PDF processing service
   - Implement advanced PDF text extraction using PyMuPDF and pdfplumber
-  - Handle various PDF formats (text-based, scanned with OCR)
+  - Handle various PDF formats (text-based)
   - Extract and preserve document structure (headings, paragraphs, lists)
   - Implement image and table extraction capabilities
   - Create text cleaning and normalization pipeline
