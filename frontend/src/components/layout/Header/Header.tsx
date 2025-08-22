@@ -1,4 +1,4 @@
-import { Layout, Typography, Button } from 'antd';
+import { Layout, Typography } from 'antd';
 import { BookOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
@@ -34,22 +34,16 @@ const LogoIcon = styled(BookOutlined)`
   color: ${({ theme }) => theme.colors.primary};
 `;
 
-const NavSection = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.spacing.md};
-`;
-
 export const Header = () => {
   return (
     <StyledHeader>
-      <LogoSection>
-        <LogoIcon />
-        <StyledTitle level={3}>Book to Course Converter</StyledTitle>
-      </LogoSection>
-      <NavSection>
-        <Link to="/"><Button type="primary">Get Started</Button></Link>
-      </NavSection>
+      <Link to="/" style={{ textDecoration: 'none' }}>
+        <LogoSection>
+          <LogoIcon />
+          <StyledTitle level={3}>Book to Course Converter</StyledTitle>
+        </LogoSection>
+      </Link>
+      <div />
     </StyledHeader>
   );
 };
