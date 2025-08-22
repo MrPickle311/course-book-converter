@@ -4,13 +4,18 @@ import com.bcc.backend.config.AppProperties
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.text.PDFTextStripper
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.ObjectProvider
 import org.springframework.stereotype.Service
 import java.io.File
 import java.time.Duration
 
 @Service
-class PdfProcessor(private val props: AppProperties) {
+class PdfProcessor(
+	private val props: AppProperties,
+	aiTocServiceProvider: ObjectProvider<AITocService>
+) {
 	private val logger = LoggerFactory.getLogger(PdfProcessor::class.java)
+	private val aiTocService: AITocService? = aiTocServiceProvider.ifAvailable
 
 	data class ChapterSummary(
 		val title: String,
@@ -40,7 +45,7 @@ class PdfProcessor(private val props: AppProperties) {
 			val pageCount = doc.numberOfPages
 
 			val headings = detectHeadings(text)
-			val toc = buildToc(headings)
+			val toc = buildTocWithAIOrFallback(pdfFile, headings)
 			val chapters = splitChaptersFromToc(toc, pageCount)
 			val clean = normalizeText(text)
 
@@ -66,6 +71,30 @@ class PdfProcessor(private val props: AppProperties) {
 				)
 			)
 		}
+	}
+
+	private fun buildTocWithAIOrFallback(pdfFile: File, headings: List<Pair<String, Int>>): List<Map<String, Any>> {
+		return try {
+			val ai = aiTocService
+			if (ai != null) {
+				val result = ai.extractToc(pdfFile)
+				if (result.nodes.isNotEmpty()) return flattenToc(result)
+			}
+			buildToc(headings)
+		} catch (ex: Exception) {
+			logger.warn("AI ToC failed, using heuristic fallback: {}", ex.message)
+			buildToc(headings)
+		}
+	}
+
+	private fun flattenToc(result: AITocService.TocResult): List<Map<String, Any>> {
+		val out = mutableListOf<Map<String, Any>>()
+		fun walk(node: AITocService.TocNode) {
+			out.add(mapOf("title" to node.title, "level" to node.level, "page" to node.page))
+			node.children.forEach { walk(it) }
+		}
+		result.nodes.forEach { walk(it) }
+		return out
 	}
 
 	private fun detectHeadings(text: String): List<Pair<String, Int>> {

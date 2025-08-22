@@ -10,6 +10,12 @@ spring:
   data:
     mongodb:
       uri: "mongodb://localhost:27017/book_course_converter"
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      chat:
+        options:
+          model: chatgpt-5
 
 server:
   port: 8080
