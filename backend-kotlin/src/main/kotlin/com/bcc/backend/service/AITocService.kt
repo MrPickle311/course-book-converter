@@ -18,16 +18,14 @@ class AITocService(private val chatModel: OpenAiChatModel) {
 	private val logger = LoggerFactory.getLogger(AITocService::class.java)
 	private val mapper = ObjectMapper()
 
-	data class TocNode(
+	data class TocItem(
 		val title: String,
-		val level: Int,
-		val page: Int,
-		val children: List<TocNode> = emptyList()
+		val page: Int
 	)
 
 	data class TocResult(
 		val complete: Boolean,
-		val nodes: List<TocNode>
+		val items: List<TocItem>
 	)
 
 	fun extractToc(pdfFile: File): TocResult {
@@ -52,36 +50,55 @@ class AITocService(private val chatModel: OpenAiChatModel) {
 
 	private fun callModel(text: String): ChatResponse {
 		val system = SystemMessage(
-			"You extract a hierarchical Table of Contents from raw PDF text. " +
-			"Return ONLY valid JSON with fields: complete (boolean) and toc (array of nodes). " +
-			"Each node: {title: string, level: number>=1, page: zero-based page integer, children: [...]} . " +
-			"If the provided text includes only part of the ToC, set complete=false."
+			"Extract ONLY top-level (root) Table of Contents entries from raw PDF text. " +
+			"Return STRICT JSON with exactly: { complete: boolean, toc: [ { title: string, page: integer } ] }. " +
+			"Pages must be zero-based integers. Do NOT include markdown, code fences, prose, or any extra fields. " +
+			"If the provided text contains only part of the ToC, set complete=false."
 		)
 		val user = UserMessage(
-			"Extract hierarchical ToC JSON from the following pages (first page is 0-based when reporting):\n\n" + text
+			"Extract root-level ToC JSON from the following pages (first page is 0-based when reporting):\n\n" + text
 		)
 		return chatModel.call(Prompt(listOf(system, user)))
 	}
 
 	private fun parseResponse(resp: ChatResponse): TocResult {
-		val content = resp.result.output.content
+		val raw = resp.result.output.content
+		val content = extractJson(raw)
 		val root: JsonNode = mapper.readTree(content)
 		val complete = root.path("complete").asBoolean(false)
-		val nodes = mutableListOf<TocNode>()
+		val items = mutableListOf<TocItem>()
 		val tocNode = root.path("toc")
 		if (tocNode.isArray) {
-			for (n in tocNode) nodes.add(parseNode(n))
+			for (n in tocNode) {
+				val title = n.path("title").asText("").trim()
+				val page = n.path("page").asInt(0)
+				if (title.isNotEmpty()) items.add(TocItem(title = title, page = page))
+			}
 		}
-		return TocResult(complete, nodes)
+		return TocResult(complete, items)
 	}
 
-	private fun parseNode(n: JsonNode): TocNode {
-		val title = n.path("title").asText("").trim()
-		val level = n.path("level").asInt(1)
-		val page = n.path("page").asInt(0)
-		val children = mutableListOf<TocNode>()
-		val arr = n.path("children")
-		if (arr.isArray) for (c in arr) children.add(parseNode(c))
-		return TocNode(title = title, level = level, page = page, children = children)
+	private fun extractJson(text: String): String {
+		val trimmed = text.trim()
+		if (trimmed.startsWith("```")) {
+			// Remove code fences like ```json ... ``` or ``` ... ```
+			val fence = "```"
+			val first = trimmed.indexOf(fence)
+			val last = trimmed.lastIndexOf(fence)
+			if (first >= 0 && last > first) {
+				val inner = trimmed.substring(first + fence.length, last).trim()
+				// Strip optional language tag (e.g., 'json') on the first line
+				val newline = inner.indexOf('\n')
+				return if (newline > 0) inner.substring(newline + 1).trim() else inner.trim()
+			}
+		}
+		// Fallback: take substring between first '{' and last '}' if present
+		val start = trimmed.indexOf('{')
+		val end = trimmed.lastIndexOf('}')
+		if (start >= 0 && end > start) {
+			return trimmed.substring(start, end + 1).trim()
+		}
+		logger.debug("extractJson: returning raw content due to no fences/braces detected")
+		return trimmed
 	}
 }

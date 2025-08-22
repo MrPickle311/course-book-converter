@@ -78,23 +78,13 @@ class PdfProcessor(
 			val ai = aiTocService
 			if (ai != null) {
 				val result = ai.extractToc(pdfFile)
-				if (result.nodes.isNotEmpty()) return flattenToc(result)
+				if (result.items.isNotEmpty()) return result.items.map { mapOf("title" to it.title, "level" to 1, "page" to it.page) }
 			}
 			buildToc(headings)
 		} catch (ex: Exception) {
 			logger.warn("AI ToC failed, using heuristic fallback: {}", ex.message)
 			buildToc(headings)
 		}
-	}
-
-	private fun flattenToc(result: AITocService.TocResult): List<Map<String, Any>> {
-		val out = mutableListOf<Map<String, Any>>()
-		fun walk(node: AITocService.TocNode) {
-			out.add(mapOf("title" to node.title, "level" to node.level, "page" to node.page))
-			node.children.forEach { walk(it) }
-		}
-		result.nodes.forEach { walk(it) }
-		return out
 	}
 
 	private fun detectHeadings(text: String): List<Pair<String, Int>> {
