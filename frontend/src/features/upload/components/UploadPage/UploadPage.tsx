@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Upload, Typography, Card, Space, Button, message, Descriptions, Tag, Row, Col, Tree, Switch } from 'antd';
-import { InboxOutlined, FilePdfOutlined, BarChartOutlined, BookOutlined, TableOutlined, PictureOutlined, ApartmentOutlined } from '@ant-design/icons';
+import { Upload, Typography, Card, Space, Button, message, Descriptions, Tag, Tree } from 'antd';
+import { InboxOutlined, FilePdfOutlined, BarChartOutlined, TableOutlined, PictureOutlined, ApartmentOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 import api from '@/services/api';
 
@@ -67,7 +67,7 @@ function buildChapterTree(flat: ChapterItem[]): TreeNode[] {
   }
 
   // prune empty children arrays for nicer rendering
-  const prune = (nodes: TreeNode[]) =>
+  const prune = (nodes: TreeNode[]): TreeNode[] =>
     nodes.map(n => ({ ...n, children: n.children && n.children.length ? prune(n.children) : undefined }));
 
   return prune(roots);
@@ -76,7 +76,6 @@ function buildChapterTree(flat: ChapterItem[]): TreeNode[] {
 export const UploadPage = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
-  const [expandAll, setExpandAll] = useState(true);
 
   const props = {
     name: 'file',
@@ -120,13 +119,6 @@ export const UploadPage = () => {
     return buildChapterTree(chapters);
   }, [result]);
 
-  const allKeys = useMemo(() => {
-    const keys: string[] = [];
-    const walk = (nodes: TreeNode[]) => nodes.forEach(n => { keys.push(n.key); if (n.children) walk(n.children); });
-    walk(treeData);
-    return keys;
-  }, [treeData]);
-
   return (
     <Container>
       <Title level={2} style={{ marginBottom: '1rem' }}>Process PDF</Title>
@@ -153,61 +145,14 @@ export const UploadPage = () => {
               <Descriptions.Item label={<><TableOutlined /> Tables</>}><Text>{result.tables}</Text></Descriptions.Item>
             </Descriptions>
 
-            <Card size="small" title={<><ApartmentOutlined /> Chapter hierarchy</>} extra={
-              <Space>
-                <Text>Expand all</Text>
-                <Switch checked={expandAll} onChange={setExpandAll} />
-              </Space>
-            }>
+            <Card size="small" title={<><ApartmentOutlined /> Chapter hierarchy</>}>
               {treeData.length ? (
                 <Tree
                   treeData={treeData as any}
-                  defaultExpandAll={expandAll}
-                  expandedKeys={expandAll ? allKeys : []}
+                  defaultExpandAll
                 />
               ) : (
                 <Text type="secondary">No chapter-like headings found</Text>
-              )}
-            </Card>
-
-            <Card size="small" title="Table of Contents">
-              {Array.isArray(result.toc) && result.toc.length ? (
-                <div>
-                  {result.toc.map((item: any, idx: number) => (
-                    <div
-                      key={`${item.title}-${idx}`}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        borderBottom: '1px dotted #e5e5e5',
-                        padding: '6px 0',
-                        marginLeft: `${Math.max(0, (item.level - 1)) * 16}px`,
-                      }}
-                    >
-                      <span>
-                        <Text strong={item.level === 1}>{item.title}</Text>
-                        {item.level > 1 && (
-                          <Tag size="small" style={{ marginLeft: 8 }}>L{item.level}</Tag>
-                        )}
-                      </span>
-                      <Text type="secondary">{(item.page ?? 0) + 1}</Text>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <Text type="secondary">No ToC entries found</Text>
-              )}
-            </Card>
-
-            <Card size="small" title="Structured Elements">
-              {result.structuredCounts ? (
-                <Space wrap>
-                  {Object.entries(result.structuredCounts).map(([k, v]: any) => (
-                    <Tag key={k}>{k.replace('ContentType.', '')}: {v}</Tag>
-                  ))}
-                </Space>
-              ) : (
-                <Text type="secondary">No structured content found</Text>
               )}
             </Card>
 
