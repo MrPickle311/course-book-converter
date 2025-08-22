@@ -6,6 +6,7 @@ import {
   CheckCircleOutlined,
 } from '@ant-design/icons';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 
 const { Title, Paragraph } = Typography;
 
@@ -84,6 +85,7 @@ const StepNumber = styled.div`
 `;
 
 export const HomePage = () => {
+  const navigate = useNavigate();
   const features = [
     {
       icon: <BookOutlined />,
@@ -148,7 +150,7 @@ export const HomePage = () => {
           practical exercises and interactive learning experiences. Perfect for
           educators, students, and lifelong learners.
         </HeroDescription>
-        <Button type="primary" size="large">
+        <Button type="primary" size="large" onClick={() => navigate('/upload')}>
           Start Converting Now
         </Button>
       </HeroSection>
