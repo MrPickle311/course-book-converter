@@ -50,7 +50,6 @@ class PdfController(private val pdfProcessor: PdfProcessor) {
 						"structuredCounts" to res.structuredCounts,
 						"images" to res.images,
 						"tables" to res.tables,
-						"toc" to res.toc,
 						"cleanText" to res.cleanText
 					)
 				)
