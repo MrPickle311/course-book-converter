@@ -1,0 +1,37 @@
+spring:
+  application:
+    name: backend-kotlin
+  main:
+    banner-mode: "off"
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+  data:
+    mongodb:
+      uri: "mongodb://localhost:27017/book_course_converter"
+
+server:
+  port: 8080
+
+app:
+  allowed-origins:
+    - http://localhost:3000
+    - http://localhost:5173
+  upload-dir: ./uploads
+  pdf-ocr-enabled: false
+  pdf-ocr-language: eng
+  pdf-extract-images: false
+  pdf-extract-tables: false
+  pdf-discard-titles:
+    - foreword
+    - preface
+    - acknowledgments
+    - praise
+    - about the author
+    - copyright
+    - index
+  pdf-discard-before-page: 1
+  pdf-toc-title-keywords:
+    - table of contents
+    - contents

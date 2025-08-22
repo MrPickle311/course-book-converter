@@ -1,0 +1,9 @@
+{
+  "groups": [
+    {
+      "name": "app",
+      "type": "com.bcc.backend.config.AppProperties",
+      "sourceType": "com.bcc.backend.config.AppProperties"
+    }
+  ]
+}
