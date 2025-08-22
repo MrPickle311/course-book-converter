@@ -8,8 +8,10 @@ const { Dragger } = Upload;
 const { Title, Paragraph, Text } = Typography;
 
 const Container = styled.div`
-  max-width: 1000px;
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
+  padding: ${({ theme }) => theme.spacing.lg};
+  min-height: calc(100vh - 120px);
 `;
 
 interface ChapterItem {

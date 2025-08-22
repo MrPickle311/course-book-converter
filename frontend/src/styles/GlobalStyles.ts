@@ -23,10 +23,13 @@ export const GlobalStyles = createGlobalStyle`
     background-color: ${({ theme }) => theme.colors.background};
     font-size: 14px;
     line-height: 1.5715;
+    display: block; /* override vite template flex centering */
+    width: 100%;
   }
 
   #root {
     min-height: 100vh;
+    width: 100%;
   }
 
   /* Scrollbar styling */
