@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Upload, Typography, Card, Space, Button, message, Descriptions, Tag, Tree } from 'antd';
-import { InboxOutlined, FilePdfOutlined, BarChartOutlined, TableOutlined, PictureOutlined, ApartmentOutlined } from '@ant-design/icons';
+import { Upload, Typography, Card, Space, Button, message, Tree, Tag } from 'antd';
+import { InboxOutlined, ApartmentOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 import api from '@/services/api';
 
@@ -30,7 +30,6 @@ interface TreeNode {
 const chapterNodeTitle = (c: ChapterItem) => (
   <Space size={6}>
     <Text strong>{c.title}</Text>
-    <Tag color={c.level <= 2 ? 'blue' : 'default'}>Level {c.level}</Tag>
     {typeof c.startPage === 'number' && (
       <Tag>
         p.{(c.startPage ?? 0) + 1}
@@ -140,13 +139,6 @@ export const UploadPage = () => {
         <Card style={{ marginTop: '24px' }}>
           <Title level={4} style={{ marginBottom: '1rem' }}>Summary</Title>
           <Space direction="vertical" size="large" style={{ width: '100%' }}>
-            <Descriptions bordered size="small" column={2}>
-              <Descriptions.Item label={<><FilePdfOutlined /> Pages</>}><Text strong>{result.pageCount}</Text></Descriptions.Item>
-              <Descriptions.Item label={<><BarChartOutlined /> Words</>}><Text>{result.wordCount}</Text></Descriptions.Item>
-              <Descriptions.Item label={<><PictureOutlined /> Images</>}><Text>{result.images}</Text></Descriptions.Item>
-              <Descriptions.Item label={<><TableOutlined /> Tables</>}><Text>{result.tables}</Text></Descriptions.Item>
-            </Descriptions>
-
             <Card size="small" title={<><ApartmentOutlined /> Chapter hierarchy</>}>
               {treeData.length ? (
                 <Tree
