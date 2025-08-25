@@ -13,35 +13,37 @@ import org.springframework.ai.vertexai.gemini.VertexAiGeminiChatModel
 import org.springframework.stereotype.Service
 import java.io.File
 
+data class TocItem(
+    val title: String,
+    val page: Int
+)
+
+data class TocResult(
+    val complete: Boolean,
+    val items: List<TocItem>
+)
+
 @Service
 class AITocService(private val chatModel: VertexAiGeminiChatModel) {
 	private val logger = LoggerFactory.getLogger(AITocService::class.java)
 	private val mapper = ObjectMapper()
-
-	data class TocItem(
-		val title: String,
-		val page: Int
-	)
-
-	data class TocResult(
-		val complete: Boolean,
-		val items: List<TocItem>
-	)
 
 	fun extractToc(pdfFile: File): TocResult {
 		PDDocument.load(pdfFile).use { doc ->
 			val totalPages = doc.numberOfPages
 			val stripper = PDFTextStripper()
 			var pagesToSend = minOf(10, totalPages)
-			var lastResult: TocResult = TocResult(false, emptyList())
-			while (true) {
+			var lastResult: TocResult
+            while (true) {
 				stripper.startPage = 1
 				stripper.endPage = pagesToSend
 				val text = stripper.getText(doc)
 				val response = callModel(text)
 				lastResult = parseResponse(response)
 				logger.debug("AI ToC complete={} pagesSent={}", lastResult.complete, pagesToSend)
-				if (lastResult.complete || pagesToSend >= totalPages) break
+				if (lastResult.complete || pagesToSend >= totalPages) {
+                    break
+                }
 				pagesToSend = minOf(pagesToSend + 3, totalPages)
 			}
 			return lastResult

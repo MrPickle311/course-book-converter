@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Upload, Typography, Card, Space, Button, message, Tree, Tag } from 'antd';
+import { Upload, Typography, Card, Space, Button, message, Tree, Tag, Divider } from 'antd';
 import { InboxOutlined, ApartmentOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 import api from '@/services/api';
+import type { CourseModule } from '@/services/course.service';
 
 const { Dragger } = Upload;
 const { Title, Paragraph, Text } = Typography;
@@ -27,7 +28,7 @@ interface TreeNode {
   children?: TreeNode[];
 }
 
-const chapterNodeTitle = (c: ChapterItem) => (
+const chapterNodeTitle = (c: ChapterItem, onGenerate?: (c: ChapterItem) => void) => (
   <Space size={6}>
     <Text strong>{c.title}</Text>
     {typeof c.startPage === 'number' && (
@@ -36,10 +37,15 @@ const chapterNodeTitle = (c: ChapterItem) => (
         {typeof c.endPage === 'number' ? ` - p.${(c.endPage ?? 0) + 1}` : ''}
       </Tag>
     )}
+    {c.level === 1 && onGenerate && (
+      <Button size="small" type="primary" onClick={(e) => { e.stopPropagation(); onGenerate(c); }}>
+        Generate Course
+      </Button>
+    )}
   </Space>
 );
 
-function buildChapterTree(flat: ChapterItem[]): TreeNode[] {
+function buildChapterTree(flat: ChapterItem[], onGenerate: (c: ChapterItem) => void): TreeNode[] {
   // Sort by startPage then level
   const items = [...flat].sort((a, b) => (a.startPage ?? 0) - (b.startPage ?? 0) || a.level - b.level);
   const roots: TreeNode[] = [];
@@ -49,7 +55,7 @@ function buildChapterTree(flat: ChapterItem[]): TreeNode[] {
     const c = items[i];
     const node: TreeNode = {
       key: `${i}-${c.title}`,
-      title: chapterNodeTitle(c),
+      title: chapterNodeTitle(c, onGenerate),
       children: [],
     };
 
@@ -77,6 +83,8 @@ function buildChapterTree(flat: ChapterItem[]): TreeNode[] {
 export const UploadPage = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [module, setModule] = useState<CourseModule | null>(null);
+  const [generating, setGenerating] = useState(false);
 
   const props = {
     name: 'file',
@@ -88,6 +96,7 @@ export const UploadPage = () => {
       form.append('file', file as File);
       setLoading(true);
       setResult(null);
+      setModule(null);
       try {
         const res = await api.post('/api/v1/pdf/process', form, {
           headers: { 'Content-Type': 'multipart/form-data' },
@@ -109,6 +118,28 @@ export const UploadPage = () => {
     },
   };
 
+  const handleGenerate = async (chapter: ChapterItem) => {
+    try {
+      if (!result?.uploadId) {
+        message.error('Missing uploadId, re-upload PDF');
+        return;
+      }
+      setGenerating(true);
+      const resp = await api.post('/api/v1/course/generate', {
+        chapterTitle: chapter.title,
+        uploadId: result.uploadId,
+        startPage: chapter.startPage ?? 0,
+        endPage: typeof chapter.endPage === 'number' ? chapter.endPage : null,
+      });
+      setModule(resp.data?.data);
+      message.success('Course generated');
+    } catch (e: any) {
+      message.error(e?.message || 'Failed to generate course');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const treeData = useMemo(() => {
     if (!result?.chapters) return [] as TreeNode[];
     const chapters: ChapterItem[] = result.chapters.map((c: any) => ({
@@ -117,7 +148,7 @@ export const UploadPage = () => {
       startPage: typeof c.startPage === 'number' ? c.startPage : undefined,
       endPage: typeof c.endPage === 'number' ? c.endPage : undefined,
     }));
-    return buildChapterTree(chapters);
+    return buildChapterTree(chapters, handleGenerate);
   }, [result]);
 
   return (
@@ -150,9 +181,58 @@ export const UploadPage = () => {
               )}
             </Card>
 
+            {module && (
+              <Card size="small" title={`Generated Course: ${module.title}`} loading={generating}>
+                {module.objectives?.length ? (
+                  <>
+                    <Title level={5}>Objectives</Title>
+                    <ul>
+                      {module.objectives.map((o, i) => <li key={i}>{o}</li>)}
+                    </ul>
+                    <Divider />
+                  </>
+                ) : null}
+
+                {module.sections?.length ? (
+                  <>
+                    <Title level={5}>Sections</Title>
+                    {module.sections.map((s, i) => (
+                      <div key={i} style={{ marginBottom: 12 }}>
+                        <strong>{s.title}</strong>
+                        <div style={{ margin: '4px 0' }}>{s.summary}</div>
+                        {s.keyConcepts?.length ? (
+                          <div>
+                            {s.keyConcepts.map((k, idx) => <Tag key={idx}>{k}</Tag>)}
+                          </div>
+                        ) : null}
+                      </div>
+                    ))}
+                    <Divider />
+                  </>
+                ) : null}
+
+                {module.tasks?.length ? (
+                  <>
+                    <Title level={5}>Tasks</Title>
+                    {module.tasks.map((t, i) => (
+                      <div key={i} style={{ marginBottom: 12 }}>
+                        <strong>{t.type}: {t.title}</strong>
+                        <div style={{ margin: '4px 0' }}>{t.description}</div>
+                        {t.successCriteria?.length ? (
+                          <ul>
+                            {t.successCriteria.map((c, j) => <li key={j}>{c}</li>)}
+                          </ul>
+                        ) : null}
+                      </div>
+                    ))}
+                  </>
+                ) : null}
+              </Card>
+            )}
+
             <Space>
               <Button type="primary" disabled>Generate Course (coming soon)</Button>
-              <Button onClick={() => setResult(null)}>Process Another</Button>
+              <Button onClick={() => { setResult(null); setModule(null); }}>Process Another</Button>
             </Space>
           </Space>
         </Card>

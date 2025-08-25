@@ -9,41 +9,40 @@ import org.springframework.ai.chat.model.ChatModel
 import org.springframework.ai.chat.prompt.Prompt
 import org.springframework.stereotype.Service
 
+data class CourseSection(
+    val title: String,
+    val summary: String,
+    val keyConcepts: List<String>
+)
+
+data class CourseTask(
+    val type: String,
+    val title: String,
+    val description: String,
+    val successCriteria: List<String>
+)
+
+data class CourseModule(
+    val title: String,
+    val sections: List<CourseSection>,
+    val tasks: List<CourseTask>
+)
+
+data class GenerateCourseRequest(
+    val chapterTitle: String,
+    val context: String? = null
+)
+
 @Service
 class CourseGeneratorService(private val chatModel: ChatModel) {
 	private val logger = LoggerFactory.getLogger(CourseGeneratorService::class.java)
 	private val mapper = ObjectMapper()
 
-	data class CourseSection(
-		val title: String,
-		val summary: String,
-		val keyConcepts: List<String>
-	)
-
-	data class CourseTask(
-		val type: String,
-		val title: String,
-		val description: String,
-		val successCriteria: List<String>
-	)
-
-	data class CourseModule(
-		val title: String,
-		val objectives: List<String>,
-		val sections: List<CourseSection>,
-		val tasks: List<CourseTask>
-	)
-
-	data class GenerateCourseRequest(
-		val chapterTitle: String,
-		val context: String? = null
-	)
-
 	fun generateFromChapter(req: GenerateCourseRequest): CourseModule {
 		val system = SystemMessage(
 			"You are an expert course designer. Create a compact, high-quality course module " +
 			"from the given book chapter. Respond with STRICT JSON using the schema: " +
-			"{title:string, objectives:string[], sections:[{title:string, summary:string, keyConcepts:string[]}], " +
+			"{title:string, sections:[{title:string, summary:string, keyConcepts:string[]}], " +
 			"tasks:[{type:string, title:string, description:string, successCriteria:string[]}]} . " +
 			"No markdown or commentary."
 		)
@@ -61,7 +60,6 @@ class CourseGeneratorService(private val chatModel: ChatModel) {
 		val json = extractJson(raw)
 		val root: JsonNode = mapper.readTree(json)
 		fun arr(n: JsonNode, name: String) = n.path(name).takeIf { it.isArray } ?: mapper.createArrayNode()
-		val objectives = arr(root, "objectives").map { it.asText("") }.filter { it.isNotBlank() }
 		val sections = arr(root, "sections").map { s ->
 			CourseSection(
 				title = s.path("title").asText("").trim(),
@@ -79,7 +77,6 @@ class CourseGeneratorService(private val chatModel: ChatModel) {
 		}
 		return CourseModule(
 			title = root.path("title").asText(req.chapterTitle).trim(),
-			objectives = objectives,
 			sections = sections,
 			tasks = tasks
 		)
@@ -99,7 +96,9 @@ class CourseGeneratorService(private val chatModel: ChatModel) {
 		}
 		val start = trimmed.indexOf('{')
 		val end = trimmed.lastIndexOf('}')
-		if (start >= 0 && end > start) return trimmed.substring(start, end + 1)
+		if (start >= 0 && end > start) {
+            return trimmed.substring(start, end + 1)
+        }
 		logger.debug("CourseGeneratorService.extractJson: returning raw content")
 		return trimmed
 	}

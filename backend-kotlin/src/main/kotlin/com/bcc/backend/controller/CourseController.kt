@@ -7,15 +7,16 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.nio.file.Path
 
+data class GenerateCourseRequest(
+    val chapterTitle: String,
+    val uploadId: String,
+    val startPage: Int = 0,
+    val endPage: Int? = null
+)
+
 @RestController
 @RequestMapping("/api/v1/course")
 class CourseController(private val courseGeneratorService: CourseGeneratorService) {
-	data class GenerateCourseRequest(
-		val chapterTitle: String,
-		val uploadId: String,
-		val startPage: Int = 0,
-		val endPage: Int? = null
-	)
 
 	@PostMapping("/generate")
 	fun generate(@RequestBody body: GenerateCourseRequest): ResponseEntity<Any> {
@@ -23,7 +24,7 @@ class CourseController(private val courseGeneratorService: CourseGeneratorServic
 			val pdfPath = Path.of("uploads").resolve("${body.uploadId}.pdf").toFile()
 			val context = extractPagesText(pdfPath, body.startPage, body.endPage)
 			val module = courseGeneratorService.generateFromChapter(
-				CourseGeneratorService.GenerateCourseRequest(body.chapterTitle, context)
+                com.bcc.backend.service.GenerateCourseRequest(body.chapterTitle, context)
 			)
 			ResponseEntity.ok(mapOf("success" to true, "data" to module))
 		} catch (ex: Exception) {
