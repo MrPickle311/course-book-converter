@@ -9,12 +9,12 @@ import org.springframework.ai.chat.messages.SystemMessage
 import org.springframework.ai.chat.messages.UserMessage
 import org.springframework.ai.chat.model.ChatResponse
 import org.springframework.ai.chat.prompt.Prompt
-import org.springframework.ai.openai.OpenAiChatModel
+import org.springframework.ai.vertexai.gemini.VertexAiGeminiChatModel
 import org.springframework.stereotype.Service
 import java.io.File
 
 @Service
-class AITocService(private val chatModel: OpenAiChatModel) {
+class AITocService(private val chatModel: VertexAiGeminiChatModel) {
 	private val logger = LoggerFactory.getLogger(AITocService::class.java)
 	private val mapper = ObjectMapper()
 

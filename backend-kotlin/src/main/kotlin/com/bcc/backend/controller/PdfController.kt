@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.bind.annotation.RequestPart
 import org.springframework.web.multipart.MultipartFile
 import java.nio.file.Files
+import java.nio.file.Path
 import java.util.*
 
 @RestController
@@ -26,17 +27,21 @@ class PdfController(private val pdfProcessor: PdfProcessor) {
 				"message" to "Only PDF files are supported"
 			))
 		}
-		val tmp = Files.createTempFile("upload-" + UUID.randomUUID(), ".pdf").toFile()
+		val uploadId = UUID.randomUUID().toString()
+		val uploadsDir = Path.of("uploads").toAbsolutePath()
+		Files.createDirectories(uploadsDir)
+		val dest = uploadsDir.resolve("$uploadId.pdf").toFile()
 		return try {
 			file.inputStream.use { input ->
-				Files.copy(input, tmp.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+				Files.copy(input, dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
 			}
-			val res = pdfProcessor.process(tmp)
+			val res = pdfProcessor.process(dest)
 			ResponseEntity.ok(
 				mapOf(
 					"success" to true,
 					"message" to "PDF processed successfully",
 					"data" to mapOf(
+						"uploadId" to uploadId,
 						"pageCount" to res.pageCount,
 						"wordCount" to res.wordCount,
 						"chapters" to res.chapters.map {
@@ -62,8 +67,6 @@ class PdfController(private val pdfProcessor: PdfProcessor) {
 					"message" to ("Failed to process PDF: ${ex.message}")
 				)
 			)
-		} finally {
-			try { tmp.delete() } catch (_: Exception) {}
 		}
 	}
 }
