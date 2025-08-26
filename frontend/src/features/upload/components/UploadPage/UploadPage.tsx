@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Upload, Typography, Card, Space, Button, message, Tree } from 'antd';
 import { InboxOutlined, ApartmentOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
-import api from '@/services/api';
+import { DefaultService } from '@/openapi';
 import { CourseView } from '../CourseView';
 
 const { Dragger } = Upload;
@@ -78,12 +78,9 @@ export const UploadPage = () => {
       setResult(null);
       setModule(null);
       try {
-        const res = await api.post('/api/v1/pdf/process', form, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-          timeout: 300000,
-        });
-        setResult(res.data?.data);
-        onSuccess(res.data);
+        const res = await DefaultService.postApiV1PdfProcess({ formData: { file: file as File } });
+        setResult(res?.data);
+        onSuccess(res);
         message.success('PDF processed successfully');
       } catch (e: any) {
         const isTimeout = e?.code === 'ECONNABORTED' || /timeout/i.test(String(e?.message));
@@ -103,13 +100,15 @@ export const UploadPage = () => {
         return;
       }
       setGenerating(true);
-      const resp = await api.post('/api/v1/course/generate', {
-        chapterTitle: chapter.title,
-        uploadId: result.uploadId,
-        startPage: chapter.startPage ?? 0,
-        endPage: typeof chapter.endPage === 'number' ? chapter.endPage : null,
+      const resp = await DefaultService.postApiV1CourseGenerate({
+        requestBody: {
+          chapterTitle: chapter.title,
+          uploadId: result.uploadId,
+          startPage: chapter.startPage ?? 0,
+          endPage: typeof chapter.endPage === 'number' ? chapter.endPage : undefined,
+        },
       });
-      const raw = resp.data?.data;
+      const raw = resp?.data;
       const contents = [] as { type: 'text' | 'code' | 'picture' | 'table'; value: string }[];
       if (raw?.sections?.length) {
         raw.sections.forEach((s: any) => {

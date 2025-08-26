@@ -1,7 +1,8 @@
 import axios, { type AxiosRequestConfig } from 'axios';
+import { OpenAPI } from '@/openapi';
 
 const BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8080';
-const USE_MOCKS = ((import.meta as any).env?.VITE_USE_MOCKS ?? '1') !== '0';
+const USE_MOCKS = 1
 
 export const api = axios.create({
 	baseURL: BASE_URL,
@@ -87,12 +88,35 @@ async function maybeMock(config: AxiosRequestConfig) {
 	return null;
 }
 
-// Override post to short-circuit with mocks when enabled
+// Global axios interceptors so generated clients are also mocked
+axios.interceptors.request.use(async (config) => {
+	const mock = await maybeMock(config);
+	if (mock) {
+		// mark mock by throwing a special error the response interceptor will catch
+		return Promise.reject({ isMock: true, __mockResponse: mock });
+	}
+	return config;
+});
+
+axios.interceptors.response.use(
+	(response) => response,
+	(error) => {
+		if (error && error.isMock && error.__mockResponse) {
+			return Promise.resolve(error.__mockResponse);
+		}
+		return Promise.reject(error);
+	}
+);
+
+// Dedicated client post override still works for explicit api.post users
 const realPost = api.post.bind(api);
 api.post = async function(url: string, data?: any, config?: AxiosRequestConfig) {
 	const mock = await maybeMock({ url, method: 'post', data, ...(config || {}) });
 	if (mock) return mock as any;
 	return realPost(url, data, config);
 };
+
+// Configure generated OpenAPI client to use the same base URL
+OpenAPI.BASE = BASE_URL;
 
 export default api;

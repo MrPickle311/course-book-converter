@@ -26,7 +26,10 @@
       "@/types/*": ["types/*"],
       "@/utils/*": ["utils/*"],
       "@/assets/*": ["assets/*"],
-      "@/stores/*": ["stores/*"]
+      "@/stores/*": ["stores/*"],
+      "@/openapi": ["openapi"],
+      "form-data": ["src/shims/form-data.ts"],
+      "axios": ["node_modules/axios/index.d.ts"]
     },
 
     /* Linting */

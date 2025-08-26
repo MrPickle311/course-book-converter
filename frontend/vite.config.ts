@@ -16,6 +16,8 @@ export default defineConfig({
       '@/utils': fileURLToPath(new URL('./src/utils', import.meta.url)),
       '@/assets': fileURLToPath(new URL('./src/assets', import.meta.url)),
       '@/stores': fileURLToPath(new URL('./src/stores', import.meta.url)),
+      // openapi generated client resolved via src/openapi symlink
+      'form-data': fileURLToPath(new URL('./src/shims/form-data.ts', import.meta.url)),
     },
   },
   server: {
