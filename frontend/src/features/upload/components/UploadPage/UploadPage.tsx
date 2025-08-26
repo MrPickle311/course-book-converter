@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Upload, Typography, Card, Space, Button, message, Tree, Tag, Divider } from 'antd';
+import { Upload, Typography, Card, Space, Button, message, Tree } from 'antd';
 import { InboxOutlined, ApartmentOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 import api from '@/services/api';
-import type { CourseModule } from '@/services/course.service';
+import { CourseView } from '../CourseView';
 
 const { Dragger } = Upload;
 const { Title, Paragraph, Text } = Typography;
@@ -31,12 +31,6 @@ interface TreeNode {
 const chapterNodeTitle = (c: ChapterItem, onGenerate?: (c: ChapterItem) => void) => (
   <Space size={6}>
     <Text strong>{c.title}</Text>
-    {typeof c.startPage === 'number' && (
-      <Tag>
-        p.{(c.startPage ?? 0) + 1}
-        {typeof c.endPage === 'number' ? ` - p.${(c.endPage ?? 0) + 1}` : ''}
-      </Tag>
-    )}
     {c.level === 1 && onGenerate && (
       <Button size="small" type="primary" onClick={(e) => { e.stopPropagation(); onGenerate(c); }}>
         Generate Course
@@ -46,8 +40,7 @@ const chapterNodeTitle = (c: ChapterItem, onGenerate?: (c: ChapterItem) => void)
 );
 
 function buildChapterTree(flat: ChapterItem[], onGenerate: (c: ChapterItem) => void): TreeNode[] {
-  // Sort by startPage then level
-  const items = [...flat].sort((a, b) => (a.startPage ?? 0) - (b.startPage ?? 0) || a.level - b.level);
+  const items = [...flat];
   const roots: TreeNode[] = [];
   const stack: { level: number; node: TreeNode }[] = [];
 
@@ -58,32 +51,19 @@ function buildChapterTree(flat: ChapterItem[], onGenerate: (c: ChapterItem) => v
       title: chapterNodeTitle(c, onGenerate),
       children: [],
     };
-
-    // find parent with lower level
     while (stack.length && stack[stack.length - 1].level >= c.level) stack.pop();
-
-    if (stack.length === 0) {
-      roots.push(node);
-    } else {
-      const parent = stack[stack.length - 1].node;
-      parent.children = parent.children || [];
-      parent.children.push(node);
-    }
-
+    if (stack.length === 0) roots.push(node);
+    else (stack[stack.length - 1].node.children = (stack[stack.length - 1].node.children || [])).push(node);
     stack.push({ level: c.level, node });
   }
-
-  // prune empty children arrays for nicer rendering
-  const prune = (nodes: TreeNode[]): TreeNode[] =>
-    nodes.map(n => ({ ...n, children: n.children && n.children.length ? prune(n.children) : undefined }));
-
+  const prune = (nodes: TreeNode[]): TreeNode[] => nodes.map(n => ({ ...n, children: n.children && n.children.length ? prune(n.children) : undefined }));
   return prune(roots);
 }
 
 export const UploadPage = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
-  const [module, setModule] = useState<CourseModule | null>(null);
+  const [module, setModule] = useState<any | null>(null);
   const [generating, setGenerating] = useState(false);
 
   const props = {
@@ -100,16 +80,14 @@ export const UploadPage = () => {
       try {
         const res = await api.post('/api/v1/pdf/process', form, {
           headers: { 'Content-Type': 'multipart/form-data' },
-          timeout: 300000, // 5 minutes for long PDFs
+          timeout: 300000,
         });
         setResult(res.data?.data);
         onSuccess(res.data);
         message.success('PDF processed successfully');
       } catch (e: any) {
         const isTimeout = e?.code === 'ECONNABORTED' || /timeout/i.test(String(e?.message));
-        const detail = isTimeout
-          ? 'Processing took too long and timed out. Try a smaller file or disable extractions.'
-          : e?.response?.data?.detail || e?.message || 'Upload failed';
+        const detail = isTimeout ? 'Processing took too long and timed out. Try a smaller file or disable extractions.' : e?.response?.data?.detail || e?.message || 'Upload failed';
         onError(e);
         message.error(detail);
       } finally {
@@ -131,7 +109,22 @@ export const UploadPage = () => {
         startPage: chapter.startPage ?? 0,
         endPage: typeof chapter.endPage === 'number' ? chapter.endPage : null,
       });
-      setModule(resp.data?.data);
+      const raw = resp.data?.data;
+      const contents = [] as { type: 'text' | 'code' | 'picture' | 'table'; value: string }[];
+      if (raw?.sections?.length) {
+        raw.sections.forEach((s: any) => {
+          contents.push({ type: 'text', value: s.summary || s.title });
+        });
+      } else if (raw?.objectives?.length) {
+        contents.push({ type: 'text', value: raw.objectives.join('\n') });
+      } else {
+        contents.push({ type: 'text', value: chapter.title });
+      }
+      setModule({
+        title: raw?.title || chapter.title,
+        notes: { title: raw?.title || chapter.title, contents },
+        tasks: { items: [{ title: 'Task 1 (stub)' }, { title: 'Task 2 (stub)' }] },
+      });
       message.success('Course generated');
     } catch (e: any) {
       message.error(e?.message || 'Failed to generate course');
@@ -183,50 +176,7 @@ export const UploadPage = () => {
 
             {module && (
               <Card size="small" title={`Generated Course: ${module.title}`} loading={generating}>
-                {module.objectives?.length ? (
-                  <>
-                    <Title level={5}>Objectives</Title>
-                    <ul>
-                      {module.objectives.map((o, i) => <li key={i}>{o}</li>)}
-                    </ul>
-                    <Divider />
-                  </>
-                ) : null}
-
-                {module.sections?.length ? (
-                  <>
-                    <Title level={5}>Sections</Title>
-                    {module.sections.map((s, i) => (
-                      <div key={i} style={{ marginBottom: 12 }}>
-                        <strong>{s.title}</strong>
-                        <div style={{ margin: '4px 0' }}>{s.summary}</div>
-                        {s.keyConcepts?.length ? (
-                          <div>
-                            {s.keyConcepts.map((k, idx) => <Tag key={idx}>{k}</Tag>)}
-                          </div>
-                        ) : null}
-                      </div>
-                    ))}
-                    <Divider />
-                  </>
-                ) : null}
-
-                {module.tasks?.length ? (
-                  <>
-                    <Title level={5}>Tasks</Title>
-                    {module.tasks.map((t, i) => (
-                      <div key={i} style={{ marginBottom: 12 }}>
-                        <strong>{t.type}: {t.title}</strong>
-                        <div style={{ margin: '4px 0' }}>{t.description}</div>
-                        {t.successCriteria?.length ? (
-                          <ul>
-                            {t.successCriteria.map((c, j) => <li key={j}>{c}</li>)}
-                          </ul>
-                        ) : null}
-                      </div>
-                    ))}
-                  </>
-                ) : null}
+                <CourseView data={module} />
               </Card>
             )}
 
