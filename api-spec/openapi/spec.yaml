@@ -1,0 +1,146 @@
+openapi: 3.0.3
+info:
+  title: Book to Course Converter API
+  version: 0.1.0
+servers:
+  - url: http://localhost:8080
+paths:
+  /api/v1/pdf/process:
+    post:
+      summary: Process uploaded PDF
+      description: Accepts a PDF file and returns structure info with chapters and uploadId.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required: [file]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessPdfResponse'
+  /api/v1/course/generate:
+    post:
+      summary: Generate course module from chapter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateCourseRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateCourseResponse'
+components:
+  schemas:
+    Chapter:
+      type: object
+      properties:
+        title:
+          type: string
+        level:
+          type: integer
+          format: int32
+        startPage:
+          type: integer
+          format: int32
+        endPage:
+          type: integer
+          format: int32
+    ProcessPdfData:
+      type: object
+      properties:
+        uploadId:
+          type: string
+        pageCount:
+          type: integer
+        wordCount:
+          type: integer
+        chapters:
+          type: array
+          items:
+            $ref: '#/components/schemas/Chapter'
+      required: [uploadId, pageCount, wordCount, chapters]
+    ProcessPdfResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/ProcessPdfData'
+      required: [success, data]
+    GenerateCourseRequest:
+      type: object
+      properties:
+        chapterTitle:
+          type: string
+        uploadId:
+          type: string
+        startPage:
+          type: integer
+        endPage:
+          type: integer
+      required: [chapterTitle, uploadId, startPage]
+    CourseTask:
+      type: object
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        successCriteria:
+          type: array
+          items:
+            type: string
+    CourseSection:
+      type: object
+      properties:
+        title:
+          type: string
+        summary:
+          type: string
+        keyConcepts:
+          type: array
+          items:
+            type: string
+    CourseModule:
+      type: object
+      properties:
+        title:
+          type: string
+        objectives:
+          type: array
+          items:
+            type: string
+        sections:
+          type: array
+          items:
+            $ref: '#/components/schemas/CourseSection'
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/CourseTask'
+    GenerateCourseResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/CourseModule'
+      required: [success, data]
