@@ -55,22 +55,41 @@ function mockProcessResponse() {
 }
 
 function mockGenerateResponse(chapterTitle: string) {
+	const longText = (i: number) =>
+		`${chapterTitle} — Section ${i}. Lorem ipsum dolor sit amet, consectetur adipiscing elit. ` +
+		`Suspendisse id dui sit amet nisl dignissim fermentum. Integer efficitur, ` +
+		`elit vitae facilisis viverra, nunc nulla facilisis tellus, nec rutrum nisl nunc et justo.`;
+
+	const codeSample = `// Example: ${chapterTitle}\nval spark = SparkSession.builder().getOrCreate()\nval df = spark.read.json("/path/events.json")\ndf.select("user", "action").show()`;
+
+	const tablePayload = {
+		headers: ['Column', 'Type', 'Description'],
+		rows: [
+			['user', 'string', 'User identifier'],
+			['action', 'string', 'Event action'],
+			['ts', 'timestamp', 'Event time'],
+		],
+	};
+
+	const pictureUrl = 'https://via.placeholder.com/1200x320?text=Diagram';
+
+	const sections = [
+		{ title: 'Overview', kind: 'text', summary: longText(1) },
+		{ title: 'Quick Start Code', kind: 'code', summary: 'Minimal working example', payload: codeSample },
+		{ title: 'Schema Table', kind: 'table', summary: 'Core columns used in examples', payload: tablePayload },
+		{ title: 'Concept Diagram', kind: 'picture', summary: 'High-level architecture', payload: pictureUrl },
+		...Array.from({ length: 8 }, (_, i) => ({ title: `Deep Dive ${i + 1}`, kind: 'text', summary: longText(i + 2) })),
+	];
+
 	const payload = {
 		success: true,
 		data: {
 			title: chapterTitle,
-			objectives: [
-				'Understand the core ideas of the chapter',
-				'Identify key concepts and APIs',
-			],
-			sections: [
-				{ title: 'Overview', summary: `${chapterTitle}: overview and motivation`, keyConcepts: ['concept A', 'concept B'] },
-				{ title: 'Key Ideas', summary: 'Important ideas with small examples', keyConcepts: ['idea 1', 'idea 2'] },
-			],
+			sections,
 			tasks: [
-				{ type: 'reading', title: 'Summarize the section', description: 'Write 5 bullet points', successCriteria: ['clear', 'concise'] },
-				{ type: 'practice', title: 'Apply concept', description: 'Explain with your own words', successCriteria: ['accurate', 'grounded'] },
-			],
+				{ type: 'reading', title: 'Skim and annotate', description: 'Highlight 3 key ideas', successCriteria: ['clear', 'grounded'] },
+				{ type: 'practice', title: 'Explain a concept', description: 'Describe one idea in your own words', successCriteria: ['accurate'] },
+		],
 		},
 	};
 	return payload;

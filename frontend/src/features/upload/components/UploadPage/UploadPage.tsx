@@ -112,10 +112,11 @@ export const UploadPage = () => {
       const contents = [] as { type: 'text' | 'code' | 'picture' | 'table'; value: string }[];
       if (raw?.sections?.length) {
         raw.sections.forEach((s: any) => {
-          contents.push({ type: 'text', value: s.summary || s.title });
+          if (s.kind === 'code' && s.payload) contents.push({ type: 'code', value: String(s.payload) });
+          else if (s.kind === 'picture' && s.payload) contents.push({ type: 'picture', value: String(s.payload) });
+          else if (s.kind === 'table' && s.payload) contents.push({ type: 'table', value: JSON.stringify(s.payload) });
+          else contents.push({ type: 'text', value: s.summary || s.title });
         });
-      } else if (raw?.objectives?.length) {
-        contents.push({ type: 'text', value: raw.objectives.join('\n') });
       } else {
         contents.push({ type: 'text', value: chapter.title });
       }

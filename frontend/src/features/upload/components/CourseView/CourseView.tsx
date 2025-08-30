@@ -31,17 +31,47 @@ const Wrapper = styled.div`
 `;
 
 const Section = styled.div`
-  background: ${({ theme }) => theme.colors.background};
-  border-top: 1px solid ${({ theme }) => theme.colors.border};
-  padding: 16px 0;
+  background: ${({ theme }) => theme.colors.backgroundSecondary};
+  border-top: 1px solid ${({ theme }) => theme.colors.borderSecondary};
+  padding: ${({ theme }) => theme.spacing.lg} 0;
 `;
 
 const Card = styled.div`
-  background: #c17474; /* keep provided mixed colors */
-  color: #000;
-  border-radius: 4px;
-  padding: 28px;
-  text-align: center;
+  background: ${({ theme }) => theme.colors.background};
+  color: ${({ theme }) => theme.colors.textPrimary};
+  border: 1px solid ${({ theme }) => theme.colors.borderSecondary};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  box-shadow: ${({ theme }) => theme.shadows.sm};
+  padding: ${({ theme }) => theme.spacing.lg};
+  text-align: left;
+  line-height: 1.7;
+  white-space: pre-wrap;
+`;
+
+const Code = styled.pre`
+  background: ${({ theme }) => theme.colors.gray100};
+  color: ${({ theme }) => theme.colors.textPrimary};
+  border: 1px solid ${({ theme }) => theme.colors.borderSecondary};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  padding: ${({ theme }) => theme.spacing.md};
+  overflow-x: auto;
+`;
+
+const Picture = styled.img`
+  max-width: 100%;
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  border: 1px solid ${({ theme }) => theme.colors.borderSecondary};
+  box-shadow: ${({ theme }) => theme.shadows.sm};
+  display: block;
+`;
+
+const Table = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  background: ${({ theme }) => theme.colors.background};
+  th, td { border: 1px solid ${({ theme }) => theme.colors.borderSecondary}; padding: ${({ theme }) => theme.spacing.sm}; }
+  th { background: ${({ theme }) => theme.colors.backgroundSecondary}; text-align: left; }
+  tbody tr:nth-child(even) { background: ${({ theme }) => theme.colors.backgroundSecondary}; }
 `;
 
 const Dots = styled.div`
@@ -55,22 +85,55 @@ const Dot = styled.span<{ active?: boolean }>`
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: ${({ active }) => (active ? '#333' : '#bbb')};
+  background: ${({ active, theme }) => (active ? theme.colors.gray700 : theme.colors.gray300)};
   display: inline-block;
 `;
 
 function renderContent(c: NoteContent, i: number) {
   switch (c.type) {
     case 'text':
-      return <Card key={i}>CONTENT</Card>;
+      return <Card key={i}>{c.value}</Card>;
     case 'code':
-      return <Card key={i}>CONTENT</Card>;
-    case 'picture':
-      return <Card key={i}>CONTENT</Card>;
-    case 'table':
-      return <Card key={i}>CONTENT</Card>;
+      return (
+        <Card key={i}>
+          <Code>{c.value}</Code>
+        </Card>
+      );
+    case 'picture': {
+      const src = c.value;
+      return (
+        <Card key={i}>
+          <Picture src={src} alt="illustration" />
+        </Card>
+      );
+    }
+    case 'table': {
+      try {
+        const parsed = JSON.parse(c.value) as { headers: string[]; rows: string[][] };
+        return (
+          <Card key={i}>
+            <Table>
+              <thead>
+                <tr>
+                  {parsed.headers.map((h, idx) => (<th key={idx}>{h}</th>))}
+                </tr>
+              </thead>
+              <tbody>
+                {parsed.rows.map((row, r) => (
+                  <tr key={r}>
+                    {row.map((cell, cidx) => (<td key={cidx}>{cell}</td>))}
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </Card>
+        );
+      } catch {
+        return <Card key={i}>{c.value}</Card>;
+      }
+    }
     default:
-      return <Card key={i}>CONTENT</Card>;
+      return <Card key={i}>{c.value}</Card>;
   }
 }
 
@@ -94,8 +157,8 @@ export const CourseView: React.FC<{ data: CourseData }> = ({ data }) => {
 
       <Section>
         <Space direction="vertical" size="large" style={{ width: '100%' }}>
-          {Array.from({ length: Math.max(1, taskCount || 2) }).map((_, idx) => (
-            <Card key={idx}>TASK</Card>
+          {data.tasks?.items?.map((t, idx) => (
+            <Card key={idx}><strong>Task:</strong> {t.title}</Card>
           ))}
         </Space>
         <Dots>
