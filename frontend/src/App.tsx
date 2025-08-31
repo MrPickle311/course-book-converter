@@ -54,6 +54,13 @@ interface Task {
   userAnswers?: string[];
   userFileName?: string;
   feedback?: string;
+  expectedKeywords?: string[];
+  evaluation?: {
+    isCorrect: boolean;
+    mistakes: string[];
+    score?: number;
+    explanation?: string;
+  };
   completed: boolean;
 }
 
@@ -141,6 +148,7 @@ const generateMockCourses = (books: Book[], userId: string, replicationsPerChapt
               id: `task-${book.id}-${chapter.id}-${i}-1`,
               question: `What are the main concepts covered in ${titleWithPart}?`,
               type: 'short-answer',
+              expectedKeywords: ['trade-offs', 'fitness functions', 'adr'],
               completed: false
             },
             {
@@ -244,6 +252,7 @@ function AppContent() {
           id: `task-${Date.now()}-1`,
           question: `What are the main concepts covered in ${chapter.title}?`,
           type: 'short-answer',
+          expectedKeywords: ['trade-offs', 'fitness functions', 'adr'],
           completed: false
         },
         {

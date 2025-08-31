@@ -21,6 +21,13 @@ interface Task {
   userAnswers?: string[];
   userFileName?: string;
   feedback?: string;
+  expectedKeywords?: string[];
+  evaluation?: {
+    isCorrect: boolean;
+    mistakes: string[];
+    score?: number;
+    explanation?: string;
+  };
   completed: boolean;
 }
 
@@ -74,9 +81,21 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
     if (task.type === 'multiple-select') {
       const list = (answer as string[] | undefined) || [];
       if (list.length === 0) return;
+      const correct = task.correctAnswers || [];
+      const missing = correct.filter(o => !list.includes(o));
+      const extra = list.filter(o => !correct.includes(o));
       const updatedTask = {
         ...task,
         userAnswers: list,
+        evaluation: {
+          isCorrect: missing.length === 0 && extra.length === 0,
+          mistakes: [
+            ...(missing.length ? [`Missing choices: ${missing.join(', ')}`] : []),
+            ...(extra.length ? [`Extra choices selected: ${extra.join(', ')}`] : []),
+          ],
+          score: correct.length > 0 ? (list.filter(o => correct.includes(o)).length / correct.length) : undefined,
+          explanation: 'Select all correct statements. Partial credit is shown as score.'
+        },
         completed: true,
       } as Task;
       const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
@@ -94,10 +113,22 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
       if (!file) return;
       setSubmitting(prev => ({ ...prev, [task.id]: true }));
       setTimeout(() => {
+        const name = file.name.toLowerCase();
+        const goodHints = ['notes', 'summary', 'chapter', 'module'];
+        const hasHint = goodHints.some(h => name.includes(h));
+        const mistakes: string[] = [];
+        if (!hasHint) mistakes.push('Filename is not descriptive (expected words like notes/summary/chapter).');
+        if (!name.endsWith('.pdf')) mistakes.push('File is not a .pdf.');
+
         const updatedTask = {
           ...task,
           userFileName: file.name,
-          feedback: `Mock review: "${file.name}" received and looks valid.`,
+          feedback: hasHint ? `Mock review: "${file.name}" received and looks valid.` : `Mock review: "${file.name}" received.`,
+          evaluation: {
+            isCorrect: mistakes.length === 0,
+            mistakes,
+            explanation: 'Ensure the uploaded PDF relates to the chapter and is clearly named.'
+          },
           completed: true,
         } as Task;
         const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
@@ -118,10 +149,25 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
     if (task.type === 'short-answer') {
       setSubmitting(prev => ({ ...prev, [task.id]: true }));
       setTimeout(() => {
+        const normalized = userAnswer.toLowerCase();
+        const expected = task.expectedKeywords || [];
+        const found = expected.filter(k => normalized.includes(k.toLowerCase()));
+        const missing = expected.filter(k => !found.includes(k));
+        const mistakes: string[] = [];
+        if (userAnswer.length < 40) mistakes.push('Answer is too short. Provide more detail.');
+        if (missing.length) mistakes.push(`Missing key concepts: ${missing.join(', ')}`);
+        const score = expected.length ? (found.length / expected.length) : (userAnswer.length >= 40 ? 1 : 0.5);
+
         const updatedTask = {
           ...task,
           userAnswer,
-          feedback: 'Mock feedback: clear and concise. Consider adding one specific example.',
+          feedback: 'Mock feedback: processed your answer and generated guidance.',
+          evaluation: {
+            isCorrect: mistakes.length === 0,
+            mistakes,
+            score,
+            explanation: 'Answers are checked for presence of core keywords and sufficient detail.'
+          },
           completed: true
         } as Task;
         const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
@@ -402,6 +448,26 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                         </p>
                       </div>
                     )}
+                    {task.evaluation && (
+                      <div className={(task.evaluation.isCorrect ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200') + ' p-3 border rounded'}>
+                        <p className="text-sm">
+                          <strong>Result:</strong> {task.evaluation.isCorrect ? 'Correct' : 'Needs review'}
+                          {typeof task.evaluation.score === 'number' && (
+                            <span className="ml-2">Score: {Math.round(task.evaluation.score * 100)}%</span>
+                          )}
+                        </p>
+                        {task.evaluation.explanation && (
+                          <p className="text-sm mt-1">{task.evaluation.explanation}</p>
+                        )}
+                        {task.evaluation.mistakes.length > 0 && (
+                          <ul className="list-disc ml-5 mt-2 text-sm">
+                            {task.evaluation.mistakes.map((m, idx) => (
+                              <li key={idx}>{m}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -431,6 +497,26 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                         <p className="text-sm">
                           <strong>Feedback:</strong> {task.feedback}
                         </p>
+                      </div>
+                    )}
+                    {task.evaluation && (
+                      <div className={(task.evaluation.isCorrect ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200') + ' p-3 border rounded'}>
+                        <p className="text-sm">
+                          <strong>Result:</strong> {task.evaluation.isCorrect ? 'Correct' : 'Needs improvement'}
+                          {typeof task.evaluation.score === 'number' && (
+                            <span className="ml-2">Score: {Math.round(task.evaluation.score * 100)}%</span>
+                          )}
+                        </p>
+                        {task.evaluation.explanation && (
+                          <p className="text-sm mt-1">{task.evaluation.explanation}</p>
+                        )}
+                        {task.evaluation.mistakes.length > 0 && (
+                          <ul className="list-disc ml-5 mt-2 text-sm">
+                            {task.evaluation.mistakes.map((m, idx) => (
+                              <li key={idx}>{m}</li>
+                            ))}
+                          </ul>
+                        )}
                       </div>
                     )}
                   </div>
@@ -476,6 +562,23 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                         <p className="text-sm">
                           <strong>Feedback:</strong> {task.feedback}
                         </p>
+                      </div>
+                    )}
+                    {task.evaluation && (
+                      <div className={(task.evaluation.isCorrect ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200') + ' p-3 border rounded'}>
+                        <p className="text-sm">
+                          <strong>Result:</strong> {task.evaluation.isCorrect ? 'Accepted' : 'Issues found'}
+                        </p>
+                        {task.evaluation.explanation && (
+                          <p className="text-sm mt-1">{task.evaluation.explanation}</p>
+                        )}
+                        {task.evaluation.mistakes.length > 0 && (
+                          <ul className="list-disc ml-5 mt-2 text-sm">
+                            {task.evaluation.mistakes.map((m, idx) => (
+                              <li key={idx}>{m}</li>
+                            ))}
+                          </ul>
+                        )}
                       </div>
                     )}
                   </div>
