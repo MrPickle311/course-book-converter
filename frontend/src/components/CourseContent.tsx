@@ -436,29 +436,14 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                       <div className="p-3 bg-green-50 border border-green-200 rounded">
                         <p className="text-sm">
                           <strong>Your answers:</strong> {task.userAnswers.join(', ')}
-                          {task.correctAnswers && (
-                            <span className="ml-2">
-                              {Array.isArray(task.correctAnswers)
-                                ? `Correct: ${task.correctAnswers.join(', ')}`
-                                : null}
-                            </span>
+                          {task.evaluation?.isCorrect ? (
+                            <span className="text-green-600 ml-2">✓ Correct!</span>
+                          ) : (
+                            task.correctAnswers && Array.isArray(task.correctAnswers) ? (
+                              <span className="text-red-600 ml-2">✗ Correct answers: {task.correctAnswers.join(', ')}</span>
+                            ) : null
                           )}
                         </p>
-                      </div>
-                    )}
-                    {task.evaluation && (
-                      <div className={(task.evaluation.isCorrect ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200') + ' p-3 border rounded'}>
-                        {typeof task.evaluation.score === 'number' && (
-                          <p className="text-sm"><strong>Score:</strong> {Math.round(task.evaluation.score * 100)}%</p>
-                        )}
-                        <div className="text-sm mt-1">
-                          <strong>Feedback:</strong>
-                          <ul className="list-disc ml-5 mt-2">
-                            {task.evaluation.mistakes.length > 0
-                              ? task.evaluation.mistakes.map((m, idx) => (<li key={idx}>{m}</li>))
-                              : (task.feedback ? <li>{task.feedback}</li> : <li>Looks good.</li>)}
-                          </ul>
-                        </div>
                       </div>
                     )}
                   </div>
