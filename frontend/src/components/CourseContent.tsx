@@ -127,6 +127,7 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
           evaluation: {
             isCorrect: mistakes.length === 0,
             mistakes,
+            score: mistakes.length === 0 ? 1 : 0,
             explanation: 'Ensure the uploaded PDF relates to the chapter and is clearly named.'
           },
           completed: true,
@@ -370,9 +371,6 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                     </div>
                     <div className="space-y-1">
                       <CardTitle className="text-base">{task.question}</CardTitle>
-                      <Badge variant="outline" className="text-xs">
-                        {task.type.replace('-', ' ').toUpperCase()}
-                      </Badge>
                     </div>
                   </div>
                   {submitting[task.id] ? (
@@ -450,22 +448,17 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                     )}
                     {task.evaluation && (
                       <div className={(task.evaluation.isCorrect ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200') + ' p-3 border rounded'}>
-                        <p className="text-sm">
-                          <strong>Result:</strong> {task.evaluation.isCorrect ? 'Correct' : 'Needs review'}
-                          {typeof task.evaluation.score === 'number' && (
-                            <span className="ml-2">Score: {Math.round(task.evaluation.score * 100)}%</span>
-                          )}
-                        </p>
-                        {task.evaluation.explanation && (
-                          <p className="text-sm mt-1">{task.evaluation.explanation}</p>
+                        {typeof task.evaluation.score === 'number' && (
+                          <p className="text-sm"><strong>Score:</strong> {Math.round(task.evaluation.score * 100)}%</p>
                         )}
-                        {task.evaluation.mistakes.length > 0 && (
-                          <ul className="list-disc ml-5 mt-2 text-sm">
-                            {task.evaluation.mistakes.map((m, idx) => (
-                              <li key={idx}>{m}</li>
-                            ))}
+                        <div className="text-sm mt-1">
+                          <strong>Feedback:</strong>
+                          <ul className="list-disc ml-5 mt-2">
+                            {task.evaluation.mistakes.length > 0
+                              ? task.evaluation.mistakes.map((m, idx) => (<li key={idx}>{m}</li>))
+                              : (task.feedback ? <li>{task.feedback}</li> : <li>Looks good.</li>)}
                           </ul>
-                        )}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -492,31 +485,19 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                         <pre className="mt-2 text-sm whitespace-pre-wrap">{task.userAnswer}</pre>
                       </div>
                     )}
-                    {task.completed && task.feedback && (
-                      <div className="p-3 bg-emerald-50 border border-emerald-200 rounded">
-                        <p className="text-sm">
-                          <strong>Feedback:</strong> {task.feedback}
-                        </p>
-                      </div>
-                    )}
                     {task.evaluation && (
                       <div className={(task.evaluation.isCorrect ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200') + ' p-3 border rounded'}>
-                        <p className="text-sm">
-                          <strong>Result:</strong> {task.evaluation.isCorrect ? 'Correct' : 'Needs improvement'}
-                          {typeof task.evaluation.score === 'number' && (
-                            <span className="ml-2">Score: {Math.round(task.evaluation.score * 100)}%</span>
-                          )}
-                        </p>
-                        {task.evaluation.explanation && (
-                          <p className="text-sm mt-1">{task.evaluation.explanation}</p>
+                        {typeof task.evaluation.score === 'number' && (
+                          <p className="text-sm"><strong>Score:</strong> {Math.round(task.evaluation.score * 100)}%</p>
                         )}
-                        {task.evaluation.mistakes.length > 0 && (
-                          <ul className="list-disc ml-5 mt-2 text-sm">
-                            {task.evaluation.mistakes.map((m, idx) => (
-                              <li key={idx}>{m}</li>
-                            ))}
+                        <div className="text-sm mt-1">
+                          <strong>Feedback:</strong>
+                          <ul className="list-disc ml-5 mt-2">
+                            {task.evaluation.mistakes.length > 0
+                              ? task.evaluation.mistakes.map((m, idx) => (<li key={idx}>{m}</li>))
+                              : (task.feedback ? <li>{task.feedback}</li> : <li>Looks good.</li>)}
                           </ul>
-                        )}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -557,28 +538,19 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                         </p>
                       </div>
                     )}
-                    {task.completed && task.feedback && (
-                      <div className="p-3 bg-emerald-50 border border-emerald-200 rounded">
-                        <p className="text-sm">
-                          <strong>Feedback:</strong> {task.feedback}
-                        </p>
-                      </div>
-                    )}
                     {task.evaluation && (
                       <div className={(task.evaluation.isCorrect ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200') + ' p-3 border rounded'}>
-                        <p className="text-sm">
-                          <strong>Result:</strong> {task.evaluation.isCorrect ? 'Accepted' : 'Issues found'}
-                        </p>
-                        {task.evaluation.explanation && (
-                          <p className="text-sm mt-1">{task.evaluation.explanation}</p>
+                        {typeof task.evaluation.score === 'number' && (
+                          <p className="text-sm"><strong>Score:</strong> {Math.round(task.evaluation.score * 100)}%</p>
                         )}
-                        {task.evaluation.mistakes.length > 0 && (
-                          <ul className="list-disc ml-5 mt-2 text-sm">
-                            {task.evaluation.mistakes.map((m, idx) => (
-                              <li key={idx}>{m}</li>
-                            ))}
+                        <div className="text-sm mt-1">
+                          <strong>Feedback:</strong>
+                          <ul className="list-disc ml-5 mt-2">
+                            {task.evaluation.mistakes.length > 0
+                              ? task.evaluation.mistakes.map((m, idx) => (<li key={idx}>{m}</li>))
+                              : (task.feedback ? <li>{task.feedback}</li> : <li>Looks good.</li>)}
                           </ul>
-                        )}
+                        </div>
                       </div>
                     )}
                   </div>
