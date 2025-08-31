@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { getMockNotesByChapter, defaultDemoBlocks } from './mocks/Mock';
 import type { NoteBlock } from './mocks/Mock';
 import { AuthProvider, useAuth } from './components/AuthContext';
@@ -78,55 +78,49 @@ const mockBooks: Book[] = [
   }
 ];
 
-const mockCourses: Course[] = [
-  {
-    id: 'c1',
-    bookId: '1',
-    bookTitle: 'Advanced React Patterns',
-    chapterId: '1-2',
-    chapterTitle: 'Higher-Order Components',
-    notes: [
-      {
-        type: 'richText',
-        title: 'Higher-Order Components (HOCs)',
-        markdown:
-          '## What are Higher-Order Components?\n\nA Higher-Order Component is a function that takes a component and returns a new component. HOCs are a pattern that emerges from React\'s compositional nature.\n\n### Key Concepts\n1. **Function Composition** — enhance components via composition\n2. **Cross-cutting Concerns** — share logic across components\n3. **Props Proxy** — manipulate props before passing them down\n\n### Common Use Cases\n- Authentication checks\n- Loading states\n- Data fetching\n- Conditional rendering',
-      },
-      {
-        type: 'code',
-        title: 'Example Implementation',
-        language: 'jsx',
-        code:
-          'const withAuth = (WrappedComponent) => {\n  return (props) => {\n    const { isAuthenticated } = useAuth();\n    if (!isAuthenticated) {\n      return <LoginForm />;\n    }\n    return <WrappedComponent {...props} />;\n  };\n};',
-      },
-    ],
-    tasks: [
-      {
-        id: 't1',
-        question: 'What does HOC stand for?',
-        type: 'multiple-choice',
-        options: ['High Order Component', 'Higher-Order Component', 'Heavy Object Class', 'Hybrid Object Container'],
-        correctAnswer: 'Higher-Order Component',
-        completed: false
-      },
-      {
-        id: 't2',
-        question: 'Write a simple HOC that adds a loading state to any component.',
-        type: 'code',
-        completed: false
-      },
-      {
-        id: 't3',
-        question: 'Name three common use cases for HOCs.',
-        type: 'short-answer',
-        completed: false
+// Generate many mock courses for pagination/performance testing
+const generateMockCourses = (books: Book[], userId: string, replicationsPerChapter = 100): Course[] => {
+  const courses: Course[] = [];
+  books.forEach((book) => {
+    book.tableOfContents.forEach((chapter) => {
+      for (let i = 1; i <= replicationsPerChapter; i++) {
+        const titleWithPart = `${chapter.title} — Part ${i}`;
+        const chapterForNotes = `Chapter ${((i - 1) % 6) + 1}`; // cycle through chapter 1..6 from mocks
+        courses.push({
+          id: `seed-${book.id}-${chapter.id}-${i}`,
+          bookId: book.id,
+          bookTitle: book.title,
+          chapterId: `${chapter.id}-p${i}`,
+          chapterTitle: titleWithPart,
+          notes: (getMockNotesByChapter(chapterForNotes) as NoteBlock[]) || defaultDemoBlocks,
+          tasks: [
+            {
+              id: `task-${book.id}-${chapter.id}-${i}-1`,
+              question: `What are the main concepts covered in ${titleWithPart}?`,
+              type: 'short-answer',
+              completed: false
+            },
+            {
+              id: `task-${book.id}-${chapter.id}-${i}-2`,
+              question: `Which statement best describes ${titleWithPart}?`,
+              type: 'multiple-choice',
+              options: ['Option A', 'Option B', 'Option C', 'Option D'],
+              correctAnswer: 'Option A',
+              completed: false
+            }
+          ],
+          createdDate: '2024-01-20',
+          completed: false,
+          userId
+        });
       }
-    ],
-    createdDate: '2024-01-20',
-    completed: false,
-    userId: '1'
-  }
-];
+    });
+  });
+  return courses;
+};
+
+// Seed per logged-in user in component once user is available
+const mockCourses: Course[] = [];
 
 function AppContent() {
   const { user, isLoading, logout } = useAuth();
@@ -149,6 +143,15 @@ function AppContent() {
   if (!user) {
     return <AuthForm />;
   }
+
+  // On first login (or refresh), populate courses for this user if empty
+  useEffect(() => {
+    if (user && courses.length === 0) {
+      const seeded = generateMockCourses(books, user.id, 100);
+      setCourses(seeded);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleFileUpload = (file: File) => {
     // Simulate processing and TOC extraction
