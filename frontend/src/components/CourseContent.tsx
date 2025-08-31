@@ -466,9 +466,12 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
 
                 {(task.type === 'short-answer' || task.type === 'code') && (
                   <div className="space-y-4">
+                    {task.completed && (
+                      <div className="text-sm font-medium">Your answer</div>
+                    )}
                     <Textarea
                       placeholder={task.type === 'code' ? 'Write your code here...' : 'Enter your answer...'}
-                      value={(taskAnswers[task.id] as string) || ''}
+                      value={(task.completed ? (task.userAnswer || '') : ((taskAnswers[task.id] as string) || ''))}
                       onChange={(e) => handleTaskAnswer(task.id, e.target.value)}
                       disabled={task.completed}
                       className={task.type === 'code' ? 'font-mono' : ''}
@@ -477,28 +480,22 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                     {submitting[task.id] && (
                       <div className="text-sm text-muted-foreground">Evaluating answer...</div>
                     )}
-                    {task.completed && task.userAnswer && (
-                      <div className="p-3 bg-blue-50 border border-blue-200 rounded">
-                        <p className="text-sm">
-                          <strong>Your answer:</strong>
-                        </p>
-                        <pre className="mt-2 text-sm whitespace-pre-wrap">{task.userAnswer}</pre>
-                      </div>
-                    )}
                     {task.evaluation && (
-                      <div className={(task.evaluation.isCorrect ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200') + ' p-3 border rounded'}>
-                        {typeof task.evaluation.score === 'number' && (
-                          <p className="text-sm"><strong>Score:</strong> {Math.round(task.evaluation.score * 100)}%</p>
-                        )}
-                        <div className="text-sm mt-1">
-                          <strong>Feedback:</strong>
-                          <ul className="list-disc ml-5 mt-2">
+                      <>
+                        <div className={(task.evaluation.isCorrect ? 'bg-green-50 border-green-200 text-green-700' : 'bg-amber-50 border-amber-200 text-red-700') + ' p-3 border rounded'}>
+                          {typeof task.evaluation.score === 'number' && (
+                            <p className="text-sm font-medium">Score: {Math.round(task.evaluation.score * 100)}%</p>
+                          )}
+                        </div>
+                        <div className="p-3 border rounded">
+                          <div className="text-sm font-medium">Feedback:</div>
+                          <ul className="list-disc ml-5 mt-2 text-sm">
                             {task.evaluation.mistakes.length > 0
                               ? task.evaluation.mistakes.map((m, idx) => (<li key={idx}>{m}</li>))
                               : (task.feedback ? <li>{task.feedback}</li> : <li>Looks good.</li>)}
                           </ul>
                         </div>
-                      </div>
+                      </>
                     )}
                   </div>
                 )}
@@ -521,13 +518,13 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                       onChange={(e) => handleTaskAnswer(task.id, e.target.files?.[0] || null)}
                       disabled={task.completed}
                     />
-                    <div className="text-sm text-muted-foreground">
-                      {task.completed && task.userFileName
-                        ? <>Uploaded file: {task.userFileName}</>
-                        : ((taskAnswers[task.id] as File | undefined)?.name
-                            ? <>Selected: {(taskAnswers[task.id] as File).name}</>
-                            : <>No file selected</>)}
-                    </div>
+                    {!task.completed && (
+                      <div className="text-sm text-muted-foreground">
+                        {((taskAnswers[task.id] as File | undefined)?.name
+                          ? <>Selected: {(taskAnswers[task.id] as File).name}</>
+                          : <>No file selected</>)}
+                      </div>
+                    )}
                     {submitting[task.id] && (
                       <div className="text-sm text-muted-foreground">Validating PDF...</div>
                     )}
@@ -539,19 +536,21 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                       </div>
                     )}
                     {task.evaluation && (
-                      <div className={(task.evaluation.isCorrect ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200') + ' p-3 border rounded'}>
-                        {typeof task.evaluation.score === 'number' && (
-                          <p className="text-sm"><strong>Score:</strong> {Math.round(task.evaluation.score * 100)}%</p>
-                        )}
-                        <div className="text-sm mt-1">
-                          <strong>Feedback:</strong>
-                          <ul className="list-disc ml-5 mt-2">
+                      <>
+                        <div className={(task.evaluation.isCorrect ? 'bg-green-50 border-green-200 text-green-700' : 'bg-amber-50 border-amber-200 text-red-700') + ' p-3 border rounded'}>
+                          {typeof task.evaluation.score === 'number' && (
+                            <p className="text-sm font-medium">Score: {Math.round(task.evaluation.score * 100)}%</p>
+                          )}
+                        </div>
+                        <div className="p-3 border rounded">
+                          <div className="text-sm font-medium">Feedback:</div>
+                          <ul className="list-disc ml-5 mt-2 text-sm">
                             {task.evaluation.mistakes.length > 0
                               ? task.evaluation.mistakes.map((m, idx) => (<li key={idx}>{m}</li>))
                               : (task.feedback ? <li>{task.feedback}</li> : <li>Looks good.</li>)}
                           </ul>
                         </div>
-                      </div>
+                      </>
                     )}
                   </div>
                 )}
