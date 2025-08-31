@@ -404,18 +404,16 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                         );
                       })}
                     </div>
-                    {task.completed && task.userAnswer && (
+                    {task.completed && task.userAnswer === task.correctAnswer && (
                       <div className="p-3 bg-green-50 border border-green-200 rounded">
                         <p className="text-sm">
                           <strong>Your answer:</strong> {task.userAnswer}
-                          {task.userAnswer === task.correctAnswer ? (
-                            <span className="text-green-600 ml-2">✓ Correct!</span>
-                          ) : null}
+                          <span className="text-green-600 ml-2">✓ Correct!</span>
                         </p>
                       </div>
                     )}
                     {task.completed && task.userAnswer !== task.correctAnswer && task.correctAnswer && (
-                      <div className="p-3 border rounded">
+                      <div className="p-3 border rounded" style={{ backgroundColor: '#fee2e2', borderColor: '#fca5a5', color: '#991b1b' }}>
                         <div className="text-sm font-medium">Correct answer</div>
                         <div className="mt-2 space-y-1 text-sm">
                           <div className="flex items-start gap-2">
@@ -446,18 +444,16 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                         );
                       })}
                     </div>
-                    {task.completed && task.userAnswers && (
+                    {task.completed && task.userAnswers && task.evaluation?.isCorrect && (
                       <div className="p-3 bg-green-50 border border-green-200 rounded">
                         <p className="text-sm">
                           <strong>Your answers:</strong> {task.userAnswers.join(', ')}
-                          {task.evaluation?.isCorrect ? (
-                            <span className="text-green-600 ml-2">✓ Correct!</span>
-                          ) : null}
+                          <span className="text-green-600 ml-2">✓ Correct!</span>
                         </p>
                       </div>
                     )}
                     {task.completed && task.userAnswers && !task.evaluation?.isCorrect && task.correctAnswers && Array.isArray(task.correctAnswers) && (
-                      <div className="p-3 border rounded">
+                      <div className="p-3 border rounded" style={{ backgroundColor: '#fee2e2', borderColor: '#fca5a5', color: '#991b1b' }}>
                         <div className="text-sm font-medium">Correct answers</div>
                         <div className="mt-2 space-y-1 text-sm">
                           {task.correctAnswers.map((ans, idx) => (
