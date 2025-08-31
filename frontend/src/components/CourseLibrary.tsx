@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Progress } from './ui/progress';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext } from './ui/pagination';
 import { 
   BookOpen, 
   Search, 
@@ -60,6 +61,38 @@ export function CourseLibrary({ books, courses, onSelectCourse }: CourseLibraryP
     book,
     courses: filteredCourses.filter(course => course.bookId === book.id)
   })).filter(group => group.courses.length > 0);
+
+  const BOOK_PAGE_LIMIT = 100;
+
+  const pages = useMemo(() => {
+    const result: Array<{ book: Book; courses: Course[] }[]> = [];
+    let current: Array<{ book: Book; courses: Course[] }> = [];
+    let count = 0;
+    groupedCourses.forEach(group => {
+      const size = group.courses.length;
+      if (count > 0 && count + size > BOOK_PAGE_LIMIT) {
+        result.push(current);
+        current = [];
+        count = 0;
+      }
+      current.push(group);
+      count += size;
+      // If a single book alone exceeds limit, it will live alone on a page (count may exceed 100)
+      if (count > BOOK_PAGE_LIMIT) {
+        result.push(current);
+        current = [];
+        count = 0;
+      }
+    });
+    if (current.length > 0) result.push(current);
+    return result;
+  }, [groupedCourses]);
+
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    if (page > pages.length) setPage(1);
+  }, [pages.length, page]);
 
   const stats = {
     total: courses.length,
@@ -177,7 +210,7 @@ export function CourseLibrary({ books, courses, onSelectCourse }: CourseLibraryP
             </Card>
           ) : (
             <div className="space-y-8">
-              {groupedCourses.map(({ book, courses }) => (
+              {(pages[page - 1] || []).map(({ book, courses }) => (
                 <Card key={book.id}>
                   <CardHeader>
                     <div className="flex items-center justify-between">
@@ -249,6 +282,39 @@ export function CourseLibrary({ books, courses, onSelectCourse }: CourseLibraryP
                   </CardContent>
                 </Card>
               ))}
+
+              {pages.length > 1 && (
+                <Pagination className="mt-4">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        size="default"
+                        onClick={(e) => { e.preventDefault(); setPage(p => Math.max(1, p - 1)); }}
+                      />
+                    </PaginationItem>
+                    {pages.map((_, idx) => (
+                      <PaginationItem key={idx}>
+                        <PaginationLink
+                          href="#"
+                          size="default"
+                          isActive={page === idx + 1}
+                          onClick={(e) => { e.preventDefault(); setPage(idx + 1); }}
+                        >
+                          {idx + 1}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        size="default"
+                        onClick={(e) => { e.preventDefault(); setPage(p => Math.min(pages.length, p + 1)); }}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              )}
             </div>
           )}
         </TabsContent>

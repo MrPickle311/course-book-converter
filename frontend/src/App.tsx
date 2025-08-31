@@ -69,6 +69,23 @@ const generateMockBooks = (count: number): Book[] => {
     'Site Reliability Engineering',
     'Microservices Patterns',
     'Kubernetes Up & Running',
+    'The Art of Computer Programming',
+    'The Mythical Man-Month',
+    'The Design of Everyday Things',
+    'The Little Schemer',
+    'The Pragmatic Developer',
+    'The Clean Coder',
+    'The Clean Architecture',
+    'The Software Craftsman',
+    'The Mythical Man-Month',
+    'The Design of Everyday Things',
+    'The Little Schemer',
+    'The Pragmatic Developer',
+    'The Clean Coder',
+    'The Clean Architecture',
+    'The Software Craftsman',
+    'The Pragmatic Programmer',
+
   ];
 
   const books: Book[] = [];
@@ -87,7 +104,7 @@ const generateMockBooks = (count: number): Book[] => {
   return books;
 };
 
-const mockBooks: Book[] = generateMockBooks(15);
+const mockBooks: Book[] = generateMockBooks(31);
 
 // Generate many mock courses for pagination/performance testing
 const generateMockCourses = (books: Book[], userId: string, replicationsPerChapter = 100): Course[] => {
@@ -145,7 +162,7 @@ function AppContent() {
   useEffect(() => {
     if (!user) return;
     if (courses.length > 0) return;
-    const seeded = generateMockCourses(books, user.id, 10);
+    const seeded = generateMockCourses(books, user.id, 5);
     setCourses(seeded);
   }, [user?.id, courses.length, books]);
 
