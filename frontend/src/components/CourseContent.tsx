@@ -482,18 +482,28 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                     )}
                     {task.evaluation && (
                       <>
-                        <div className={(task.evaluation.isCorrect ? 'bg-green-50 border-green-200 text-green-700' : 'bg-amber-50 border-amber-200 text-red-700') + ' p-3 border rounded'}>
+                        <div className={(task.evaluation.isCorrect ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700') + ' p-3 border rounded'}>
                           {typeof task.evaluation.score === 'number' && (
                             <p className="text-sm font-medium">Score: {Math.round(task.evaluation.score * 100)}%</p>
                           )}
                         </div>
                         <div className="p-3 border rounded">
                           <div className="text-sm font-medium">Feedback:</div>
-                          <ul className="list-disc ml-5 mt-2 text-sm">
+                          <div className="mt-2 space-y-1 text-sm">
                             {task.evaluation.mistakes.length > 0
-                              ? task.evaluation.mistakes.map((m, idx) => (<li key={idx}>{m}</li>))
-                              : (task.feedback ? <li>{task.feedback}</li> : <li>Looks good.</li>)}
-                          </ul>
+                              ? task.evaluation.mistakes.map((m, idx) => (
+                                  <div key={idx} className="flex items-start gap-2">
+                                    <span>•</span>
+                                    <span>{m}</span>
+                                  </div>
+                                ))
+                              : (
+                                  <div className="flex items-start gap-2">
+                                    <span>•</span>
+                                    <span>{task.feedback || 'Looks good.'}</span>
+                                  </div>
+                                )}
+                          </div>
                         </div>
                       </>
                     )}
@@ -537,18 +547,28 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                     )}
                     {task.evaluation && (
                       <>
-                        <div className={(task.evaluation.isCorrect ? 'bg-green-50 border-green-200 text-green-700' : 'bg-amber-50 border-amber-200 text-red-700') + ' p-3 border rounded'}>
+                        <div className={(task.evaluation.isCorrect ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700') + ' p-3 border rounded'}>
                           {typeof task.evaluation.score === 'number' && (
                             <p className="text-sm font-medium">Score: {Math.round(task.evaluation.score * 100)}%</p>
                           )}
                         </div>
                         <div className="p-3 border rounded">
                           <div className="text-sm font-medium">Feedback:</div>
-                          <ul className="list-disc ml-5 mt-2 text-sm">
+                          <div className="mt-2 space-y-1 text-sm">
                             {task.evaluation.mistakes.length > 0
-                              ? task.evaluation.mistakes.map((m, idx) => (<li key={idx}>{m}</li>))
-                              : (task.feedback ? <li>{task.feedback}</li> : <li>Looks good.</li>)}
-                          </ul>
+                              ? task.evaluation.mistakes.map((m, idx) => (
+                                  <div key={idx} className="flex items-start gap-2">
+                                    <span>•</span>
+                                    <span>{m}</span>
+                                  </div>
+                                ))
+                              : (
+                                  <div className="flex items-start gap-2">
+                                    <span>•</span>
+                                    <span>{task.feedback || 'Looks good.'}</span>
+                                  </div>
+                                )}
+                          </div>
                         </div>
                       </>
                     )}
