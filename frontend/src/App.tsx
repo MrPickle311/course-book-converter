@@ -109,10 +109,20 @@ const mockBooks: Book[] = generateMockBooks(31);
 // Generate many mock courses for pagination/performance testing
 const generateMockCourses = (books: Book[], userId: string, replicationsPerChapter = 100): Course[] => {
   const courses: Course[] = [];
+  const adjectives = ['Foundations of', 'Deep Dive into', 'Practical', 'Modern', 'Advanced', 'Hands-on', 'Applied', 'Strategic', 'Tactical', 'Essential'];
+  const topics = ['Patterns', 'Workflows', 'Techniques', 'Guides', 'Blueprints', 'Playbook', 'Concepts', 'Principles', 'Scenarios', 'Case Studies'];
+  const variants = ['Overview', 'Checklist', 'Anti-Patterns', 'Pitfalls', 'Heuristics', 'Recipes', 'Field Notes', 'Insights', 'Best Practices', 'FAQ'];
+
+  const buildVariedTitle = (base: string, index: number): string => {
+    const a = adjectives[index % adjectives.length];
+    const t = topics[Math.floor(index / adjectives.length) % topics.length];
+    const v = variants[Math.floor(index ) % variants.length];
+    return `${base}: ${a} ${t} — ${v}`;
+  };
   books.forEach((book) => {
     book.tableOfContents.forEach((chapter) => {
       for (let i = 1; i <= replicationsPerChapter; i++) {
-        const titleWithPart = `${chapter.title} — Part ${i}`;
+        const titleWithPart = buildVariedTitle(chapter.title, i - 1);
         const chapterForNotes = `Chapter ${((i - 1) % 6) + 1}`; // cycle through chapter 1..6 from mocks
         courses.push({
           id: `seed-${book.id}-${chapter.id}-${i}`,
