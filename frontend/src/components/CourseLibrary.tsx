@@ -15,7 +15,8 @@ import {
   Trophy,
   Filter,
   ChevronRight,
-  MoreHorizontal 
+  MoreHorizontal,
+  ChevronDown 
 } from 'lucide-react';
 
 interface Book {
@@ -47,6 +48,16 @@ interface CourseLibraryProps {
 export function CourseLibrary({ books, courses, onSelectCourse }: CourseLibraryProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeView, setActiveView] = useState('all');
+  const [collapsedBookIds, setCollapsedBookIds] = useState<Set<string>>(new Set());
+
+  const toggleBookCollapsed = (bookId: string) => {
+    setCollapsedBookIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(bookId)) next.delete(bookId);
+      else next.add(bookId);
+      return next;
+    });
+  };
 
   const filteredCourses = courses.filter(course => {
     const matchesSearch = course.chapterTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -226,60 +237,72 @@ export function CourseLibrary({ books, courses, onSelectCourse }: CourseLibraryP
                           </p>
                         </div>
                       </div>
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleBookCollapsed(book.id)}
+                          aria-label={collapsedBookIds.has(book.id) ? 'Expand book courses' : 'Collapse book courses'}
+                        >
+                          <ChevronDown className={"w-4 h-4 transition-transform " + (collapsedBookIds.has(book.id) ? "-rotate-90" : "rotate-0")} />
+                        </Button>
+                        <Button variant="ghost" size="sm">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
                   
-                  <CardContent className="space-y-3">
-                    {courses.map((course) => {
-                      const completedTasks = course.tasks.filter(task => task.completed).length;
-                      const progress = course.tasks.length > 0 ? (completedTasks / course.tasks.length) * 100 : 0;
-                      
-                      return (
-                        <div
-                          key={course.id}
-                          className="group border rounded-lg p-4 hover:bg-accent/50 transition-colors cursor-pointer"
-                          onClick={() => onSelectCourse(course)}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1 space-y-2">
-                              <div className="flex items-center gap-2">
-                                <h4 className="font-medium">{course.chapterTitle}</h4>
-                                <Badge 
-                                  variant={course.completed ? "default" : "secondary"}
-                                  className="text-xs"
-                                >
-                                  {course.completed ? "Completed" : "In Progress"}
-                                </Badge>
+                  {!collapsedBookIds.has(book.id) && (
+                    <CardContent className="space-y-3">
+                      {courses.map((course) => {
+                        const completedTasks = course.tasks.filter(task => task.completed).length;
+                        const progress = course.tasks.length > 0 ? (completedTasks / course.tasks.length) * 100 : 0;
+                        
+                        return (
+                          <div
+                            key={course.id}
+                            className="group border rounded-lg p-4 hover:bg-accent/50 transition-colors cursor-pointer"
+                            onClick={() => onSelectCourse(course)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1 space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <h4 className="font-medium">{course.chapterTitle}</h4>
+                                  <Badge 
+                                    variant={course.completed ? "default" : "secondary"}
+                                    className="text-xs"
+                                  >
+                                    {course.completed ? "Completed" : "In Progress"}
+                                  </Badge>
+                                </div>
+                                
+                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="w-3 h-3" />
+                                    <span>Created {new Date(course.createdDate).toLocaleDateString()}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <CheckCircle className="w-3 h-3" />
+                                    <span>{completedTasks}/{course.tasks.length} tasks</span>
+                                  </div>
+                                </div>
+                                
+                                <div className="flex items-center gap-2">
+                                  <Progress value={progress} className="flex-1 h-2" />
+                                  <span className="text-xs text-muted-foreground min-w-0">
+                                    {Math.round(progress)}%
+                                  </span>
+                                </div>
                               </div>
                               
-                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                <div className="flex items-center gap-1">
-                                  <Calendar className="w-3 h-3" />
-                                  <span>Created {new Date(course.createdDate).toLocaleDateString()}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <CheckCircle className="w-3 h-3" />
-                                  <span>{completedTasks}/{course.tasks.length} tasks</span>
-                                </div>
-                              </div>
-                              
-                              <div className="flex items-center gap-2">
-                                <Progress value={progress} className="flex-1 h-2" />
-                                <span className="text-xs text-muted-foreground min-w-0">
-                                  {Math.round(progress)}%
-                                </span>
-                              </div>
+                              <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                             </div>
-                            
-                            <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                           </div>
-                        </div>
-                      );
-                    })}
-                  </CardContent>
+                        );
+                      })}
+                    </CardContent>
+                  )}
                 </Card>
               ))}
 
