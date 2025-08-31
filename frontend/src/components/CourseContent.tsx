@@ -364,9 +364,9 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
           {course.tasks.map((task, index) => (
             <Card key={task.id}>
               <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-sm mt-1">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-sm">
                       {index + 1}
                     </div>
                     <div className="space-y-1">
