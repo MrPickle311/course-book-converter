@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AuthProvider, useAuth } from './components/AuthContext';
+import { ThemeProvider } from './components/ThemeContext';
 import { AuthForm } from './components/AuthForm';
 import { UserMenu } from './components/UserMenu';
 import { UploadPDF } from './components/UploadPDF';
@@ -307,7 +308,7 @@ By the end of this chapter, you will be able to:
               <Library className="w-4 h-4 mr-2" />
               My Courses
             </Button>
-            <UserMenu onOpenLibrary={handleOpenLibrary} />
+            <UserMenu />
             <Button
               variant="destructive"
               size="sm"
@@ -358,8 +359,10 @@ By the end of this chapter, you will be able to:
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

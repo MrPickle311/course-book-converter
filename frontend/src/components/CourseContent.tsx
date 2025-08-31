@@ -29,6 +29,7 @@ interface Course {
   tasks: Task[];
   createdDate: string;
   completed: boolean;
+  userId: string;
 }
 
 interface CourseContentProps {

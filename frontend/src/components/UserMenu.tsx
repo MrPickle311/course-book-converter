@@ -1,37 +1,29 @@
 import { useState } from 'react';
 import {
   DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback } from './ui/avatar';
+import { Switch } from './ui/switch';
 import { useAuth } from './AuthContext';
-import { User, LogOut, Settings, BookOpen } from 'lucide-react';
+import { useTheme } from './ThemeContext';
+import { Sun, Moon, X } from 'lucide-react';
 
-interface UserMenuProps {
-  onOpenLibrary?: () => void;
-}
+export function UserMenu() {
+  const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
-export function UserMenu({ onOpenLibrary }: UserMenuProps) {
-  const { user, logout } = useAuth();
-  const [isOpen, setIsOpen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   if (!user) return null;
 
-  const handleLogout = () => {
-    logout();
-    setIsOpen(false);
+  const handleOpenSettings = () => {
+    setShowSettings(true);
   };
 
-  const handleOpenLibrary = () => {
-    if (onOpenLibrary) {
-      onOpenLibrary();
-      setIsOpen(false);
-    }
+  const handleCloseSettings = () => {
+    setShowSettings(false);
   };
 
   const getInitials = (name: string) => {
@@ -44,56 +36,71 @@ export function UserMenu({ onOpenLibrary }: UserMenuProps) {
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button 
-          variant="outline" 
-          className="relative h-10 px-3 rounded-full border-2 border-border hover:border-primary/50 focus:border-primary"
-        >
-          <Avatar className="h-6 w-6 mr-2">
-            <AvatarFallback className="bg-primary text-primary-foreground text-xs font-medium">
-              {getInitials(user.name)}
-            </AvatarFallback>
-          </Avatar>
-          <span className="text-sm">{user.name.split(' ')[0]}</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" sideOffset={5}>
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user.name}</p>
-            <p className="text-xs leading-none text-muted-foreground">
-              {user.email}
-            </p>
-            {user.createdAt && (
-              <p className="text-xs leading-none text-muted-foreground">
-                Member since {new Date(user.createdAt).toLocaleDateString()}
-              </p>
-            )}
+    <>
+      <div className="flex items-center gap-3">
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button 
+              variant="outline"
+              size="sm" 
+              onClick={handleOpenSettings}
+              className="relative h-10 px-3 rounded-full border-2 border-border hover:border-primary/50 focus:border-primary"
+            >
+              <Avatar className="h-6 w-6 mr-2">
+                <AvatarFallback className="bg-primary text-primary-foreground text-xs font-medium">
+                  {getInitials(user.name)}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-sm">{user.name.split(' ')[0]}</span>
+            </Button>
+          </DropdownMenuTrigger>
+        </DropdownMenu>
+      </div>
+
+      {/* User Settings Panel */}
+      {showSettings && (
+        <div className="fixed inset-0 bg-black/50 z-50">
+          <div className="absolute right-0 top-0 w-1/4 min-w-[300px] bg-background border-l border-border h-full shadow-xl">
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <h2 className="text-lg font-semibold">User Settings</h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCloseSettings}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Theme Toggle */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium">Appearance</h3>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    {theme === 'light' ? (
+                      <Sun className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Moon className="h-4 w-4 text-muted-foreground" />
+                    )}
+                    <span className="text-sm">
+                      {theme === 'light' ? 'Light mode' : 'Dark mode'}
+                    </span>
+                  </div>
+                  <Switch
+                    checked={theme === 'dark'}
+                    onCheckedChange={toggleTheme}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Toggle between light and dark theme
+                </p>
+              </div>
+            </div>
           </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem className="cursor-pointer">
-          <User className="mr-2 h-4 w-4" />
-          <span>Profile</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem className="cursor-pointer" onClick={handleOpenLibrary}>
-          <BookOpen className="mr-2 h-4 w-4" />
-          <span>My Courses</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem className="cursor-pointer">
-          <Settings className="mr-2 h-4 w-4" />
-          <span>Settings</span>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem 
-          className="cursor-pointer text-destructive focus:text-destructive" 
-          onClick={handleLogout}
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </div>
+      )}
+    </>
   );
 }

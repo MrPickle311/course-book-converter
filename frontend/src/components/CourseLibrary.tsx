@@ -34,6 +34,7 @@ interface Course {
   tasks: any[];
   createdDate: string;
   completed: boolean;
+  userId: string;
 }
 
 interface CourseLibraryProps {
