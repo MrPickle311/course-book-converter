@@ -4,7 +4,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Progress } from './ui/progress';
-import { RadioGroup, RadioGroupItem } from './ui/radio-group';
+// radio-group removed to unify visuals; using Checkbox for both single and multi select
 import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
@@ -385,18 +385,25 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
               <CardContent>
                 {task.type === 'multiple-choice' && task.options && (
                   <div className="space-y-4">
-                    <RadioGroup
-                      value={(taskAnswers[task.id] as string) || ''}
-                      onValueChange={(value: string) => handleTaskAnswer(task.id, value)}
-                      disabled={task.completed}
-                    >
-                      {task.options.map((option, optionIndex) => (
-                        <div key={optionIndex} className="flex items-center space-x-2">
-                          <RadioGroupItem value={option} id={`${task.id}-${optionIndex}`} />
-                          <Label htmlFor={`${task.id}-${optionIndex}`}>{option}</Label>
-                        </div>
-                      ))}
-                    </RadioGroup>
+                    <div className="space-y-2">
+                      {task.options.map((option, optionIndex) => {
+                        const selected = (taskAnswers[task.id] as string) === option;
+                        return (
+                          <div key={optionIndex} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`${task.id}-sc-${optionIndex}`}
+                              checked={selected}
+                              onCheckedChange={(checked: boolean | 'indeterminate') => {
+                                if (task.completed) return;
+                                if (checked === true) handleTaskAnswer(task.id, option);
+                              }}
+                              disabled={task.completed}
+                            />
+                            <Label htmlFor={`${task.id}-sc-${optionIndex}`}>{option}</Label>
+                          </div>
+                        );
+                      })}
+                    </div>
                     {task.completed && task.userAnswer && (
                       <div className="p-3 bg-green-50 border border-green-200 rounded">
                         <p className="text-sm">
