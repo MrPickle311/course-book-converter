@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
-import { CheckCircle, Circle, BookOpen, CheckSquare, Clock, Award } from 'lucide-react';
+import { CheckCircle, Circle, BookOpen, CheckSquare, Clock, Award, Loader2 } from 'lucide-react';
 
 interface Task {
   id: string;
@@ -20,6 +20,7 @@ interface Task {
   userAnswer?: string;
   userAnswers?: string[];
   userFileName?: string;
+  feedback?: string;
   completed: boolean;
 }
 
@@ -46,6 +47,7 @@ interface CourseContentProps {
 export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
   const [activeTab, setActiveTab] = useState('notes');
   const [taskAnswers, setTaskAnswers] = useState<Record<string, string | string[] | File | null>>({});
+  const [submitting, setSubmitting] = useState<Record<string, boolean>>({});
   const openFilePicker = (taskId: string) => {
     const input = document.getElementById(`file-input-${taskId}`) as HTMLInputElement | null;
     if (input) input.click();
@@ -90,23 +92,49 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
     if (task.type === 'upload-pdf') {
       const file = answer as File | undefined;
       if (!file) return;
-      const updatedTask = {
-        ...task,
-        userFileName: file.name,
-        completed: true,
-      } as Task;
-      const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
-      const updatedCourse = {
-        ...course,
-        tasks: updatedTasks,
-        completed: updatedTasks.every(t => t.completed)
-      };
-      onUpdateCourse(updatedCourse);
+      setSubmitting(prev => ({ ...prev, [task.id]: true }));
+      setTimeout(() => {
+        const updatedTask = {
+          ...task,
+          userFileName: file.name,
+          feedback: `Mock review: "${file.name}" received and looks valid.`,
+          completed: true,
+        } as Task;
+        const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
+        const updatedCourse = {
+          ...course,
+          tasks: updatedTasks,
+          completed: updatedTasks.every(t => t.completed)
+        };
+        onUpdateCourse(updatedCourse);
+        setSubmitting(prev => ({ ...prev, [task.id]: false }));
+      }, 1200);
       return;
     }
 
     const userAnswer = (answer as string | undefined) || '';
     if (!userAnswer) return;
+
+    if (task.type === 'short-answer') {
+      setSubmitting(prev => ({ ...prev, [task.id]: true }));
+      setTimeout(() => {
+        const updatedTask = {
+          ...task,
+          userAnswer,
+          feedback: 'Mock feedback: clear and concise. Consider adding one specific example.',
+          completed: true
+        } as Task;
+        const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
+        const updatedCourse = {
+          ...course,
+          tasks: updatedTasks,
+          completed: updatedTasks.every(t => t.completed)
+        };
+        onUpdateCourse(updatedCourse);
+        setSubmitting(prev => ({ ...prev, [task.id]: false }));
+      }, 1000);
+      return;
+    }
 
     const updatedTask = {
       ...task,
@@ -301,7 +329,9 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                       </Badge>
                     </div>
                   </div>
-                  {task.completed ? (
+                  {submitting[task.id] ? (
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                  ) : task.completed ? (
                     <CheckCircle className="w-5 h-5 text-green-500" />
                   ) : (
                     <Circle className="w-5 h-5 text-muted-foreground" />
@@ -385,12 +415,22 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                       className={task.type === 'code' ? 'font-mono' : ''}
                       rows={task.type === 'code' ? 8 : 4}
                     />
+                    {submitting[task.id] && (
+                      <div className="text-sm text-muted-foreground">Evaluating answer...</div>
+                    )}
                     {task.completed && task.userAnswer && (
                       <div className="p-3 bg-blue-50 border border-blue-200 rounded">
                         <p className="text-sm">
                           <strong>Your answer:</strong>
                         </p>
                         <pre className="mt-2 text-sm whitespace-pre-wrap">{task.userAnswer}</pre>
+                      </div>
+                    )}
+                    {task.completed && task.feedback && (
+                      <div className="p-3 bg-emerald-50 border border-emerald-200 rounded">
+                        <p className="text-sm">
+                          <strong>Feedback:</strong> {task.feedback}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -421,10 +461,20 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                             ? <>Selected: {(taskAnswers[task.id] as File).name}</>
                             : <>No file selected</>)}
                     </div>
+                    {submitting[task.id] && (
+                      <div className="text-sm text-muted-foreground">Validating PDF...</div>
+                    )}
                     {task.completed && task.userFileName && (
                       <div className="p-3 bg-purple-50 border border-purple-200 rounded">
                         <p className="text-sm">
                           <strong>Uploaded file:</strong> {task.userFileName}
+                        </p>
+                      </div>
+                    )}
+                    {task.completed && task.feedback && (
+                      <div className="p-3 bg-emerald-50 border border-emerald-200 rounded">
+                        <p className="text-sm">
+                          <strong>Feedback:</strong> {task.feedback}
                         </p>
                       </div>
                     )}
@@ -445,7 +495,7 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                             : true
                     }
                   >
-                    Submit Answer
+                    {submitting[task.id] ? 'Submitting...' : 'Submit Answer'}
                   </Button>
                 )}
               </CardContent>

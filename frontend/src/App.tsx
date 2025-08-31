@@ -53,6 +53,7 @@ interface Task {
   userAnswer?: string;
   userAnswers?: string[];
   userFileName?: string;
+  feedback?: string;
   completed: boolean;
 }
 
