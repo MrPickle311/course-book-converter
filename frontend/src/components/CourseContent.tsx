@@ -482,9 +482,13 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                     )}
                     {task.evaluation && (
                       <>
-                        <div className={(task.evaluation.isCorrect ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700') + ' p-3 border rounded'}>
+                        <div className={'p-3 border rounded'}
+                          style={task.evaluation.isCorrect ? { backgroundColor: '#ecfdf5', borderColor: '#86efac' } : { backgroundColor: '#fee2e2', borderColor: '#fca5a5' }}>
                           {typeof task.evaluation.score === 'number' && (
-                            <p className="text-sm font-medium">Score: {Math.round(task.evaluation.score * 100)}%</p>
+                            <p className={'text-sm font-medium'}
+                              style={task.evaluation.isCorrect ? { color: '#065f46' } : { color: '#991b1b' }}>
+                              Score: {Math.round(task.evaluation.score * 100)}%
+                            </p>
                           )}
                         </div>
                         <div className="p-3 border rounded">
@@ -547,9 +551,13 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                     )}
                     {task.evaluation && (
                       <>
-                        <div className={(task.evaluation.isCorrect ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700') + ' p-3 border rounded'}>
+                        <div className={'p-3 border rounded'}
+                          style={task.evaluation.isCorrect ? { backgroundColor: '#ecfdf5', borderColor: '#86efac' } : { backgroundColor: '#fee2e2', borderColor: '#fca5a5' }}>
                           {typeof task.evaluation.score === 'number' && (
-                            <p className="text-sm font-medium">Score: {Math.round(task.evaluation.score * 100)}%</p>
+                            <p className={'text-sm font-medium'}
+                              style={task.evaluation.isCorrect ? { color: '#065f46' } : { color: '#991b1b' }}>
+                              Score: {Math.round(task.evaluation.score * 100)}%
+                            </p>
                           )}
                         </div>
                         <div className="p-3 border rounded">
