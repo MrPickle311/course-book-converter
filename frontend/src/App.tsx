@@ -52,31 +52,42 @@ interface Task {
   completed: boolean;
 }
 
-const mockBooks: Book[] = [
-  {
-    id: '1',
-    title: 'Advanced React Patterns',
-    uploadDate: '2024-01-15',
-    tableOfContents: [
-      { id: '1-1', title: 'Introduction to Advanced Patterns', page: 1 },
-      { id: '1-2', title: 'Higher-Order Components', page: 15 },
-      { id: '1-3', title: 'Render Props Pattern', page: 32 },
-      { id: '1-4', title: 'Custom Hooks', page: 48 },
-      { id: '1-5', title: 'Context API Deep Dive', page: 65 },
-    ]
-  },
-  {
-    id: '2',
-    title: 'Machine Learning Fundamentals',
-    uploadDate: '2024-02-20',
-    tableOfContents: [
-      { id: '2-1', title: 'Introduction to ML', page: 1 },
-      { id: '2-2', title: 'Supervised Learning', page: 25 },
-      { id: '2-3', title: 'Unsupervised Learning', page: 55 },
-      { id: '2-4', title: 'Neural Networks', page: 85 },
-    ]
+const generateMockBooks = (count: number): Book[] => {
+  const sampleTitles = [
+    'Architecture: The Hard Parts',
+    'Optimizing Java',
+    'Clean Code',
+    'Refactoring',
+    'Designing Data-Intensive Applications',
+    "You Don't Know JS",
+    'Effective TypeScript',
+    'Domain-Driven Design',
+    'The Pragmatic Programmer',
+    'Patterns of Enterprise Application Architecture',
+    'Introduction to Algorithms',
+    'Operating Systems: Three Easy Pieces',
+    'Site Reliability Engineering',
+    'Microservices Patterns',
+    'Kubernetes Up & Running',
+  ];
+
+  const books: Book[] = [];
+  for (let i = 0; i < count; i++) {
+    const id = (i + 1).toString();
+    const title = sampleTitles[i % sampleTitles.length] + (i >= sampleTitles.length ? ` (Vol. ${Math.floor(i / sampleTitles.length) + 1})` : '');
+    const uploadDate = `2024-${String(((i % 12) + 1)).padStart(2, '0')}-${String(((i % 27) + 1)).padStart(2, '0')}`;
+    const chapters = Array.from({ length: 6 }, (_, c) => ({
+      id: `${id}-${c + 1}`,
+      title: c === 0 ? 'Introduction' : c === 1 ? 'Core Concepts' : c === 2 ? 'Advanced Topics' : c === 3 ? 'Best Practices' : c === 4 ? 'Case Studies' : 'Appendix',
+      page: c === 0 ? 1 : c * 20 + 1,
+    }));
+
+    books.push({ id, title, uploadDate, tableOfContents: chapters });
   }
-];
+  return books;
+};
+
+const mockBooks: Book[] = generateMockBooks(15);
 
 // Generate many mock courses for pagination/performance testing
 const generateMockCourses = (books: Book[], userId: string, replicationsPerChapter = 100): Course[] => {
@@ -130,6 +141,14 @@ function AppContent() {
   const [currentBook, setCurrentBook] = useState<Book | null>(null);
   const [currentCourse, setCurrentCourse] = useState<Course | null>(null);
 
+  // Seed courses for logged-in user exactly once
+  useEffect(() => {
+    if (!user) return;
+    if (courses.length > 0) return;
+    const seeded = generateMockCourses(books, user.id, 10);
+    setCourses(seeded);
+  }, [user?.id, courses.length, books]);
+
   // Show loading spinner while checking authentication
   if (isLoading) {
     return (
@@ -143,15 +162,6 @@ function AppContent() {
   if (!user) {
     return <AuthForm />;
   }
-
-  // On first login (or refresh), populate courses for this user if empty
-  useEffect(() => {
-    if (user && courses.length === 0) {
-      const seeded = generateMockCourses(books, user.id, 100);
-      setCourses(seeded);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
 
   const handleFileUpload = (file: File) => {
     // Simulate processing and TOC extraction
