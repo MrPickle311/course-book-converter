@@ -155,16 +155,25 @@ const generateMockCourses = (books: Book[], userId: string, replicationsPerChapt
               id: `task-${book.id}-${chapter.id}-${i}-2`,
               question: `Which statement best describes ${titleWithPart}?`,
               type: 'multiple-choice',
-              options: ['Option A', 'Option B', 'Option C', 'Option D'],
-              correctAnswer: 'Option A',
+              options: [
+                'This quite longer response A. Blah blah blah with extra words and even more words to test the length of the answer. Also another sentence.', 
+                'This is a much longer option B with even more words to test the length of the answer. Also another sentence.', 
+                'This is a shorter option C with even more words to test the length of the answer. Also another sentence.', 
+                'This is a shorter option D with even more words to test the length of the answer. Also another sentence.'
+              ],
+              correctAnswer: 'This quite longer response A. Blah blah blah with extra words and even more words to test the length of the answer. Also another sentence.',
               completed: false
             },
             {
               id: `task-${book.id}-${chapter.id}-${i}-3`,
               question: `Select all that apply to ${titleWithPart}`,
               type: 'multiple-select',
-              options: ['Concept A', 'Concept B', 'Concept C', 'Concept D'],
-              correctAnswers: ['Concept A', 'Concept C'],
+              options: [
+                'This quite longer response A. Blah blah blah with extra words and even more words to test the length of the answer. Also another sentence.', 
+                'This is a much shorter option B with even more words to test the length of the answer. Also another sentence.', 
+                'This is a much shorter option C with even more words to test the length of the answer. Also another sentence.', 
+                'This is a shorter option D with even more words to test the length of the answer. Also another sentence.'],
+              correctAnswers: ['This quite longer response A. Blah blah blah with extra words and even more words to test the length of the answer. Also another sentence.', 'This is a shorter option C with even more words to test the length of the answer. Also another sentence.'],
               completed: false
             },
             {
