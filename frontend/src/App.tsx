@@ -46,10 +46,13 @@ interface Course {
 interface Task {
   id: string;
   question: string;
-  type: 'multiple-choice' | 'short-answer' | 'code';
+  type: 'multiple-choice' | 'multiple-select' | 'short-answer' | 'code' | 'upload-pdf';
   options?: string[];
   correctAnswer?: string;
+  correctAnswers?: string[];
   userAnswer?: string;
+  userAnswers?: string[];
+  userFileName?: string;
   completed: boolean;
 }
 
@@ -146,6 +149,20 @@ const generateMockCourses = (books: Book[], userId: string, replicationsPerChapt
               options: ['Option A', 'Option B', 'Option C', 'Option D'],
               correctAnswer: 'Option A',
               completed: false
+            },
+            {
+              id: `task-${book.id}-${chapter.id}-${i}-3`,
+              question: `Select all that apply to ${titleWithPart}`,
+              type: 'multiple-select',
+              options: ['Concept A', 'Concept B', 'Concept C', 'Concept D'],
+              correctAnswers: ['Concept A', 'Concept C'],
+              completed: false
+            },
+            {
+              id: `task-${book.id}-${chapter.id}-${i}-4`,
+              question: `Upload a supporting PDF related to ${titleWithPart}`,
+              type: 'upload-pdf',
+              completed: false
             }
           ],
           createdDate: '2024-01-20',
@@ -234,6 +251,20 @@ function AppContent() {
           type: 'multiple-choice',
           options: ['Option A', 'Option B', 'Option C', 'Option D'],
           correctAnswer: 'Option A',
+          completed: false
+        },
+        {
+          id: `task-${Date.now()}-3`,
+          question: `Select all that apply to ${chapter.title}`,
+          type: 'multiple-select',
+          options: ['Concept A', 'Concept B', 'Concept C', 'Concept D'],
+          correctAnswers: ['Concept B', 'Concept D'],
+          completed: false
+        },
+        {
+          id: `task-${Date.now()}-4`,
+          question: `Upload a supporting PDF related to ${chapter.title}`,
+          type: 'upload-pdf',
           completed: false
         }
       ],

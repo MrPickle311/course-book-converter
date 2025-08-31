@@ -5,6 +5,7 @@ import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Progress } from './ui/progress';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
+import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { CheckCircle, Circle, BookOpen, CheckSquare, Clock, Award } from 'lucide-react';
@@ -12,10 +13,13 @@ import { CheckCircle, Circle, BookOpen, CheckSquare, Clock, Award } from 'lucide
 interface Task {
   id: string;
   question: string;
-  type: 'multiple-choice' | 'short-answer' | 'code';
+  type: 'multiple-choice' | 'multiple-select' | 'short-answer' | 'code' | 'upload-pdf';
   options?: string[];
   correctAnswer?: string;
+  correctAnswers?: string[];
   userAnswer?: string;
+  userAnswers?: string[];
+  userFileName?: string;
   completed: boolean;
 }
 
@@ -41,24 +45,74 @@ interface CourseContentProps {
 
 export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
   const [activeTab, setActiveTab] = useState('notes');
-  const [taskAnswers, setTaskAnswers] = useState<Record<string, string>>({});
+  const [taskAnswers, setTaskAnswers] = useState<Record<string, string | string[] | File | null>>({});
+  const openFilePicker = (taskId: string) => {
+    const input = document.getElementById(`file-input-${taskId}`) as HTMLInputElement | null;
+    if (input) input.click();
+  };
 
   const completedTasks = course.tasks.filter(task => task.completed).length;
   const progressPercentage = course.tasks.length > 0 ? (completedTasks / course.tasks.length) * 100 : 0;
 
-  const handleTaskAnswer = (taskId: string, answer: string) => {
+  const handleTaskAnswer = (taskId: string, answer: string | string[] | File | null) => {
     setTaskAnswers(prev => ({ ...prev, [taskId]: answer }));
   };
 
+  const toggleMultiSelectOption = (taskId: string, option: string) => {
+    setTaskAnswers(prev => {
+      const current = (prev[taskId] as string[] | undefined) || [];
+      const exists = current.includes(option);
+      const next = exists ? current.filter(o => o !== option) : [...current, option];
+      return { ...prev, [taskId]: next };
+    });
+  };
+
   const handleSubmitTask = (task: Task) => {
-    const userAnswer = taskAnswers[task.id];
+    const answer = taskAnswers[task.id];
+    if (task.type === 'multiple-select') {
+      const list = (answer as string[] | undefined) || [];
+      if (list.length === 0) return;
+      const updatedTask = {
+        ...task,
+        userAnswers: list,
+        completed: true,
+      } as Task;
+      const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
+      const updatedCourse = {
+        ...course,
+        tasks: updatedTasks,
+        completed: updatedTasks.every(t => t.completed)
+      };
+      onUpdateCourse(updatedCourse);
+      return;
+    }
+
+    if (task.type === 'upload-pdf') {
+      const file = answer as File | undefined;
+      if (!file) return;
+      const updatedTask = {
+        ...task,
+        userFileName: file.name,
+        completed: true,
+      } as Task;
+      const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
+      const updatedCourse = {
+        ...course,
+        tasks: updatedTasks,
+        completed: updatedTasks.every(t => t.completed)
+      };
+      onUpdateCourse(updatedCourse);
+      return;
+    }
+
+    const userAnswer = (answer as string | undefined) || '';
     if (!userAnswer) return;
 
     const updatedTask = {
       ...task,
       userAnswer,
       completed: true
-    };
+    } as Task;
 
     const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
     const updatedCourse = {
@@ -258,7 +312,7 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                 {task.type === 'multiple-choice' && task.options && (
                   <div className="space-y-4">
                     <RadioGroup
-                      value={taskAnswers[task.id] || ''}
+                      value={(taskAnswers[task.id] as string) || ''}
                       onValueChange={(value: string) => handleTaskAnswer(task.id, value)}
                       disabled={task.completed}
                     >
@@ -286,11 +340,46 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                   </div>
                 )}
 
+                {task.type === 'multiple-select' && task.options && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      {task.options.map((option, optionIndex) => {
+                        const selected = ((taskAnswers[task.id] as string[]) || []).includes(option);
+                        return (
+                          <div key={optionIndex} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`${task.id}-ms-${optionIndex}`}
+                              checked={selected}
+                              onCheckedChange={() => toggleMultiSelectOption(task.id, option)}
+                              disabled={task.completed}
+                            />
+                            <Label htmlFor={`${task.id}-ms-${optionIndex}`}>{option}</Label>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {task.completed && task.userAnswers && (
+                      <div className="p-3 bg-green-50 border border-green-200 rounded">
+                        <p className="text-sm">
+                          <strong>Your answers:</strong> {task.userAnswers.join(', ')}
+                          {task.correctAnswers && (
+                            <span className="ml-2">
+                              {Array.isArray(task.correctAnswers)
+                                ? `Correct: ${task.correctAnswers.join(', ')}`
+                                : null}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {(task.type === 'short-answer' || task.type === 'code') && (
                   <div className="space-y-4">
                     <Textarea
                       placeholder={task.type === 'code' ? 'Write your code here...' : 'Enter your answer...'}
-                      value={taskAnswers[task.id] || ''}
+                      value={(taskAnswers[task.id] as string) || ''}
                       onChange={(e) => handleTaskAnswer(task.id, e.target.value)}
                       disabled={task.completed}
                       className={task.type === 'code' ? 'font-mono' : ''}
@@ -307,10 +396,54 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                   </div>
                 )}
 
-                {!task.completed && taskAnswers[task.id] && (
+                {task.type === 'upload-pdf' && (
+                  <div className="space-y-4">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => openFilePicker(task.id)}
+                      disabled={task.completed}
+                    >
+                      Upload PDF
+                    </Button>
+                    <input
+                      id={`file-input-${task.id}`}
+                      className="hidden"
+                      type="file"
+                      accept="application/pdf"
+                      onChange={(e) => handleTaskAnswer(task.id, e.target.files?.[0] || null)}
+                      disabled={task.completed}
+                    />
+                    <div className="text-sm text-muted-foreground">
+                      {task.completed && task.userFileName
+                        ? <>Uploaded file: {task.userFileName}</>
+                        : ((taskAnswers[task.id] as File | undefined)?.name
+                            ? <>Selected: {(taskAnswers[task.id] as File).name}</>
+                            : <>No file selected</>)}
+                    </div>
+                    {task.completed && task.userFileName && (
+                      <div className="p-3 bg-purple-50 border border-purple-200 rounded">
+                        <p className="text-sm">
+                          <strong>Uploaded file:</strong> {task.userFileName}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {!task.completed && (
                   <Button
                     onClick={() => handleSubmitTask(task)}
                     className="mt-4"
+                    disabled={
+                      (task.type === 'multiple-choice' || task.type === 'short-answer' || task.type === 'code')
+                        ? !taskAnswers[task.id]
+                        : task.type === 'multiple-select'
+                          ? ((taskAnswers[task.id] as string[] | undefined)?.length || 0) === 0
+                          : task.type === 'upload-pdf'
+                            ? !taskAnswers[task.id]
+                            : true
+                    }
                   >
                     Submit Answer
                   </Button>
