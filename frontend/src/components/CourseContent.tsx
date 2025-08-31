@@ -410,12 +410,19 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                           <strong>Your answer:</strong> {task.userAnswer}
                           {task.userAnswer === task.correctAnswer ? (
                             <span className="text-green-600 ml-2">✓ Correct!</span>
-                          ) : (
-                            <span className="text-red-600 ml-2">
-                              ✗ Correct answer: {task.correctAnswer}
-                            </span>
-                          )}
+                          ) : null}
                         </p>
+                      </div>
+                    )}
+                    {task.completed && task.userAnswer !== task.correctAnswer && task.correctAnswer && (
+                      <div className="p-3 border rounded">
+                        <div className="text-sm font-medium">Correct answer</div>
+                        <div className="mt-2 space-y-1 text-sm">
+                          <div className="flex items-start gap-2">
+                            <span>•</span>
+                            <span>{task.correctAnswer}</span>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -445,12 +452,21 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                           <strong>Your answers:</strong> {task.userAnswers.join(', ')}
                           {task.evaluation?.isCorrect ? (
                             <span className="text-green-600 ml-2">✓ Correct!</span>
-                          ) : (
-                            task.correctAnswers && Array.isArray(task.correctAnswers) ? (
-                              <span className="text-red-600 ml-2">✗ Correct answers: {task.correctAnswers.join(', ')}</span>
-                            ) : null
-                          )}
+                          ) : null}
                         </p>
+                      </div>
+                    )}
+                    {task.completed && task.userAnswers && !task.evaluation?.isCorrect && task.correctAnswers && Array.isArray(task.correctAnswers) && (
+                      <div className="p-3 border rounded">
+                        <div className="text-sm font-medium">Correct answers</div>
+                        <div className="mt-2 space-y-1 text-sm">
+                          {task.correctAnswers.map((ans, idx) => (
+                            <div key={idx} className="flex items-start gap-2">
+                              <span>•</span>
+                              <span>{ans}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
