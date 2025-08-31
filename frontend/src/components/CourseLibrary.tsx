@@ -30,7 +30,7 @@ interface Course {
   bookTitle: string;
   chapterId: string;
   chapterTitle: string;
-  notes: string;
+  notes: any;
   tasks: any[];
   createdDate: string;
   completed: boolean;

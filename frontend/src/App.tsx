@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { getMockNotesByChapter, defaultDemoBlocks } from './mocks/Mock';
+import type { NoteBlock } from './mocks/Mock';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import { ThemeProvider } from './components/ThemeContext';
 import { AuthForm } from './components/AuthForm';
@@ -33,7 +35,7 @@ interface Course {
   bookTitle: string;
   chapterId: string;
   chapterTitle: string;
-  notes: string;
+  notes: NoteBlock[];
   tasks: Task[];
   createdDate: string;
   completed: boolean;
@@ -83,47 +85,21 @@ const mockCourses: Course[] = [
     bookTitle: 'Advanced React Patterns',
     chapterId: '1-2',
     chapterTitle: 'Higher-Order Components',
-    notes: `# Higher-Order Components (HOCs)
-
-## What are Higher-Order Components?
-
-A Higher-Order Component is a function that takes a component and returns a new component. HOCs are a pattern that emerges from React's compositional nature.
-
-## Key Concepts:
-
-1. **Function Composition**: HOCs use function composition to enhance components
-2. **Cross-cutting Concerns**: Perfect for sharing logic between components
-3. **Props Proxy**: HOCs can manipulate props before passing them down
-
-## Common Use Cases:
-
-- Authentication checks
-- Loading states
-- Data fetching
-- Conditional rendering
-
-## Example Implementation:
-
-\`\`\`jsx
-const withAuth = (WrappedComponent) => {
-  return (props) => {
-    const { isAuthenticated } = useAuth();
-    
-    if (!isAuthenticated) {
-      return <LoginForm />;
-    }
-    
-    return <WrappedComponent {...props} />;
-  };
-};
-\`\`\`
-
-## Best Practices:
-
-1. Don't mutate the original component
-2. Pass through unrelated props
-3. Maximize composability
-4. Use displayName for debugging`,
+    notes: [
+      {
+        type: 'richText',
+        title: 'Higher-Order Components (HOCs)',
+        markdown:
+          '## What are Higher-Order Components?\n\nA Higher-Order Component is a function that takes a component and returns a new component. HOCs are a pattern that emerges from React\'s compositional nature.\n\n### Key Concepts\n1. **Function Composition** — enhance components via composition\n2. **Cross-cutting Concerns** — share logic across components\n3. **Props Proxy** — manipulate props before passing them down\n\n### Common Use Cases\n- Authentication checks\n- Loading states\n- Data fetching\n- Conditional rendering',
+      },
+      {
+        type: 'code',
+        title: 'Example Implementation',
+        language: 'jsx',
+        code:
+          'const withAuth = (WrappedComponent) => {\n  return (props) => {\n    const { isAuthenticated } = useAuth();\n    if (!isAuthenticated) {\n      return <LoginForm />;\n    }\n    return <WrappedComponent {...props} />;\n  };\n};',
+      },
+    ],
     tasks: [
       {
         id: 't1',
@@ -203,25 +179,7 @@ function AppContent() {
       bookTitle: currentBook!.title,
       chapterId: chapter.id,
       chapterTitle: chapter.title,
-      notes: `# ${chapter.title}
-
-## Overview
-This chapter covers important concepts related to ${chapter.title.toLowerCase()}.
-
-## Key Points:
-1. Fundamental concepts and definitions
-2. Practical applications and examples
-3. Common patterns and best practices
-4. Troubleshooting and debugging techniques
-
-## Learning Objectives:
-By the end of this chapter, you will be able to:
-- Understand the core concepts
-- Apply the knowledge in practical scenarios
-- Identify common pitfalls and how to avoid them
-
-## Detailed Content:
-[Course content would be generated here based on the PDF chapter content]`,
+      notes: (getMockNotesByChapter(chapter.title) as NoteBlock[]) || defaultDemoBlocks,
       tasks: [
         {
           id: `task-${Date.now()}-1`,

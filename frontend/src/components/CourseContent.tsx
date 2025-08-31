@@ -19,13 +19,15 @@ interface Task {
   completed: boolean;
 }
 
+import type { NoteBlock } from '../mocks/Mock';
+
 interface Course {
   id: string;
   bookId: string;
   bookTitle: string;
   chapterId: string;
   chapterTitle: string;
-  notes: string;
+  notes: NoteBlock[];
   tasks: Task[];
   createdDate: string;
   completed: boolean;
@@ -68,34 +70,68 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
     onUpdateCourse(updatedCourse);
   };
 
-  const formatNotes = (notes: string) => {
-    // Simple markdown-like formatting
-    return notes
-      .split('\n')
-      .map((line, index) => {
-        if (line.startsWith('# ')) {
-          return <h1 key={index} className="mb-4 mt-6">{line.slice(2)}</h1>;
-        }
-        if (line.startsWith('## ')) {
-          return <h2 key={index} className="mb-3 mt-5">{line.slice(3)}</h2>;
-        }
-        if (line.startsWith('### ')) {
-          return <h3 key={index} className="mb-2 mt-4">{line.slice(4)}</h3>;
-        }
-        if (line.startsWith('```')) {
-          return null; // Handle code blocks separately
-        }
-        if (line.match(/^\d+\./)) {
-          return <li key={index} className="ml-4">{line}</li>;
-        }
-        if (line.startsWith('- ')) {
-          return <li key={index} className="ml-4 list-disc">{line.slice(2)}</li>;
-        }
-        if (line.trim() === '') {
-          return <br key={index} />;
-        }
-        return <p key={index} className="mb-2">{line}</p>;
-      });
+  const renderBlocks = (blocks: NoteBlock[]) => {
+    return blocks.map((block, index) => {
+      if (block.type === 'richText') {
+        return (
+          <div key={index} className="space-y-2">
+            {block.title && <h3 className="mt-2">{block.title}</h3>}
+            {/* basic markdown handling for headings, lists, paragraphs */}
+            {block.markdown.split('\n').map((line, i) => {
+              if (line.startsWith('# ')) return <h1 key={i} className="mb-4 mt-6">{line.slice(2)}</h1>;
+              if (line.startsWith('## ')) return <h2 key={i} className="mb-3 mt-5">{line.slice(3)}</h2>;
+              if (line.startsWith('### ')) return <h3 key={i} className="mb-2 mt-4">{line.slice(4)}</h3>;
+              if (/^\d+\./.test(line)) return <li key={i} className="ml-4">{line}</li>;
+              if (line.startsWith('- ')) return <li key={i} className="ml-4 list-disc">{line.slice(2)}</li>;
+              if (line.trim() === '') return <br key={i} />;
+              return <p key={i} className="mb-2">{line}</p>;
+            })}
+          </div>
+        );
+      }
+      if (block.type === 'table') {
+        return (
+          <div key={index} className="overflow-x-auto">
+            {block.title && <h3 className="mt-4 mb-2">{block.title}</h3>}
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr>
+                  {block.headers.map((h, hi) => (
+                    <th key={hi} className="border p-2 text-left bg-muted/40">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {block.rows.map((row, ri) => (
+                  <tr key={ri}>
+                    {row.map((cell, ci) => (
+                      <td key={ci} className="border p-2 align-top">{cell}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      }
+      if (block.type === 'code') {
+        return (
+          <div key={index} className="mt-4">
+            {block.title && <h3 className="mb-2">{block.title}</h3>}
+            <pre className="p-3 bg-muted rounded text-sm overflow-x-auto"><code>{block.code}</code></pre>
+          </div>
+        );
+      }
+      if (block.type === 'figure') {
+        return (
+          <div key={index} className="mt-4 text-center">
+            <img src={`src/mocks/${block.src}`} alt={block.caption || 'Figure'} className="mx-auto max-h-96 rounded border" />
+            {block.caption && <div className="text-xs text-muted-foreground mt-2">{block.caption}</div>}
+          </div>
+        );
+      }
+      return null;
+    });
   };
 
   return (
@@ -188,8 +224,8 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
               <CardTitle>Study Notes</CardTitle>
             </CardHeader>
             <CardContent className="prose prose-slate max-w-none">
-              <div className="space-y-4">
-                {formatNotes(course.notes)}
+              <div className="space-y-6">
+                {renderBlocks(course.notes)}
               </div>
             </CardContent>
           </Card>
@@ -223,7 +259,7 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                   <div className="space-y-4">
                     <RadioGroup
                       value={taskAnswers[task.id] || ''}
-                      onValueChange={(value) => handleTaskAnswer(task.id, value)}
+                      onValueChange={(value: string) => handleTaskAnswer(task.id, value)}
                       disabled={task.completed}
                     >
                       {task.options.map((option, optionIndex) => (
