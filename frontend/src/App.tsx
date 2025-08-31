@@ -3,6 +3,7 @@ import { getMockNotesByChapter, defaultDemoBlocks } from './mocks/Mock';
 import type { NoteBlock } from './mocks/Mock';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import { ThemeProvider } from './components/ThemeContext';
+import { SettingsProvider } from './components/SettingsContext';
 import { AuthForm } from './components/AuthForm';
 import { UserMenu } from './components/UserMenu';
 import { UploadPDF } from './components/UploadPDF';
@@ -358,9 +359,11 @@ function AppContent() {
 export default function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <SettingsProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </SettingsProvider>
     </ThemeProvider>
   );
 }

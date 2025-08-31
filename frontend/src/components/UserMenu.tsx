@@ -8,11 +8,13 @@ import { Avatar, AvatarFallback } from './ui/avatar';
 import { Switch } from './ui/switch';
 import { useAuth } from './AuthContext';
 import { useTheme } from './ThemeContext';
+import { useSettings } from './SettingsContext';
 import { Sun, Moon, X } from 'lucide-react';
 
 export function UserMenu() {
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { pageSize, setPageSize } = useSettings();
 
   const [showSettings, setShowSettings] = useState(false);
 
@@ -60,8 +62,8 @@ export function UserMenu() {
 
       {/* User Settings Panel */}
       {showSettings && (
-        <div className="fixed inset-0 bg-black/50 z-50">
-          <div className="absolute right-0 top-0 w-1/4 min-w-[300px] bg-background border-l border-border h-full shadow-xl">
+        <div className="fixed inset-0 bg-black/50 z-50" onClick={handleCloseSettings}>
+          <div className="absolute right-0 top-0 w-1/4 min-w-[300px] bg-background border-l border-border h-full shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-6 border-b border-border">
               <h2 className="text-lg font-semibold">User Settings</h2>
               <Button
@@ -95,6 +97,33 @@ export function UserMenu() {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Toggle between light and dark theme
+                </p>
+              </div>
+
+              {/* Pagination Settings */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium">Pagination</h3>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Courses per page</span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant={pageSize === 50 ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setPageSize(50)}
+                    >
+                      50
+                    </Button>
+                    <Button
+                      variant={pageSize === 100 ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setPageSize(100)}
+                    >
+                      100
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Choose how many courses to display per page in the library
                 </p>
               </div>
             </div>

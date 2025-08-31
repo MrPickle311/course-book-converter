@@ -18,6 +18,7 @@ import {
   MoreHorizontal,
   ChevronDown 
 } from 'lucide-react';
+import { useSettings } from './SettingsContext';
 
 interface Book {
   id: string;
@@ -46,6 +47,7 @@ interface CourseLibraryProps {
 }
 
 export function CourseLibrary({ books, courses, onSelectCourse }: CourseLibraryProps) {
+  const { pageSize } = useSettings();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeView, setActiveView] = useState('all');
   const [collapsedBookIds, setCollapsedBookIds] = useState<Set<string>>(new Set());
@@ -73,7 +75,7 @@ export function CourseLibrary({ books, courses, onSelectCourse }: CourseLibraryP
     courses: filteredCourses.filter(course => course.bookId === book.id)
   })).filter(group => group.courses.length > 0);
 
-  const BOOK_PAGE_LIMIT = 100;
+  const BOOK_PAGE_LIMIT = pageSize;
 
   const pages = useMemo(() => {
     const result: Array<{ book: Book; courses: Course[] }[]> = [];
@@ -97,7 +99,7 @@ export function CourseLibrary({ books, courses, onSelectCourse }: CourseLibraryP
     });
     if (current.length > 0) result.push(current);
     return result;
-  }, [groupedCourses]);
+  }, [groupedCourses, BOOK_PAGE_LIMIT]);
 
   const [page, setPage] = useState(1);
 
