@@ -8,7 +8,7 @@ import { Progress } from './ui/progress';
 import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
-import { CheckCircle, Circle, BookOpen, CheckSquare, Clock, Award, Loader2 } from 'lucide-react';
+import { CheckCircle, Circle, XCircle, BookOpen, CheckSquare, Clock, Award, Loader2 } from 'lucide-react';
 
 interface Task {
   id: string;
@@ -74,6 +74,21 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
       const next = exists ? current.filter(o => o !== option) : [...current, option];
       return { ...prev, [taskId]: next };
     });
+  };
+
+  const isTaskCorrect = (task: Task): boolean | null => {
+    if (!task.completed) return null;
+    if (task.type === 'multiple-select') return task.evaluation?.isCorrect === true;
+    if (task.type === 'multiple-choice') {
+      if (Array.isArray(task.correctAnswers) && task.correctAnswers.length > 0) {
+        return task.evaluation?.isCorrect === true;
+      }
+      return task.userAnswer === task.correctAnswer;
+    }
+    if (task.type === 'short-answer' || task.type === 'code' || task.type === 'upload-pdf') {
+      return task.evaluation?.isCorrect === true;
+    }
+    return null;
   };
 
   const handleSubmitTask = (task: Task) => {
@@ -376,7 +391,11 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                   {submitting[task.id] ? (
                     <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                   ) : task.completed ? (
-                    <CheckCircle className="w-5 h-5 text-green-500" />
+                    isTaskCorrect(task) ? (
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                    ) : (
+                      <XCircle className="w-5 h-5 text-red-500" />
+                    )
                   ) : (
                     <Circle className="w-5 h-5 text-muted-foreground" />
                   )}
