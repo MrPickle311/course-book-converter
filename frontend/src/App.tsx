@@ -173,7 +173,8 @@ const generateMockCourses = (books: Book[], userId: string, replicationsPerChapt
                 'This is a much shorter option B with even more words to test the length of the answer. Also another sentence.', 
                 'This is a much shorter option C with even more words to test the length of the answer. Also another sentence.', 
                 'This is a shorter option D with even more words to test the length of the answer. Also another sentence.'],
-              correctAnswers: ['This quite longer response A. Blah blah blah with extra words and even more words to test the length of the answer. Also another sentence.', 'This is a shorter option C with even more words to test the length of the answer. Also another sentence.'],
+              correctAnswers: ['This quite longer response A. Blah blah blah with extra words and even more words to test the length of the answer. Also another sentence.', 
+                'This is a much shorter option B with even more words to test the length of the answer. Also another sentence.'],
               completed: false
             },
             {
