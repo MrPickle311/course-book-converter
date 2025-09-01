@@ -387,40 +387,42 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                   <div className="space-y-4">
                     <div className="space-y-2">
                       {task.options.map((option, optionIndex) => {
-                        const selected = (taskAnswers[task.id] as string) === option;
+                        const isCompleted = task.completed;
+                        const current = isCompleted ? (task.userAnswer || '') : (((taskAnswers[task.id] as string) || ''));
+                        const isSelected = current === option;
+                        const isCorrectOption = option === task.correctAnswer;
+                        let labelClass = '';
+                        if (isCompleted) {
+                          const isOverallCorrect = task.userAnswer === task.correctAnswer;
+                          if (isOverallCorrect) {
+                            labelClass = isCorrectOption ? 'text-green-600 font-medium' : '';
+                          } else {
+                            labelClass = isCorrectOption ? 'text-green-600 font-medium' : (isSelected ? 'text-red-600 font-medium' : '');
+                          }
+                        }
                         return (
                           <div key={optionIndex} className="flex items-center space-x-2">
                             <Checkbox
                               id={`${task.id}-sc-${optionIndex}`}
-                              checked={selected}
+                              checked={isSelected}
                               onCheckedChange={(checked: boolean | 'indeterminate') => {
                                 if (task.completed) return;
                                 if (checked === true) handleTaskAnswer(task.id, option);
                               }}
                               disabled={task.completed}
                             />
-                            <Label htmlFor={`${task.id}-sc-${optionIndex}`}>{option}</Label>
+                            <Label htmlFor={`${task.id}-sc-${optionIndex}`} className={labelClass}>{option}</Label>
                           </div>
                         );
                       })}
                     </div>
-                    {task.completed && task.userAnswer === task.correctAnswer && (
-                      <div className="p-3 bg-green-50 border border-green-200 rounded">
-                        <p className="text-sm">
-                          <strong>Your answer:</strong> {task.userAnswer}
-                          <span className="text-green-600 ml-2">✓ Correct!</span>
+                    {task.completed && (
+                      <div className={'p-3 border rounded'}
+                        style={task.userAnswer === task.correctAnswer ? { backgroundColor: '#ecfdf5', borderColor: '#86efac' } : { backgroundColor: '#fee2e2', borderColor: '#fca5a5' }}>
+                        <p className={'text-sm font-medium'}
+                          style={task.userAnswer === task.correctAnswer ? { color: '#065f46' } : { color: '#991b1b' }}>
+                          {task.userAnswer === task.correctAnswer ? 'Correct' : 'Incorrect'}
                         </p>
-                      </div>
-                    )}
-                    {task.completed && task.userAnswer !== task.correctAnswer && task.correctAnswer && (
-                      <div className="p-3 border rounded" style={{ backgroundColor: '#fee2e2', borderColor: '#fca5a5', color: '#991b1b' }}>
-                        <div className="text-sm font-medium">Correct answer</div>
-                        <div className="mt-2 space-y-1 text-sm">
-                          <div className="flex items-start gap-2">
-                            <span>•</span>
-                            <span>{task.correctAnswer}</span>
-                          </div>
-                        </div>
                       </div>
                     )}
                   </div>
@@ -430,39 +432,39 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                   <div className="space-y-4">
                     <div className="space-y-2">
                       {task.options.map((option, optionIndex) => {
-                        const selected = ((taskAnswers[task.id] as string[]) || []).includes(option);
+                        const isCompleted = task.completed;
+                        const current = isCompleted ? (task.userAnswers || []) : (((taskAnswers[task.id] as string[]) || []));
+                        const isSelected = current.includes(option);
+                        const isCorrectOption = task.correctAnswers?.includes(option);
+                        let labelClass = '';
+                        if (isCompleted) {
+                          const isOverallCorrect = task.correctAnswers?.every(correct => (taskAnswers[task.id] as string[])?.includes(correct));
+                          if (isOverallCorrect) {
+                            labelClass = isCorrectOption ? 'text-green-600 font-medium' : '';
+                          } else {
+                            labelClass = isCorrectOption ? 'text-green-600 font-medium' : (isSelected ? 'text-red-600 font-medium' : '');
+                          }
+                        }
                         return (
                           <div key={optionIndex} className="flex items-center space-x-2">
                             <Checkbox
                               id={`${task.id}-ms-${optionIndex}`}
-                              checked={selected}
+                              checked={isSelected}
                               onCheckedChange={() => toggleMultiSelectOption(task.id, option)}
                               disabled={task.completed}
                             />
-                            <Label htmlFor={`${task.id}-ms-${optionIndex}`}>{option}</Label>
+                            <Label htmlFor={`${task.id}-ms-${optionIndex}`} className={labelClass}>{option}</Label>
                           </div>
                         );
                       })}
                     </div>
-                    {task.completed && task.userAnswers && task.evaluation?.isCorrect && (
-                      <div className="p-3 bg-green-50 border border-green-200 rounded">
-                        <p className="text-sm">
-                          <strong>Your answers:</strong> {task.userAnswers.join(', ')}
-                          <span className="text-green-600 ml-2">✓ Correct!</span>
+                    {task.completed && (
+                      <div className={'p-3 border rounded'}
+                        style={task.evaluation?.isCorrect ? { backgroundColor: '#ecfdf5', borderColor: '#86efac' } : { backgroundColor: '#fee2e2', borderColor: '#fca5a5' }}>
+                        <p className={'text-sm font-medium'}
+                          style={task.evaluation?.isCorrect ? { color: '#065f46' } : { color: '#991b1b' }}>
+                          {task.evaluation?.isCorrect ? 'Correct' : 'Incorrect'}
                         </p>
-                      </div>
-                    )}
-                    {task.completed && task.userAnswers && !task.evaluation?.isCorrect && task.correctAnswers && Array.isArray(task.correctAnswers) && (
-                      <div className="p-3 border rounded" style={{ backgroundColor: '#fee2e2', borderColor: '#fca5a5', color: '#991b1b' }}>
-                        <div className="text-sm font-medium">Correct answers</div>
-                        <div className="mt-2 space-y-1 text-sm">
-                          {task.correctAnswers.map((ans, idx) => (
-                            <div key={idx} className="flex items-start gap-2">
-                              <span>•</span>
-                              <span>{ans}</span>
-                            </div>
-                          ))}
-                        </div>
                       </div>
                     )}
                   </div>
