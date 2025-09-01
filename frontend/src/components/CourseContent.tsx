@@ -497,24 +497,19 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                             </p>
                           )}
                         </div>
-                        <div className="p-3 border rounded">
-                          <div className="text-sm font-medium">Feedback:</div>
-                          <div className="mt-2 space-y-1 text-sm">
-                            {task.evaluation.mistakes.length > 0
-                              ? task.evaluation.mistakes.map((m, idx) => (
-                                  <div key={idx} className="flex items-start gap-2">
-                                    <span>•</span>
-                                    <span>{m}</span>
-                                  </div>
-                                ))
-                              : (
-                                  <div className="flex items-start gap-2">
-                                    <span>•</span>
-                                    <span>{task.feedback || 'Looks good.'}</span>
-                                  </div>
-                                )}
+                        {!task.evaluation.isCorrect && (
+                          <div className="p-3 border rounded">
+                            <div className="text-sm font-medium">Feedback:</div>
+                            <div className="mt-2 space-y-1 text-sm">
+                              {task.evaluation.mistakes.map((m, idx) => (
+                                <div key={idx} className="flex items-start gap-2">
+                                  <span>•</span>
+                                  <span>{m}</span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </>
                     )}
                   </div>
@@ -566,24 +561,19 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                             </p>
                           )}
                         </div>
-                        <div className="p-3 border rounded">
-                          <div className="text-sm font-medium">Feedback:</div>
-                          <div className="mt-2 space-y-1 text-sm">
-                            {task.evaluation.mistakes.length > 0
-                              ? task.evaluation.mistakes.map((m, idx) => (
-                                  <div key={idx} className="flex items-start gap-2">
-                                    <span>•</span>
-                                    <span>{m}</span>
-                                  </div>
-                                ))
-                              : (
-                                  <div className="flex items-start gap-2">
-                                    <span>•</span>
-                                    <span>{task.feedback || 'Looks good.'}</span>
-                                  </div>
-                                )}
+                        {!task.evaluation.isCorrect && (
+                          <div className="p-3 border rounded">
+                            <div className="text-sm font-medium">Feedback:</div>
+                            <div className="mt-2 space-y-1 text-sm">
+                              {task.evaluation.mistakes.map((m, idx) => (
+                                <div key={idx} className="flex items-start gap-2">
+                                  <span>•</span>
+                                  <span>{m}</span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </>
                     )}
                   </div>

@@ -182,6 +182,35 @@ const generateMockCourses = (books: Book[], userId: string, replicationsPerChapt
               question: `Upload a supporting PDF related to ${titleWithPart}`,
               type: 'upload-pdf',
               completed: false
+            },
+            {
+              id: `task-${book.id}-${chapter.id}-${i}-5`,
+              question: `Demo: Correct file upload example for ${titleWithPart}`,
+              type: 'upload-pdf',
+              userFileName: 'chapter-notes.pdf',
+              feedback: undefined,
+              completed: true,
+              evaluation: {
+                isCorrect: true,
+                mistakes: [],
+                score: 1,
+                explanation: 'Pre-evaluated as a correct upload for demo.'
+              }
+            },
+            {
+              id: `task-${book.id}-${chapter.id}-${i}-6`,
+              question: `Demo: Correct short answer example for ${titleWithPart}`,
+              type: 'short-answer',
+              expectedKeywords: ['trade-offs', 'fitness functions', 'adr'],
+              userAnswer: 'This answer thoroughly explains trade-offs, discusses fitness functions in governance, and references ADR practices in detail to justify decisions.',
+              feedback: undefined,
+              completed: true,
+              evaluation: {
+                isCorrect: true,
+                mistakes: [],
+                score: 1,
+                explanation: 'Pre-evaluated as a correct short answer for demo.'
+              }
             }
           ],
           createdDate: '2024-01-20',
@@ -286,6 +315,35 @@ function AppContent() {
           question: `Upload a supporting PDF related to ${chapter.title}`,
           type: 'upload-pdf',
           completed: false
+        },
+        {
+          id: `task-${Date.now()}-5`,
+          question: `Demo: Correct file upload example for ${chapter.title}`,
+          type: 'upload-pdf',
+          userFileName: 'chapter-notes.pdf',
+          feedback: 'Mock review: "chapter-notes.pdf" received and looks valid.',
+          completed: true,
+          evaluation: {
+            isCorrect: true,
+            mistakes: [],
+            score: 1,
+            explanation: 'Pre-evaluated as a correct upload for demo.'
+          }
+        },
+        {
+          id: `task-${Date.now()}-6`,
+          question: `Demo: Correct short answer example for ${chapter.title}`,
+          type: 'short-answer',
+          expectedKeywords: ['trade-offs', 'fitness functions', 'adr'],
+          userAnswer: 'This answer thoroughly explains trade-offs, discusses fitness functions in governance, and references ADR practices in detail to justify decisions.',
+          feedback: 'Well covered with key concepts present.',
+          completed: true,
+          evaluation: {
+            isCorrect: true,
+            mistakes: [],
+            score: 1,
+            explanation: 'Pre-evaluated as a correct short answer for demo.'
+          }
         }
       ],
       createdDate: new Date().toISOString().split('T')[0],
