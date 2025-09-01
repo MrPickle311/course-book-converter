@@ -394,7 +394,7 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                     isTaskCorrect(task) ? (
                       <CheckCircle className="w-5 h-5 text-green-500" />
                     ) : (
-                      <XCircle className="w-5 h-5 text-red-500" />
+                      <XCircle className="w-5 h-5 text-red-600" />
                     )
                   ) : (
                     <Circle className="w-5 h-5 text-muted-foreground" />
