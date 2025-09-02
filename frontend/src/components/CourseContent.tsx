@@ -32,6 +32,8 @@ interface Task {
 }
 
 import type { NoteBlock } from '../mocks/Mock';
+import { MDXProvider } from '@mdx-js/react';
+import '../styles/mdx.css';
 
 interface Course {
   id: string;
@@ -216,6 +218,16 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
 
   const renderBlocks = (blocks: NoteBlock[]) => {
     return blocks.map((block, index) => {
+      if ((block as any).type === 'mdx') {
+        const C = (block as any).component as React.ComponentType<any>;
+        return (
+          <div key={index} className="mdx-content">
+            <MDXProvider>
+              <C />
+            </MDXProvider>
+          </div>
+        );
+      }
       if (block.type === 'richText') {
         return (
           <div key={index} className="space-y-2">

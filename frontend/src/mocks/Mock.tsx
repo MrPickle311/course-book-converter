@@ -1,3 +1,18 @@
+import type React from 'react';
+
+// MDX study notes
+import ArchCh1 from './architecture-the-hard-parts/chapter1_notes.mdx';
+import ArchCh2 from './architecture-the-hard-parts/chapter2_notes.mdx';
+import ArchCh3 from './architecture-the-hard-parts/chapter3_notes.mdx';
+import ArchCh4 from './architecture-the-hard-parts/chapter4_notes.mdx';
+import ArchCh5 from './architecture-the-hard-parts/chapter5_notes.mdx';
+import ArchCh6 from './architecture-the-hard-parts/chapter6_notes.mdx';
+
+import OptCh1 from './optimizing_java/chapter1_notes.mdx';
+import OptCh2 from './optimizing_java/chapter2_notes.mdx';
+import OptCh3 from './optimizing_java/chapter3_notes.mdx';
+import OptCh4 from './optimizing_java/chapter4_notes.mdx';
+import OptCh5 from './optimizing_java/chapter5_notes.mdx';
 // Types for structured notes
 export type RichTextBlock = {
   type: 'richText';
@@ -26,7 +41,12 @@ export type FigureBlock = {
   src: string;
 };
 
-export type NoteBlock = RichTextBlock | TableBlock | CodeBlock | FigureBlock;
+export type MDXBlock = {
+  type: 'mdx';
+  component: React.ComponentType<any>;
+};
+
+export type NoteBlock = RichTextBlock | TableBlock | CodeBlock | FigureBlock | MDXBlock;
 
 // Helper: a compact default set demonstrating all four content types
 export const defaultDemoBlocks: NoteBlock[] = [
@@ -60,6 +80,7 @@ export const defaultDemoBlocks: NoteBlock[] = [
 ];
 
 // Architecture: The Hard Parts — Chapter 1 derived blocks (from chapter1_notes.md)
+// Optional structured fallback blocks used if MDX cannot be loaded
 export const architectureTheHardParts: Record<string, NoteBlock[]> = {
   'Chapter 1': [
     {
@@ -183,6 +204,31 @@ export function getMockNotesByChapter(chapterTitle: string): NoteBlock[] {
   // Try to infer chapter number from the title
   const chapterNumMatch = normalized.match(/chapter\s*(\d+)/);
   const chapterKey = chapterNumMatch ? `Chapter ${chapterNumMatch[1]}` : undefined;
+
+  // Prefer MDX notes when available (static imports)
+  const archMdx: Record<string, React.ComponentType<any>> = {
+    'Chapter 1': ArchCh1,
+    'Chapter 2': ArchCh2,
+    'Chapter 3': ArchCh3,
+    'Chapter 4': ArchCh4,
+    'Chapter 5': ArchCh5,
+    'Chapter 6': ArchCh6,
+  } as any;
+
+  const optMdx: Record<string, React.ComponentType<any>> = {
+    'Chapter 1': OptCh1,
+    'Chapter 2': OptCh2,
+    'Chapter 3': OptCh3,
+    'Chapter 4': OptCh4,
+    'Chapter 5': OptCh5,
+  } as any;
+
+  if (chapterKey && archMdx[chapterKey]) {
+    return [{ type: 'mdx', component: archMdx[chapterKey] }];
+  }
+  if (chapterKey && optMdx[chapterKey]) {
+    return [{ type: 'mdx', component: optMdx[chapterKey] }];
+  }
 
   if (chapterKey && architectureTheHardParts[chapterKey]) {
     return architectureTheHardParts[chapterKey];

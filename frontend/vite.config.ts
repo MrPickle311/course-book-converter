@@ -3,10 +3,23 @@
   import react from '@vitejs/plugin-react-swc';
   import path from 'path';
 
-  export default defineConfig({
-    plugins: [react()],
+  export default defineConfig(async () => {
+    const { default: mdx } = await import('@mdx-js/rollup');
+    const { default: remarkGfm } = await import('remark-gfm');
+    const { default: rehypeHighlight } = await import('rehype-highlight');
+
+    return {
+      plugins: [
+        // MDX must run before React so .mdx is compiled prior to react-swc
+        mdx({
+          providerImportSource: '@mdx-js/react',
+          remarkPlugins: [remarkGfm],
+          rehypePlugins: [rehypeHighlight],
+        }),
+        react(),
+      ],
     resolve: {
-      extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
+      extensions: ['.js', '.jsx', '.ts', '.tsx', '.json', '.mdx'],
       alias: {
         'vaul@1.1.2': 'vaul',
         'sonner@2.0.3': 'sonner',
@@ -57,4 +70,5 @@
       port: 3000,
       open: true,
     },
+  };
   });
