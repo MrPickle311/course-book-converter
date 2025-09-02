@@ -14,7 +14,7 @@ import { Sun, Moon, X } from 'lucide-react';
 export function UserMenu() {
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const { pageSize, setPageSize } = useSettings();
+  const { pageSize, setPageSize, imageSize, setImageSize } = useSettings();
 
   const [showSettings, setShowSettings] = useState(false);
 
@@ -124,6 +124,40 @@ export function UserMenu() {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Choose how many courses to display per page in the library
+                </p>
+              </div>
+
+              {/* Image size settings */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium">Study Images</h3>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Global image size</span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant={imageSize === 'small' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setImageSize('small')}
+                    >
+                      Small
+                    </Button>
+                    <Button
+                      variant={imageSize === 'medium' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setImageSize('medium')}
+                    >
+                      Medium
+                    </Button>
+                    <Button
+                      variant={imageSize === 'large' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setImageSize('large')}
+                    >
+                      Large
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Controls the width of all images in study notes.
                 </p>
               </div>
             </div>

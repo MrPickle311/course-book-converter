@@ -57,6 +57,19 @@
   border: 1px solid var(--border);
 }
 
+/* Global image sizing controlled by SettingsContext via data attribute */
+[data-image-size="small"] .mdx-content img {
+  width: min(480px, 100%);
+}
+
+[data-image-size="medium"] .mdx-content img {
+  width: min(720px, 100%);
+}
+
+[data-image-size="large"] .mdx-content img {
+  width: min(1000px, 100%);
+}
+
 /* Inline code */
 .mdx-content :not(pre) > code {
   background: var(--accent);
