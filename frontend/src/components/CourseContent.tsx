@@ -376,9 +376,6 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
 
         <TabsContent value="notes" className="mt-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Study Notes</CardTitle>
-            </CardHeader>
             <CardContent className="prose prose-slate max-w-none">
               <div className="space-y-6">
                 {renderBlocks(course.notes)}
