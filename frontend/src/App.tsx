@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { getMockNotesByChapter, defaultDemoBlocks } from './mocks/Mock';
 import type { NoteBlock } from './mocks/Mock';
 import { AuthProvider, useAuth } from './components/AuthContext';
@@ -233,19 +233,10 @@ function AppContent() {
   const [courses, setCourses] = useState<Course[]>(mockCourses);
   const [currentBook, setCurrentBook] = useState<Book | null>(null);
   const [currentCourse, setCurrentCourse] = useState<Course | null>(null);
-  const headerRef = useRef<HTMLDivElement>(null);
   const [headerHeight, setHeaderHeight] = useState(0);
 
-  useEffect(() => {
-    const update = () => setHeaderHeight(headerRef.current?.offsetHeight ?? 0);
-    update();
-    const ro = new ResizeObserver(update);
-    if (headerRef.current) ro.observe(headerRef.current);
-    window.addEventListener('resize', update);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener('resize', update);
-    };
+  const headerRef = useCallback((node: HTMLDivElement) => {
+    setHeaderHeight(node.getBoundingClientRect().height ?? 0);
   }, []);
 
   // Seed courses for logged-in user exactly once
