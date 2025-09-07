@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getMockNotesByChapter, defaultDemoBlocks } from './mocks/Mock';
 import type { NoteBlock } from './mocks/Mock';
 import { AuthProvider, useAuth } from './components/AuthContext';
@@ -233,6 +233,20 @@ function AppContent() {
   const [courses, setCourses] = useState<Course[]>(mockCourses);
   const [currentBook, setCurrentBook] = useState<Book | null>(null);
   const [currentCourse, setCurrentCourse] = useState<Course | null>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
+
+  useEffect(() => {
+    const update = () => setHeaderHeight(headerRef.current?.offsetHeight ?? 0);
+    update();
+    const ro = new ResizeObserver(update);
+    if (headerRef.current) ro.observe(headerRef.current);
+    window.addEventListener('resize', update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', update);
+    };
+  }, []);
 
   // Seed courses for logged-in user exactly once
   useEffect(() => {
@@ -382,7 +396,7 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border bg-card shadow-sm">
+      <div ref={headerRef} className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-card shadow-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             {appState !== 'upload' && (
@@ -428,10 +442,10 @@ function AppContent() {
             </Button>
           </div>
         </div>
-      </header>
+      </div>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 pb-8" style={{ paddingTop: headerHeight + 10}}>
         {appState === 'upload' && (
           <UploadPDF 
             onFileUpload={handleFileUpload} 
@@ -460,7 +474,7 @@ function AppContent() {
             onSelectCourse={handleSelectCourse}
           />
         )}
-      </main>
+      </div>
     </div>
   );
 }
