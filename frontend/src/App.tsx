@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getMockNotesByChapter, defaultDemoBlocks } from './mocks/Mock';
 import type { NoteBlock } from './mocks/Mock';
 import { AuthProvider, useAuth } from './components/AuthContext';
@@ -9,11 +9,12 @@ import { UserMenu } from './components/UserMenu';
 import { UploadPDF } from './components/UploadPDF';
 import { TableOfContents } from './components/TableOfContents';
 import { CourseContent } from './components/CourseContent';
-import { CourseLibrary } from './components/CourseLibrary';
+import { BooksLibrary } from './components/BooksLibrary';
+import { BookDetail } from './components/BookDetail.tsx';
 import { Button } from './components/ui/button';
 import { ArrowLeft, Library, LogOut } from 'lucide-react';
 
-type AppState = 'upload' | 'toc' | 'course' | 'library';
+type AppState = 'upload' | 'toc' | 'course' | 'library' | 'book';
 
 interface Book {
   id: string;
@@ -234,6 +235,7 @@ function AppContent() {
   const [currentBook, setCurrentBook] = useState<Book | null>(null);
   const [currentCourse, setCurrentCourse] = useState<Course | null>(null);
   const [headerHeight, setHeaderHeight] = useState(0);
+  const [lastContentOrigin, setLastContentOrigin] = useState<'toc' | 'book' | null>(null);
 
   const headerRef = useCallback((node: HTMLDivElement) => {
     setHeaderHeight(node.getBoundingClientRect().height ?? 0);
@@ -359,6 +361,7 @@ function AppContent() {
     setCourses(prev => [...prev, newCourse]);
     setCurrentCourse(newCourse);
     setAppState('course');
+    setLastContentOrigin('toc');
   };
 
   const handleBackToTOC = () => {
@@ -377,6 +380,12 @@ function AppContent() {
   const handleSelectCourse = (course: Course) => {
     setCurrentCourse(course);
     setAppState('course');
+    setLastContentOrigin('book');
+  };
+
+  const handleOpenBook = (book: Book) => {
+    setCurrentBook(book);
+    setAppState('book');
   };
 
   const handleUpdateCourse = (updatedCourse: Course) => {
@@ -396,8 +405,12 @@ function AppContent() {
                 size="sm"
                 onClick={() => {
                   if (appState === 'toc') handleBackToUpload();
-                  else if (appState === 'course') handleBackToTOC();
+                  else if (appState === 'course') {
+                    if (lastContentOrigin === 'book') setAppState('book');
+                    else handleBackToTOC();
+                  }
                   else if (appState === 'library') setAppState('upload');
+                  else if (appState === 'book') setAppState('library');
                 }}
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -459,8 +472,16 @@ function AppContent() {
         )}
         
         {appState === 'library' && (
-          <CourseLibrary
+          <BooksLibrary
             books={books}
+            courses={courses.filter(course => course.userId === user.id)}
+            onOpenBook={handleOpenBook}
+          />
+        )}
+
+        {appState === 'book' && currentBook && (
+          <BookDetail
+            book={currentBook}
             courses={courses.filter(course => course.userId === user.id)}
             onSelectCourse={handleSelectCourse}
           />
