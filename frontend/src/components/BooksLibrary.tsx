@@ -102,10 +102,6 @@ export function BooksLibrary({ books, courses, onOpenBook }: BooksLibraryProps) 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2>My Books</h2>
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">{filteredBooks.length} books</span>
-          </div>
         </div>
 
         <div className="relative">
