@@ -5,7 +5,7 @@ import { Input } from './ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Progress } from './ui/progress';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from './ui/pagination';
-import { BookOpen, Calendar, CheckCircle, ChevronRight, Filter, Search, Trophy, Clock } from 'lucide-react';
+import { BookOpen, CheckCircle, ChevronRight, Search, Trophy, Clock } from 'lucide-react';
 import { useSettings } from './SettingsContext';
 
 interface Book {
@@ -42,21 +42,30 @@ export function BooksLibrary({ books, courses, onOpenBook }: BooksLibraryProps) 
 
   const bookStats = useMemo(() => {
     const map = new Map<string, {
-      totalCourses: number;
-      completedCourses: number;
-      totalTasks: number;
+      totalCourses: number; // unique generated chapters
+      completedCourses: number; // representative completed courses
+      totalTasks: number; // tasks across unique representatives
       completedTasks: number;
       isCompleted: boolean;
       isInProgress: boolean;
     }>();
     books.forEach((book) => {
       const bookCourses = courses.filter((c) => c.bookId === book.id);
-      const totalCourses = bookCourses.length;
-      const completedCourses = bookCourses.filter((c) => c.completed).length;
-      const totalTasks = bookCourses.reduce((acc, c) => acc + c.tasks.length, 0);
-      const completedTasks = bookCourses.reduce((acc, c) => acc + c.tasks.filter((t: any) => t.completed).length, 0);
-      const isCompleted = totalCourses > 0 && completedCourses === totalCourses && totalTasks > 0 && completedTasks === totalTasks;
-      const isInProgress = totalCourses > 0 && !isCompleted && (completedTasks > 0 || completedCourses > 0);
+      // Group by base chapter id (strip replication suffix like -pN)
+      const groups = new Map<string, typeof bookCourses>();
+      bookCourses.forEach((c) => {
+        const baseId = c.chapterId.split('-p')[0];
+        const list = groups.get(baseId) || [];
+        list.push(c);
+        groups.set(baseId, list);
+      });
+      const representatives = Array.from(groups.values()).map((list) => list[0]);
+      const totalCourses = representatives.length;
+      const completedCourses = representatives.filter((c) => c.completed).length;
+      const totalTasks = representatives.reduce((acc, c) => acc + c.tasks.length, 0);
+      const completedTasks = representatives.reduce((acc, c) => acc + c.tasks.filter((t: any) => t.completed).length, 0);
+      const isCompleted = totalCourses > 0 && totalTasks > 0 && completedTasks === totalTasks;
+      const isInProgress = totalCourses > 0 && completedTasks > 0 && completedTasks < totalTasks;
       map.set(book.id, { totalCourses, completedCourses, totalTasks, completedTasks, isCompleted, isInProgress });
     });
     return map;
@@ -202,7 +211,7 @@ export function BooksLibrary({ books, courses, onOpenBook }: BooksLibraryProps) 
                             <div>
                               <CardTitle className="text-lg">{book.title}</CardTitle>
                               <p className="text-sm text-muted-foreground">
-                                {statsForBook.totalCourses} course{statsForBook.totalCourses !== 1 ? 's' : ''} • Uploaded {new Date(book.uploadDate).toLocaleDateString()}
+                                {statsForBook.totalCourses} generated course{statsForBook.totalCourses !== 1 ? 's' : ''} • Uploaded {new Date(book.uploadDate).toLocaleDateString()}
                               </p>
                             </div>
                           </div>
