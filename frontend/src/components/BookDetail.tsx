@@ -86,7 +86,6 @@ export function BookDetail({ book, courses, onSelectCourse, onGenerateCourse }: 
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <h4 className="font-medium">{chapter.title}</h4>
-                      <Badge variant="outline" className="text-xs">Not generated</Badge>
                     </div>
                     <div className="text-xs text-muted-foreground">Page {chapter.page}</div>
                   </div>
@@ -109,7 +108,6 @@ export function BookDetail({ book, courses, onSelectCourse, onGenerateCourse }: 
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-2">
                       <h4 className="font-medium">{course.chapterTitle}</h4>
-                      <Badge variant='secondary' className="text-xs">Generated</Badge>
                       <Badge variant={course.completed ? 'default' : 'secondary'} className="text-xs">
                         {course.completed ? 'Completed' : 'In Progress'}
                       </Badge>
