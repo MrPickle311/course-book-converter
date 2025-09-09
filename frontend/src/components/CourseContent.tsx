@@ -332,31 +332,6 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
               </span>
             </div>
             <Progress value={progressPercentage} />
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div className="space-y-1">
-                <div className="flex items-center justify-center gap-1">
-                  <BookOpen className="w-4 h-4 text-blue-500" />
-                  <span className="text-sm">Notes</span>
-                </div>
-                <p className="text-xs text-muted-foreground">Study material ready</p>
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center justify-center gap-1">
-                  <CheckSquare className="w-4 h-4 text-green-500" />
-                  <span className="text-sm">{completedTasks} Tasks Done</span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {course.tasks.length - completedTasks} remaining
-                </p>
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center justify-center gap-1">
-                  <Clock className="w-4 h-4 text-orange-500" />
-                  <span className="text-sm">~30 min</span>
-                </div>
-                <p className="text-xs text-muted-foreground">Estimated time</p>
-              </div>
-            </div>
           </div>
         </CardContent>
       </Card>
