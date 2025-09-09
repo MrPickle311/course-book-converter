@@ -477,7 +477,7 @@ function AppContent() {
               onClick={handleOpenLibrary}
             >
               <Library className="w-4 h-4 mr-2" />
-              My Books
+              My books
             </Button>
             <UserMenu />
             <Button
