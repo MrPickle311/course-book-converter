@@ -135,6 +135,12 @@ const generateMockCourses = (books: Book[], userId: string, replicationsPerChapt
   };
   books.forEach((book) => {
     book.tableOfContents.forEach((chapter) => {
+      // Leave some chapters without generated courses to simulate "Not generated" state
+      const chapterNum = parseInt((chapter.id.split('-').pop() || '0'), 10);
+      const shouldGenerate = ((Number(book.id) + chapterNum) % 3) !== 0;
+      if (!shouldGenerate) {
+        return;
+      }
       for (let i = 1; i <= replicationsPerChapter; i++) {
         const titleWithPart = buildVariedTitle(chapter.title, i - 1);
         const chapterForNotes = `Chapter ${((i - 1) % 6) + 1}`; // cycle through chapter 1..6 from mocks
@@ -277,11 +283,13 @@ function AppContent() {
           { id: `${Date.now()}-3`, title: 'Advanced Topics', page: 45 },
           { id: `${Date.now()}-4`, title: 'Best Practices', page: 78 },
           { id: `${Date.now()}-5`, title: 'Conclusion', page: 95 },
-        ]
+        ],
+        lastUsedAt: new Date().toISOString()
       };
-      setBooks(prev => [...prev, newBook]);
+      setBooks(prev => [newBook, ...prev]);
       setCurrentBook(newBook);
-      setAppState('toc');
+      // After upload, go to library where the new book appears first
+      setAppState('library');
     }, 2000);
   };
 
@@ -365,6 +373,36 @@ function AppContent() {
     setCurrentCourse(newCourse);
     setAppState('course');
     setLastContentOrigin('toc');
+  };
+
+  const handleGenerateCourseForChapter = async (chapterId: string) => {
+    if (!currentBook || !user) return;
+    const chapter = currentBook.tableOfContents.find(c => c.id === chapterId);
+    if (!chapter) return;
+    // simple async delay to simulate generation
+    await new Promise(res => setTimeout(res, 1200));
+    const newCourse: Course = {
+      id: `canonical-${currentBook.id}-${chapter.id}`,
+      bookId: currentBook.id,
+      bookTitle: currentBook.title,
+      chapterId: chapter.id,
+      chapterTitle: `${chapter.title}: Essentials — Overview`,
+      notes: (getMockNotesByChapter('Chapter 1') as NoteBlock[]) || defaultDemoBlocks,
+      tasks: [
+        {
+          id: `task-${currentBook.id}-${chapter.id}-gen-1`,
+          question: `What are the main concepts covered in ${chapter.title}?`,
+          type: 'short-answer',
+          expectedKeywords: ['trade-offs', 'fitness functions', 'adr'],
+          completed: false
+        }
+      ],
+      createdDate: new Date().toISOString().split('T')[0],
+      completed: false,
+      userId: user.id
+    };
+    setCourses(prev => [...prev, newCourse]);
+    setBooks(prev => prev.map(b => b.id === currentBook.id ? { ...b, lastUsedAt: new Date().toISOString() } : b));
   };
 
   const handleBackToTOC = () => {
@@ -491,6 +529,7 @@ function AppContent() {
             book={currentBook}
             courses={courses.filter(course => course.userId === user.id)}
             onSelectCourse={handleSelectCourse}
+            onGenerateCourse={handleGenerateCourseForChapter}
           />
         )}
       </div>
