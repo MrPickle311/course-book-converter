@@ -47,7 +47,7 @@ export function UserMenu() {
               variant="outline"
               size="sm" 
               onClick={handleOpenSettings}
-              className="relative h-10 px-3 rounded-full border-2 border-border hover:border-primary/50 focus:border-primary"
+              className="relative"
             >
               <Avatar className="h-6 w-6 mr-2">
                 <AvatarFallback className="bg-primary text-primary-foreground text-xs font-medium">
