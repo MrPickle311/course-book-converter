@@ -107,6 +107,30 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
     return !hasFailed;
   };
 
+  const handleRetakeTask = (task: Task) => {
+    const resetTask: Task = {
+      ...task,
+      userAnswer: undefined,
+      userAnswers: undefined,
+      userFileName: undefined,
+      feedback: undefined,
+      evaluation: undefined,
+      completed: false
+    } as Task;
+    setTaskAnswers(prev => {
+      const next = { ...prev };
+      delete next[task.id];
+      return next;
+    });
+    const updatedTasks = course.tasks.map(t => t.id === task.id ? resetTask : t);
+    const updatedCourse = {
+      ...course,
+      tasks: updatedTasks,
+      completed: computeCourseCompleted(updatedTasks)
+    };
+    onUpdateCourse(updatedCourse);
+  };
+
   const handleSubmitTask = (task: Task) => {
     const answer = taskAnswers[task.id];
     if (task.type === 'multiple-select') {
@@ -454,6 +478,11 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                         </p>
                       </div>
                     )}
+                    {!isTaskCorrect(task) && task.completed && (
+                      <div className="flex gap-2 mt-2">
+                        <Button variant="outline" size="sm" onClick={() => handleRetakeTask(task)}>Retake</Button>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -494,6 +523,11 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                           style={task.evaluation?.isCorrect ? { color: '#065f46' } : { color: '#991b1b' }}>
                           {task.evaluation?.isCorrect ? 'Correct' : 'Incorrect'}
                         </p>
+                      </div>
+                    )}
+                    {!isTaskCorrect(task) && task.completed && (
+                      <div className="flex gap-2 mt-2">
+                        <Button variant="outline" size="sm" onClick={() => handleRetakeTask(task)}>Retake</Button>
                       </div>
                     )}
                   </div>
@@ -537,6 +571,11 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                                 </div>
                               ))}
                             </div>
+                          </div>
+                        )}
+                        {!task.evaluation.isCorrect && (
+                          <div className="flex gap-2 mt-2">
+                            <Button variant="outline" size="sm" onClick={() => handleRetakeTask(task)}>Retake</Button>
                           </div>
                         )}
                       </>
@@ -601,6 +640,11 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                                 </div>
                               ))}
                             </div>
+                          </div>
+                        )}
+                        {!task.evaluation.isCorrect && (
+                          <div className="flex gap-2 mt-2">
+                            <Button variant="outline" size="sm" onClick={() => handleRetakeTask(task)}>Retake</Button>
                           </div>
                         )}
                       </>
