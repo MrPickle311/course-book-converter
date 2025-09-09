@@ -35,12 +35,16 @@ interface BookDetailProps {
 export function BookDetail({ book, courses, onSelectCourse, onGenerateCourse }: BookDetailProps) {
   const stats = useMemo(() => {
     const bookCourses = courses.filter((c) => c.bookId === book.id);
-    const totalCourses = bookCourses.length;
+    // Unique generated chapters count (treat chapterId with suffix "-pX" as the same base chapter)
+    const generatedChapterIds = new Set<string>(
+      bookCourses.map((c) => c.chapterId.split('-p')[0])
+    );
+    const generatedChaptersCount = generatedChapterIds.size;
     const completedCourses = bookCourses.filter((c) => c.completed).length;
     const totalTasks = bookCourses.reduce((acc, c) => acc + c.tasks.length, 0);
     const completedTasks = bookCourses.reduce((acc, c) => acc + c.tasks.filter((t: any) => t.completed).length, 0);
     const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-    return { bookCourses, totalCourses, completedCourses, totalTasks, completedTasks, progress };
+    return { bookCourses, generatedChaptersCount, completedCourses, totalTasks, completedTasks, progress };
   }, [book.id, courses]);
 
   const [generating, setGenerating] = useState<Set<string>>(new Set());
@@ -64,7 +68,7 @@ export function BookDetail({ book, courses, onSelectCourse, onGenerateCourse }: 
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div className="text-sm text-muted-foreground">Courses: <span className="text-foreground font-medium">{stats.totalCourses}</span></div>
+            <div className="text-sm text-muted-foreground">Generated courses: <span className="text-foreground font-medium">{stats.generatedChaptersCount}</span></div>
             <div className="text-sm text-muted-foreground">Completed: <span className="text-foreground font-medium">{stats.completedCourses}</span></div>
             <div className="text-sm text-muted-foreground">Tasks: <span className="text-foreground font-medium">{stats.completedTasks}/{stats.totalTasks}</span></div>
           </div>
