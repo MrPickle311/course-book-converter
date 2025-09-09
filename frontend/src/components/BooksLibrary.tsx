@@ -13,6 +13,7 @@ interface Book {
   title: string;
   uploadDate: string;
   tableOfContents: any[];
+  lastUsedAt?: string;
 }
 
 interface Course {
@@ -63,12 +64,18 @@ export function BooksLibrary({ books, courses, onOpenBook }: BooksLibraryProps) 
 
   const filteredBooks = useMemo(() => {
     const q = searchQuery.toLowerCase();
-    return books.filter((b) => {
+    const base = books.filter((b) => {
       const stats = bookStats.get(b.id);
       const matches = b.title.toLowerCase().includes(q);
       if (activeView === 'completed') return matches && !!stats?.isCompleted;
       if (activeView === 'in-progress') return matches && !!stats?.isInProgress;
       return matches;
+    });
+    // sort by lastUsedAt desc, fallback to uploadDate desc
+    return base.slice().sort((a, b) => {
+      const aTime = Date.parse(a.lastUsedAt || a.uploadDate);
+      const bTime = Date.parse(b.lastUsedAt || b.uploadDate);
+      return bTime - aTime;
     });
   }, [books, bookStats, searchQuery, activeView]);
 
@@ -94,7 +101,7 @@ export function BooksLibrary({ books, courses, onOpenBook }: BooksLibraryProps) 
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2>My Courses</h2>
+          <h2>My Books</h2>
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">{filteredBooks.length} books</span>
@@ -163,7 +170,7 @@ export function BooksLibrary({ books, courses, onOpenBook }: BooksLibraryProps) 
         </Card>
       </div>
 
-      <Tabs value={activeView} onValueChange={(v) => setActiveView(v as any)}>
+      <Tabs value={activeView} onValueChange={(v: 'all' | 'in-progress' | 'completed') => setActiveView(v)}>
         <TabsList>
           <TabsTrigger value="all">All Books ({stats.total})</TabsTrigger>
           <TabsTrigger value="in-progress">In Progress ({stats.inProgress})</TabsTrigger>

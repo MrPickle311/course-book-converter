@@ -21,6 +21,7 @@ interface Book {
   title: string;
   uploadDate: string;
   tableOfContents: Chapter[];
+  lastUsedAt?: string;
 }
 
 interface Chapter {
@@ -112,12 +113,12 @@ const generateMockBooks = (count: number): Book[] => {
       page: c === 0 ? 1 : c * 20 + 1,
     }));
 
-    books.push({ id, title, uploadDate, tableOfContents: chapters });
+    books.push({ id, title, uploadDate, tableOfContents: chapters, lastUsedAt: uploadDate });
   }
   return books;
 };
 
-const mockBooks: Book[] = generateMockBooks(31);
+const mockBooks: Book[] = generateMockBooks(61);
 
 // Generate many mock courses for pagination/performance testing
 const generateMockCourses = (books: Book[], userId: string, replicationsPerChapter = 100): Course[] => {
@@ -359,6 +360,8 @@ function AppContent() {
     };
     
     setCourses(prev => [...prev, newCourse]);
+    // bump last used for the book when starting a course
+    setBooks(prev => prev.map(b => b.id === currentBook!.id ? { ...b, lastUsedAt: new Date().toISOString() } : b));
     setCurrentCourse(newCourse);
     setAppState('course');
     setLastContentOrigin('toc');
@@ -378,13 +381,17 @@ function AppContent() {
   };
 
   const handleSelectCourse = (course: Course) => {
+    // bump last used for the corresponding book when opening a course directly
+    setBooks(prev => prev.map(b => b.id === course.bookId ? { ...b, lastUsedAt: new Date().toISOString() } : b));
     setCurrentCourse(course);
     setAppState('course');
     setLastContentOrigin('book');
   };
 
   const handleOpenBook = (book: Book) => {
-    setCurrentBook(book);
+    // update last used timestamp on open
+    setBooks((prev) => prev.map((b) => b.id === book.id ? { ...b, lastUsedAt: new Date().toISOString() } : b));
+    setCurrentBook({ ...book, lastUsedAt: new Date().toISOString() });
     setAppState('book');
   };
 
@@ -432,7 +439,7 @@ function AppContent() {
               onClick={handleOpenLibrary}
             >
               <Library className="w-4 h-4 mr-2" />
-              My Courses
+              My Books
             </Button>
             <UserMenu />
             <Button
