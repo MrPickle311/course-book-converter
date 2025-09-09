@@ -43,8 +43,9 @@ export function BookDetail({ book, courses, onSelectCourse, onGenerateCourse }: 
     const completedCourses = bookCourses.filter((c) => c.completed).length;
     const totalTasks = bookCourses.reduce((acc, c) => acc + c.tasks.length, 0);
     const completedTasks = bookCourses.reduce((acc, c) => acc + c.tasks.filter((t: any) => t.completed).length, 0);
+    const failedTasks = bookCourses.reduce((acc, c) => acc + c.tasks.filter((t: any) => t.completed && t.evaluation?.isCorrect === false).length, 0);
     const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-    return { bookCourses, generatedChaptersCount, completedCourses, totalTasks, completedTasks, progress };
+    return { bookCourses, generatedChaptersCount, completedCourses, totalTasks, completedTasks, failedTasks, progress };
   }, [book.id, courses]);
 
   const [generating, setGenerating] = useState<Set<string>>(new Set());
@@ -70,7 +71,7 @@ export function BookDetail({ book, courses, onSelectCourse, onGenerateCourse }: 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div className="text-sm text-muted-foreground">Generated courses: <span className="text-foreground font-medium">{stats.generatedChaptersCount}</span></div>
             <div className="text-sm text-muted-foreground">Completed: <span className="text-foreground font-medium">{stats.completedCourses}</span></div>
-            <div className="text-sm text-muted-foreground">Tasks: <span className="text-foreground font-medium">{stats.completedTasks}/{stats.totalTasks}</span></div>
+            <div className="text-sm text-muted-foreground">Tasks: <span className="text-foreground font-medium">{stats.completedTasks}/{stats.totalTasks}</span>{stats.failedTasks > 0 && <span className="text-red-600"> • {stats.failedTasks} failed</span>}</div>
           </div>
           <div className="flex items-center gap-2">
             <Progress value={stats.progress} className="flex-1 h-2" />
@@ -104,6 +105,7 @@ export function BookDetail({ book, courses, onSelectCourse, onGenerateCourse }: 
             );
           }
           const completedTasks = course.tasks.filter((t: any) => t.completed).length;
+          const failedTasks = course.tasks.filter((t: any) => t.completed && t.evaluation?.isCorrect === false).length;
           const progress = course.tasks.length > 0 ? (completedTasks / course.tasks.length) * 100 : 0;
           return (
             <Card key={chapter.id} className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => onSelectCourse(course)}>
@@ -125,6 +127,11 @@ export function BookDetail({ book, courses, onSelectCourse, onGenerateCourse }: 
                         <CheckCircle className="w-3 h-3" />
                         <span>{completedTasks}/{course.tasks.length} tasks</span>
                       </div>
+                      {failedTasks > 0 && (
+                        <div className="flex items-center gap-1 text-red-600">
+                          <span>• {failedTasks} failed</span>
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <Progress value={progress} className="flex-1 h-2" />

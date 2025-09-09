@@ -8,7 +8,7 @@ import { Progress } from './ui/progress';
 import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
-import { CheckCircle, Circle, XCircle, BookOpen, CheckSquare, Clock, Award, Loader2 } from 'lucide-react';
+import { CheckCircle, Circle, XCircle, BookOpen, CheckSquare, Award, Loader2 } from 'lucide-react';
 
 interface Task {
   id: string;
@@ -93,6 +93,20 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
     return null;
   };
 
+  const isTaskFailed = (task: Task): boolean => {
+    if (!task.completed) return false;
+    const correct = isTaskCorrect(task);
+    return correct === false;
+  };
+
+  const computeCourseCompleted = (tasks: Task[]): boolean => {
+    if (tasks.length === 0) return false;
+    const allCompleted = tasks.every(t => t.completed);
+    if (!allCompleted) return false;
+    const hasFailed = tasks.some(t => isTaskFailed(t));
+    return !hasFailed;
+  };
+
   const handleSubmitTask = (task: Task) => {
     const answer = taskAnswers[task.id];
     if (task.type === 'multiple-select') {
@@ -119,7 +133,7 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
       const updatedCourse = {
         ...course,
         tasks: updatedTasks,
-        completed: updatedTasks.every(t => t.completed)
+        completed: computeCourseCompleted(updatedTasks)
       };
       onUpdateCourse(updatedCourse);
       return;
@@ -153,7 +167,7 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
         const updatedCourse = {
           ...course,
           tasks: updatedTasks,
-          completed: updatedTasks.every(t => t.completed)
+          completed: computeCourseCompleted(updatedTasks)
         };
         onUpdateCourse(updatedCourse);
         setSubmitting(prev => ({ ...prev, [task.id]: false }));
@@ -192,7 +206,7 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
         const updatedCourse = {
           ...course,
           tasks: updatedTasks,
-          completed: updatedTasks.every(t => t.completed)
+          completed: computeCourseCompleted(updatedTasks)
         };
         onUpdateCourse(updatedCourse);
         setSubmitting(prev => ({ ...prev, [task.id]: false }));
@@ -200,17 +214,29 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
       return;
     }
 
-    const updatedTask = {
+    const baseUpdatedTask = {
       ...task,
       userAnswer,
       completed: true
     } as Task;
 
+    const updatedTask = (task.type === 'multiple-choice')
+      ? ({
+          ...baseUpdatedTask,
+          evaluation: {
+            isCorrect: userAnswer === (task.correctAnswer || ''),
+            mistakes: userAnswer === (task.correctAnswer || '') ? [] : ['Incorrect option selected.'],
+            score: userAnswer === (task.correctAnswer || '') ? 1 : 0,
+            explanation: 'Single-choice question evaluated instantly.'
+          }
+        } as Task)
+      : baseUpdatedTask;
+
     const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
     const updatedCourse = {
       ...course,
       tasks: updatedTasks,
-      completed: updatedTasks.every(t => t.completed)
+      completed: computeCourseCompleted(updatedTasks)
     };
 
     onUpdateCourse(updatedCourse);

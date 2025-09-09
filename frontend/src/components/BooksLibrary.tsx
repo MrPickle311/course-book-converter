@@ -46,6 +46,7 @@ export function BooksLibrary({ books, courses, onOpenBook }: BooksLibraryProps) 
       completedCourses: number; // representative completed courses
       totalTasks: number; // tasks across unique representatives
       completedTasks: number;
+      failedTasks: number;
       isCompleted: boolean;
       isInProgress: boolean;
     }>();
@@ -64,9 +65,10 @@ export function BooksLibrary({ books, courses, onOpenBook }: BooksLibraryProps) 
       const completedCourses = representatives.filter((c) => c.completed).length;
       const totalTasks = representatives.reduce((acc, c) => acc + c.tasks.length, 0);
       const completedTasks = representatives.reduce((acc, c) => acc + c.tasks.filter((t: any) => t.completed).length, 0);
-      const isCompleted = totalCourses > 0 && totalTasks > 0 && completedTasks === totalTasks;
-      const isInProgress = totalCourses > 0 && completedTasks > 0 && completedTasks < totalTasks;
-      map.set(book.id, { totalCourses, completedCourses, totalTasks, completedTasks, isCompleted, isInProgress });
+      const failedTasks = representatives.reduce((acc, c) => acc + c.tasks.filter((t: any) => t.completed && t.evaluation?.isCorrect === false).length, 0);
+      const isCompleted = totalCourses > 0 && totalTasks > 0 && completedTasks === totalTasks && failedTasks === 0;
+      const isInProgress = totalCourses > 0 && ((completedTasks > 0 && completedTasks < totalTasks) || failedTasks > 0);
+      map.set(book.id, { totalCourses, completedCourses, totalTasks, completedTasks, failedTasks, isCompleted, isInProgress });
     });
     return map;
   }, [books, courses]);
@@ -101,7 +103,8 @@ export function BooksLibrary({ books, courses, onOpenBook }: BooksLibraryProps) 
     completed: filteredBooks.filter((b) => bookStats.get(b.id)?.isCompleted).length,
     inProgress: filteredBooks.filter((b) => bookStats.get(b.id)?.isInProgress).length,
     totalTasks: courses.reduce((acc, c) => acc + c.tasks.length, 0),
-    completedTasks: courses.reduce((acc, c) => acc + c.tasks.filter((t: any) => t.completed).length, 0)
+    completedTasks: courses.reduce((acc, c) => acc + c.tasks.filter((t: any) => t.completed).length, 0),
+    failedTasks: courses.reduce((acc, c) => acc + c.tasks.filter((t: any) => t.completed && t.evaluation?.isCorrect === false).length, 0)
   };
 
   const overallProgress = stats.totalTasks > 0 ? (stats.completedTasks / stats.totalTasks) * 100 : 0;
@@ -157,6 +160,17 @@ export function BooksLibrary({ books, courses, onOpenBook }: BooksLibraryProps) 
                 <p className="text-2xl font-semibold text-orange-600">{stats.inProgress}</p>
               </div>
               <Clock className="w-8 h-8 text-orange-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Failed Tasks</p>
+                <p className="text-2xl font-semibold text-red-600">{stats.failedTasks}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -229,6 +243,11 @@ export function BooksLibrary({ books, courses, onOpenBook }: BooksLibraryProps) 
                             <CheckCircle className="w-4 h-4" />
                             <span>{statsForBook.completedTasks}/{statsForBook.totalTasks} tasks</span>
                           </div>
+                          {statsForBook.failedTasks > 0 && (
+                            <div className="flex items-center gap-1 text-red-600">
+                              <span>• {statsForBook.failedTasks} failed</span>
+                            </div>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
                           <Progress value={progress} className="flex-1 h-2" />
