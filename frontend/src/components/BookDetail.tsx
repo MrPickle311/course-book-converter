@@ -42,7 +42,7 @@ export function BookDetail({ book, courses, onSelectCourse }: BookDetailProps) {
   }, [book.id, courses]);
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6">
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
