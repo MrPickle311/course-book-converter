@@ -94,7 +94,7 @@ export function GoogleSignIn({ mode }: GoogleSignInProps) {
     const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
     const payload = btoa(JSON.stringify({
       sub: '1234567890',
-      name: 'Demo Google User',
+      name: 'Demo User',
       email: 'demo.google@example.com',
       picture: 'https://via.placeholder.com/150',
       iat: Math.floor(Date.now() / 1000),
