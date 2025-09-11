@@ -81,7 +81,7 @@ export function UploadPDF({ onFileUpload, userCourses = [] }: UploadPDFProps) {
   return (
     <div className="max-w-2xl mx-auto space-y-8">
       <div className="text-center space-y-4">
-        <h2>Turn a PDF book into a course</h2>
+        <h2>Turn a PDF book into a course with notes and tasks</h2>
         <p className="text-muted-foreground">
         </p>
       </div>
@@ -161,7 +161,7 @@ export function UploadPDF({ onFileUpload, userCourses = [] }: UploadPDFProps) {
                           )}
                         </div>
                         <Progress value={uploadProgress} className="w-full max-w-sm mx-auto" />
-                        <p className="text-xs text-muted-foreground" aria-live="polite">
+                        <p className="text-xs text-muted-foreground">
                           {uploadProgress < 100 
                             ? 'Extracting table of contents...' 
                             : 'Redirecting to table of contents...'}
