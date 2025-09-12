@@ -1,0 +1,26 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0002-enable-pg-trgm
+      author: bcc
+      changes:
+        - sql:
+            dbms: postgresql
+            stripComments: true
+            splitStatements: false
+            sql: |
+              create extension if not exists pg_trgm;
+  - changeSet:
+      id: 0003-gin-index-books-title
+      author: bcc
+      changes:
+        - createIndex:
+            tableName: books
+            indexName: gin_books_title_trgm
+            clustered: false
+            columns:
+              - column:
+                  name: title
+            associatedWith: primaryKey
+            additionalOptions: USING GIN (title gin_trgm_ops)
+
+

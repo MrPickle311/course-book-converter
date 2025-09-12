@@ -1,0 +1,106 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0001-initial-schema
+      author: bcc
+      changes:
+        - createTable:
+            tableName: books
+            columns:
+              - column:
+                  name: id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: title
+                  type: varchar(512)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: upload_date
+                  type: date
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_used_at
+                  type: timestamp with time zone
+              - column:
+                  name: table_of_contents
+                  type: jsonb
+              - column:
+                  name: page_count
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: word_count
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: structured_counts
+                  type: jsonb
+              - column:
+                  name: images
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tables
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: clean_text
+                  type: jsonb
+        - createIndex:
+            tableName: books
+            indexName: idx_books_title
+            columns:
+              - column:
+                  name: title
+        - createTable:
+            tableName: task_submissions
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: task_id
+                  type: varchar(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: varchar(128)
+              - column:
+                  name: type
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: selected_option
+                  type: jsonb
+              - column:
+                  name: selected_options
+                  type: jsonb
+              - column:
+                  name: text_answer
+                  type: jsonb
+              - column:
+                  name: file_name
+                  type: varchar(512)
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: evaluation
+                  type: jsonb
+
+
