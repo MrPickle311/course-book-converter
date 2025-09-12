@@ -457,11 +457,39 @@ function AppContent() {
     setLastContentOrigin('book');
   };
 
-  const handleOpenBook = (book: Book) => {
-    // update last used timestamp on open
-    setBooks((prev) => prev.map((b) => b.id === book.id ? { ...b, lastUsedAt: new Date().toISOString() } : b));
-    setCurrentBook({ ...book, lastUsedAt: new Date().toISOString() });
+  const handleOpenBook = async (book: Book) => {
     setAppState('book');
+    // optimistic open with summary
+    setCurrentBook({ ...book, lastUsedAt: new Date().toISOString() });
+    // update last used timestamp in list
+    setBooks((prev) => prev.map((b) => b.id === book.id ? { ...b, lastUsedAt: new Date().toISOString() } : b));
+    try {
+      const detail = await DefaultService.getApiV1Books1({ uploadId: book.id });
+      const data = detail?.data;
+      if (data) {
+        const toc: Chapter[] = (data.tableOfContents || []).map((t) => ({
+          id: t.id || `${book.id}-${t.page ?? 0}`,
+          title: t.title || 'Chapter',
+          page: t.page ?? 0,
+          hasSubchapters: t.hasSubchapters || false,
+          subchapters: (t.subchapters || []).map((s) => ({
+            id: s.id || `${book.id}-${s.page ?? 0}`,
+            title: s.title || 'Section',
+            page: s.page ?? 0,
+          })),
+        }));
+        setCurrentBook({
+          id: data.id || book.id,
+          title: data.title || book.title,
+          uploadDate: data.uploadDate || book.uploadDate,
+          tableOfContents: toc,
+          lastUsedAt: new Date().toISOString(),
+        });
+      }
+    } catch (e) {
+      // leave optimistic state if detail fetch fails
+      console.error('Failed to fetch book details', e);
+    }
   };
 
   const handleUpdateCourse = (updatedCourse: Course) => {
