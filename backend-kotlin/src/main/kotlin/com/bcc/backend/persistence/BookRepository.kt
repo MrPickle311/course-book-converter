@@ -2,10 +2,10 @@ package com.bcc.backend.persistence
 
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
-import org.springframework.data.mongodb.repository.MongoRepository
+import org.springframework.data.jpa.repository.JpaRepository
 
-interface BookRepository : MongoRepository<Book, String> {
-	fun findByTitleRegex(regex: String, pageable: Pageable): Page<Book>
+interface BookRepository : JpaRepository<Book, String> {
+	fun findByTitleContainingIgnoreCase(title: String, pageable: Pageable): Page<Book>
 }
 
 

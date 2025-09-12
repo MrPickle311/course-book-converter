@@ -40,7 +40,7 @@ import org.springframework.data.domain.Sort
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
-import java.util.regex.Pattern
+ 
 
 @RestController
 class PdfController(
@@ -60,8 +60,7 @@ class PdfController(
         val ps = (pageSize ?: 20).coerceIn(1, 200)
         val pageable = PageRequest.of(p - 1, ps, Sort.by(Sort.Direction.DESC, "lastUsedAt", "uploadDate"))
         val pageData = if (!search.isNullOrBlank()) {
-            val regex = "(?i).*" + Pattern.quote(search.trim()) + ".*"
-            bookRepository.findByTitleRegex(regex, pageable)
+            bookRepository.findByTitleContainingIgnoreCase(search.trim(), pageable)
         } else {
             bookRepository.findAll(pageable)
         }
@@ -104,6 +103,21 @@ class PdfController(
             .uploadDate(b.uploadDate.toString())
             .tableOfContents(b.tableOfContents.map { mapToc(it) })
         return ResponseEntity.ok(BookDetailResponse(true, detail))
+    }
+
+    override fun apiV1BooksUploadIdDelete(uploadId: String): ResponseEntity<Void> {
+        return try {
+            bookRepository.deleteById(uploadId)
+            // best-effort remove uploaded file
+            runCatching {
+                val path = java.nio.file.Path.of("uploads").resolve("$uploadId.pdf")
+                java.nio.file.Files.deleteIfExists(path)
+            }
+            ResponseEntity.noContent().build()
+        } catch (ex: Exception) {
+            logger.error("Failed to delete book {}", uploadId, ex)
+            ResponseEntity.internalServerError().build()
+        }
     }
 
     override fun apiV1CourseGeneratePost(
@@ -156,9 +170,9 @@ class PdfController(
             }
             val res = pdfProcessor.process(dest)
             // Persist book document with extracted metadata and ToC
-            val tocItems = res.toc.map { m ->
+            val tocItems = res.toc.mapIndexed { idx, m ->
                 TocItem(
-                    id = null,
+                    id = "$uploadId-${idx + 1}",
                     title = (m["title"] as? String)?.trim() ?: "",
                     page = (m["page"] as? Int) ?: 0,
                     hasSubchapters = false,
