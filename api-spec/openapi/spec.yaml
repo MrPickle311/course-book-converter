@@ -43,6 +43,111 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenerateCourseResponse'
+  /api/v1/books:
+    get:
+      summary: List books (paginated)
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 20
+        - in: query
+          name: search
+          schema:
+            type: string
+          required: false
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedBooksResponse'
+  /api/v1/books/{uploadId}:
+    get:
+      summary: Get book by uploadId (with table of contents)
+      parameters:
+        - in: path
+          name: uploadId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookDetailResponse'
+    delete:
+      summary: Delete book by uploadId
+      parameters:
+        - in: path
+          name: uploadId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: No Content
+  /api/v1/tasks/{taskId}/submit:
+    post:
+      summary: Submit a task answer (non-file)
+      parameters:
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskSubmissionRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskSubmissionResponse'
+  /api/v1/tasks/{taskId}/upload:
+    post:
+      summary: Submit a task file (upload)
+      parameters:
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required: [file]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskSubmissionResponse'
 components:
   schemas:
     Chapter:
@@ -144,3 +249,124 @@ components:
         data:
           $ref: '#/components/schemas/CourseModule'
       required: [success, data]
+    TocItem:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        page:
+          type: integer
+        hasSubchapters:
+          type: boolean
+        subchapters:
+          type: array
+          items:
+            $ref: '#/components/schemas/TocItem'
+    BookSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        uploadDate:
+          type: string
+          description: ISO date string (YYYY-MM-DD)
+        lastUsedAt:
+          type: string
+          nullable: true
+          description: ISO datetime string
+    BookDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        uploadDate:
+          type: string
+        tableOfContents:
+          type: array
+          items:
+            $ref: '#/components/schemas/TocItem'
+    PaginationMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+      required: [page, pageSize, total, totalPages]
+    PaginatedBooks:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BookSummary'
+        pagination:
+          $ref: '#/components/schemas/PaginationMeta'
+      required: [items, pagination]
+    PaginatedBooksResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/PaginatedBooks'
+      required: [success, data]
+    BookDetailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/BookDetail'
+      required: [success, data]
+    TaskSubmissionRequest:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [multiple-choice, multiple-select, short-answer, code]
+        selectedOption:
+          type: string
+          description: For multiple-choice
+        selectedOptions:
+          type: array
+          items:
+            type: string
+          description: For multiple-select
+        textAnswer:
+          type: string
+          description: For short-answer/code
+      required: [type]
+    TaskEvaluation:
+      type: object
+      properties:
+        isCorrect:
+          type: boolean
+        mistakes:
+          type: array
+          items:
+            type: string
+        score:
+          type: number
+        explanation:
+          type: string
+    TaskSubmissionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        evaluation:
+          $ref: '#/components/schemas/TaskEvaluation'
+        message:
+          type: string
+      required: [success]

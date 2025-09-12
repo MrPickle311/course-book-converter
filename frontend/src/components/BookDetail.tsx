@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
-import { Calendar, CheckCircle, ChevronRight, BookOpen } from 'lucide-react';
+import { Calendar, CheckCircle, ChevronRight, BookOpen, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
+import { DefaultService } from '@bcc/openapi-client';
 
 interface Book {
   id: string;
@@ -64,6 +65,18 @@ export function BookDetail({ book, courses, onSelectCourse, onGenerateCourse }: 
             <div>
               <CardTitle className="text-2xl">{book.title}</CardTitle>
               <p className="text-sm text-muted-foreground">Uploaded {new Date(book.uploadDate).toLocaleDateString()}</p>
+            </div>
+            <div className="ml-auto">
+              <Button variant="destructive" size="sm" onClick={async () => {
+                try {
+                  await DefaultService.deleteApiV1Books({ uploadId: book.id });
+                  window.location.href = '/';
+                } catch (e) {
+                  console.error('Failed to delete book', e);
+                }
+              }}>
+                <Trash2 className="w-4 h-4 mr-1" /> Delete book
+              </Button>
             </div>
           </div>
         </CardHeader>

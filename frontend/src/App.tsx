@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getMockNotesByChapter, defaultDemoBlocks } from './mocks/Mock';
+import { DefaultService, OpenAPI, type ProcessPdfResponse, type GenerateCourseRequest, type GenerateCourseResponse } from '@bcc/openapi-client';
 import type { NoteBlock } from './mocks/Mock';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import { ThemeProvider } from './components/ThemeContext';
@@ -118,8 +119,6 @@ const generateMockBooks = (count: number): Book[] => {
   return books;
 };
 
-const mockBooks: Book[] = generateMockBooks(61);
-
 // Generate many mock courses for pagination/performance testing
 const generateMockCourses = (books: Book[], userId: string, replicationsPerChapter = 100): Course[] => {
   const courses: Course[] = [];
@@ -235,9 +234,13 @@ const generateMockCourses = (books: Book[], userId: string, replicationsPerChapt
 const mockCourses: Course[] = [];
 
 function AppContent() {
+  // Configure OpenAPI base URL from Vite env (fallback to backend-kotlin default)
+  // Vite exposes env via import.meta as any in this template; cast to any to avoid TS error
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  OpenAPI.BASE = 'http://localhost:8080';
   const { user, isLoading, logout } = useAuth();
   const [appState, setAppState] = useState<AppState>('upload');
-  const [books, setBooks] = useState<Book[]>(mockBooks);
+  const [books, setBooks] = useState<Book[]>([]);
   const [courses, setCourses] = useState<Course[]>(mockCourses);
   const [currentBook, setCurrentBook] = useState<Book | null>(null);
   const [currentCourse, setCurrentCourse] = useState<Course | null>(null);
@@ -248,13 +251,32 @@ function AppContent() {
     setHeaderHeight(node.getBoundingClientRect().height ?? 0);
   }, []);
 
-  // Seed courses for logged-in user exactly once
+  // Load books from API and seed courses on first login
   useEffect(() => {
     if (!user) return;
-    if (courses.length > 0) return;
-    const seeded = generateMockCourses(books, user.id, 5);
-    setCourses(seeded);
-  }, [user?.id, courses.length, books]);
+    (async () => {
+      try {
+        const res = await DefaultService.getApiV1Books({ page: 1, pageSize: 20 });
+        const apiBooks = res.data?.items || [];
+        const mapped: Book[] = apiBooks.map((b) => ({
+          id: b.id || '',
+          title: b.title || '',
+          uploadDate: b.uploadDate || new Date().toISOString().split('T')[0],
+          tableOfContents: [],
+          lastUsedAt: b.lastUsedAt || undefined,
+        }));
+        setBooks(mapped);
+        if (courses.length === 0) {
+          const seeded = generateMockCourses(mapped, user.id, 5);
+          setCourses(seeded);
+        }
+      } catch (e) {
+        // fallback to mock list if API fails
+        if (books.length === 0) setBooks(generateMockBooks(20));
+        if (courses.length === 0) setCourses(generateMockCourses(books.length ? books : generateMockBooks(20), user.id, 5));
+      }
+    })();
+  }, [user?.id]);
 
   // Show loading spinner while checking authentication
   if (isLoading) {
@@ -270,27 +292,26 @@ function AppContent() {
     return <AuthForm />;
   }
 
-  const handleFileUpload = (file: File) => {
-    // Simulate processing and TOC extraction
-    setTimeout(() => {
-      const newBook: Book = {
-        id: Date.now().toString(),
-        title: file.name.replace('.pdf', ''),
-        uploadDate: new Date().toISOString().split('T')[0],
-        tableOfContents: [
-          { id: `${Date.now()}-1`, title: 'Introduction', page: 1 },
-          { id: `${Date.now()}-2`, title: 'Getting Started', page: 15 },
-          { id: `${Date.now()}-3`, title: 'Advanced Topics', page: 45 },
-          { id: `${Date.now()}-4`, title: 'Best Practices', page: 78 },
-          { id: `${Date.now()}-5`, title: 'Conclusion', page: 95 },
-        ],
-        lastUsedAt: new Date().toISOString()
-      };
-      setBooks(prev => [newBook, ...prev]);
-      setCurrentBook(newBook);
-      // After upload, go to library where the new book appears first
-      setAppState('library');
-    }, 2000);
+  const handleFileUpload = async (file: File) => {
+    const form = { file } as any;
+    const resp: ProcessPdfResponse = await DefaultService.postApiV1PdfProcess({ formData: form });
+    if (!resp?.success || !resp.data) return;
+    const { uploadId, chapters } = resp.data;
+    const toc = (chapters || []).map((c, idx) => ({
+      id: `${uploadId}-${idx + 1}`,
+      title: c.title || `Chapter ${idx + 1}`,
+      page: c.startPage ?? (idx * 10 + 1),
+    }));
+    const newBook: Book = {
+      id: uploadId,
+      title: file.name.replace('.pdf', ''),
+      uploadDate: new Date().toISOString().split('T')[0],
+      tableOfContents: toc,
+      lastUsedAt: new Date().toISOString()
+    };
+    setBooks(prev => [newBook, ...prev]);
+    setCurrentBook(newBook);
+    setAppState('library');
   };
 
   const handleChapterSelect = (chapter: Chapter) => {
@@ -379,24 +400,34 @@ function AppContent() {
     if (!currentBook || !user) return;
     const chapter = currentBook.tableOfContents.find(c => c.id === chapterId);
     if (!chapter) return;
-    // simple async delay to simulate generation
-    await new Promise(res => setTimeout(res, 1200));
+    const req: GenerateCourseRequest = {
+      chapterTitle: chapter.title,
+      uploadId: currentBook.id,
+      startPage: chapter.page,
+      endPage: undefined,
+    };
+    const gen: GenerateCourseResponse = await DefaultService.postApiV1CourseGenerate({ requestBody: req });
+    const moduleData = gen?.data;
+    const tasks: Task[] = (moduleData?.tasks || []).map((t, idx) => ({
+      id: `task-${currentBook.id}-${chapter.id}-gen-${idx + 1}`,
+      question: t.title || `Task ${idx + 1}`,
+      type: 'short-answer',
+      expectedKeywords: t.successCriteria,
+      completed: false,
+    }));
+    const notes: NoteBlock[] = (moduleData?.sections || []).map((s) => ({
+      type: 'richText',
+      title: s.title || undefined,
+      markdown: (s.summary || '') + '\n' + (s.keyConcepts?.map(k => `- ${k}`).join('\n') || ''),
+    }));
     const newCourse: Course = {
       id: `canonical-${currentBook.id}-${chapter.id}`,
       bookId: currentBook.id,
       bookTitle: currentBook.title,
       chapterId: chapter.id,
-      chapterTitle: `${chapter.title}: Essentials — Overview`,
-      notes: (getMockNotesByChapter('Chapter 1') as NoteBlock[]) || defaultDemoBlocks,
-      tasks: [
-        {
-          id: `task-${currentBook.id}-${chapter.id}-gen-1`,
-          question: `What are the main concepts covered in ${chapter.title}?`,
-          type: 'short-answer',
-          expectedKeywords: ['trade-offs', 'fitness functions', 'adr'],
-          completed: false
-        }
-      ],
+      chapterTitle: moduleData?.title || chapter.title,
+      notes: notes.length ? notes : ((getMockNotesByChapter('Chapter 1') as NoteBlock[]) || defaultDemoBlocks),
+      tasks,
       createdDate: new Date().toISOString().split('T')[0],
       completed: false,
       userId: user.id
