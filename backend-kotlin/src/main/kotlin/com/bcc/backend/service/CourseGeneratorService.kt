@@ -45,7 +45,8 @@ class CourseGeneratorService(private val chatModel: ChatModel) {
 			"from the given book chapter. Respond with STRICT JSON using the schema: " +
 			"{title:string, objectives:string[], sections:[{title:string, summary:string, keyConcepts:string[]}], " +
 			"tasks:[{type:string, title:string, description:string, successCriteria:string[]}]} . " +
-			"No markdown or commentary."
+			"Rules: (1) type must be one of ['short-answer','multiple-choice','multiple-select','code']; " +
+			"(2) 1-5 sections, 1-5 tasks; (3) keep strings concise; (4) no markdown; (5) avoid code fences."
 		)
 		val user = UserMessage(
 			buildString {
@@ -61,27 +62,48 @@ class CourseGeneratorService(private val chatModel: ChatModel) {
 		val json = extractJson(raw)
 		val root: JsonNode = mapper.readTree(json)
 		fun arr(n: JsonNode, name: String) = n.path(name).takeIf { it.isArray } ?: mapper.createArrayNode()
-		val objectives = arr(root, "objectives").map { it.asText("") }.filter { it.isNotBlank() }
-		val sections = arr(root, "sections").map { s ->
-			CourseSection(
-				title = s.path("title").asText("").trim(),
-				summary = s.path("summary").asText("").trim(),
-				keyConcepts = arr(s, "keyConcepts").map { it.asText("") }.filter { it.isNotBlank() }
-			)
+		val objectives = arr(root, "objectives").map { it.asText("") }.filter { it.isNotBlank() }.take(7)
+		fun normalizeTaskType(raw: String): String {
+			val r = raw.lowercase()
+			return when {
+				r.contains("multiple") && r.contains("select") -> "multiple-select"
+				r.contains("multiple") && r.contains("choice") -> "multiple-choice"
+				r.contains("code") -> "code"
+			else -> "short-answer"
+			}
 		}
-		val tasks = arr(root, "tasks").map { t ->
-			CourseTask(
-				type = t.path("type").asText("").trim(),
-				title = t.path("title").asText("").trim(),
-				description = t.path("description").asText("").trim(),
-				successCriteria = arr(t, "successCriteria").map { it.asText("") }.filter { it.isNotBlank() }
-			)
-		}
+		val sections = arr(root, "sections")
+			.map { s ->
+				CourseSection(
+					title = s.path("title").asText("").trim(),
+					summary = s.path("summary").asText("").trim(),
+					keyConcepts = arr(s, "keyConcepts").map { it.asText("") }.filter { it.isNotBlank() }.take(10)
+				)
+			}
+			.filter { it.title.isNotBlank() || it.summary.isNotBlank() }
+			.take(5)
+		val tasks = arr(root, "tasks")
+			.map { t ->
+				CourseTask(
+					type = normalizeTaskType(t.path("type").asText("").trim()),
+					title = t.path("title").asText("").trim(),
+					description = t.path("description").asText("").trim(),
+					successCriteria = arr(t, "successCriteria").map { it.asText("") }.filter { it.isNotBlank() }.take(6)
+				)
+			}
+			.filter { it.title.isNotBlank() }
+			.take(5)
+		val finalSections = if (sections.isEmpty()) listOf(
+			CourseSection(title = req.chapterTitle, summary = "Overview of key concepts", keyConcepts = emptyList())
+		) else sections
+		val finalTasks = if (tasks.isEmpty()) listOf(
+			CourseTask(type = "short-answer", title = "Summarize the chapter", description = "Write a concise summary.", successCriteria = listOf("Mentions key ideas"))
+		) else tasks
 		return CourseModule(
-			title = root.path("title").asText(req.chapterTitle).trim(),
+			title = root.path("title").asText(req.chapterTitle).trim().ifBlank { req.chapterTitle },
 			objectives = objectives,
-			sections = sections,
-			tasks = tasks
+			sections = finalSections,
+			tasks = finalTasks
 		)
 	}
 

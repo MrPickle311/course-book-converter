@@ -16,8 +16,16 @@ import com.bcc.api.model.ProcessPdfData
 import com.bcc.api.model.ProcessPdfResponse
 import com.bcc.api.model.TaskSubmissionRequest
 import com.bcc.api.model.TaskSubmissionResponse
+import com.bcc.api.model.TaskEvaluation
 import com.bcc.backend.service.CourseGeneratorService
 import com.bcc.backend.service.PdfProcessor
+import com.bcc.backend.persistence.Book
+import com.bcc.backend.persistence.BookRepository
+import com.bcc.backend.persistence.CleanText
+import com.bcc.backend.persistence.TocItem
+import com.bcc.backend.persistence.TaskSubmission
+import com.bcc.backend.persistence.TaskSubmissionRepository
+import com.bcc.backend.persistence.Evaluation
 import jakarta.validation.Valid
 import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
@@ -27,14 +35,19 @@ import org.slf4j.LoggerFactory
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.multipart.MultipartFile
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
+import java.util.regex.Pattern
 
 @RestController
 class PdfController(
     private val pdfProcessor: PdfProcessor,
-    private val courseGeneratorService: CourseGeneratorService
+    private val courseGeneratorService: CourseGeneratorService,
+    private val bookRepository: BookRepository,
+    private val taskSubmissionRepository: TaskSubmissionRepository
 ) : DefaultApi {
     private val logger = LoggerFactory.getLogger(PdfController::class.java)
 
@@ -43,24 +56,53 @@ class PdfController(
         pageSize: @Min(1) @Max(200) @Valid Int?,
         search: @Valid String?
     ): ResponseEntity<PaginatedBooksResponse> {
-        val items = emptyList<com.bcc.api.model.BookSummary>()
+        val p = (page ?: 1).coerceAtLeast(1)
+        val ps = (pageSize ?: 20).coerceIn(1, 200)
+        val pageable = PageRequest.of(p - 1, ps, Sort.by(Sort.Direction.DESC, "lastUsedAt", "uploadDate"))
+        val pageData = if (!search.isNullOrBlank()) {
+            val regex = "(?i).*" + Pattern.quote(search.trim()) + ".*"
+            bookRepository.findByTitleRegex(regex, pageable)
+        } else {
+            bookRepository.findAll(pageable)
+        }
+        val items = pageData.content.map { b ->
+            val s = com.bcc.api.model.BookSummary()
+                .id(b.id)
+                .title(b.title)
+                .uploadDate(b.uploadDate.toString())
+            if (b.lastUsedAt != null) {
+                s.lastUsedAt(b.lastUsedAt.toString())
+            }
+            s
+        }
         val meta = PaginationMeta()
-            .page(page ?: 1)
-            .pageSize(pageSize ?: 20)
-            .total(0)
-            .totalPages(0)
-        val payload = PaginatedBooks()
-            .items(items)
-            .pagination(meta)
+            .page(p)
+            .pageSize(ps)
+            .total(pageData.totalElements.toInt())
+            .totalPages(pageData.totalPages)
+        val payload = PaginatedBooks().items(items).pagination(meta)
         return ResponseEntity.ok(PaginatedBooksResponse(true, payload))
     }
 
     override fun apiV1BooksUploadIdGet(uploadId: String): ResponseEntity<BookDetailResponse> {
+        val found = bookRepository.findById(uploadId)
+        if (found.isEmpty) {
+            return ResponseEntity.notFound().build()
+        }
+        val b = found.get()
+        fun mapToc(item: TocItem): com.bcc.api.model.TocItem {
+            return com.bcc.api.model.TocItem()
+                .id(item.id)
+                .title(item.title)
+                .page(item.page)
+                .hasSubchapters(item.hasSubchapters)
+                .subchapters(item.subchapters.map { mapToc(it) })
+        }
         val detail = BookDetail()
-            .id(uploadId)
-            .title("Unknown")
-            .uploadDate("")
-            .tableOfContents(emptyList())
+            .id(b.id)
+            .title(b.title)
+            .uploadDate(b.uploadDate.toString())
+            .tableOfContents(b.tableOfContents.map { mapToc(it) })
         return ResponseEntity.ok(BookDetailResponse(true, detail))
     }
 
@@ -113,6 +155,33 @@ class PdfController(
                 Files.copy(input, dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
             }
             val res = pdfProcessor.process(dest)
+            // Persist book document with extracted metadata and ToC
+            val tocItems = res.toc.map { m ->
+                TocItem(
+                    id = null,
+                    title = (m["title"] as? String)?.trim() ?: "",
+                    page = (m["page"] as? Int) ?: 0,
+                    hasSubchapters = false,
+                    subchapters = emptyList()
+                )
+            }
+            val book = Book(
+                id = uploadId,
+                title = (file.originalFilename ?: "Uploaded Book").removeSuffix(".pdf"),
+                uploadDate = java.time.LocalDate.now(),
+                lastUsedAt = java.time.Instant.now(),
+                tableOfContents = tocItems,
+                pageCount = res.pageCount,
+                wordCount = res.wordCount,
+                structuredCounts = res.structuredCounts,
+                images = res.images,
+                tables = res.tables,
+                cleanText = CleanText(
+                    wordCount = (res.cleanText["wordCount"] as? Int) ?: 0,
+                    removedElements = (res.cleanText["removedElements"] as? List<*>)?.map { it.toString() } ?: emptyList()
+                )
+            )
+            bookRepository.save(book)
             val data = ProcessPdfData()
                 .uploadId(uploadId)
                 .pageCount(res.pageCount)
@@ -136,14 +205,108 @@ class PdfController(
         taskId: String,
         taskSubmissionRequest: @Valid TaskSubmissionRequest
     ): ResponseEntity<TaskSubmissionResponse> {
-        TODO("Not yet implemented")
+        // Basic evaluation logic
+        val type = taskSubmissionRequest.type?.value ?: ""
+        val mistakes = mutableListOf<String>()
+        var score = 0.0
+        var isCorrect = false
+        when (type) {
+            "multiple-choice" -> {
+                val sel = taskSubmissionRequest.selectedOption
+                if (sel.isNullOrBlank()) mistakes.add("No option selected") else {
+                    isCorrect = true; score = 1.0
+                }
+            }
+            "multiple-select" -> {
+                val sel = taskSubmissionRequest.selectedOptions ?: emptyList()
+                if (sel.isEmpty()) mistakes.add("No options selected") else {
+                    // Without answer key, mark as completed
+                    isCorrect = true; score = 1.0
+                }
+            }
+            "short-answer", "code" -> {
+                val txt = taskSubmissionRequest.textAnswer?.trim() ?: ""
+                if (txt.isBlank()) mistakes.add("Answer is empty")
+                if (txt.length < 40) mistakes.add("Answer is too short")
+                isCorrect = mistakes.isEmpty()
+                score = if (isCorrect) 1.0 else if (txt.isNotBlank()) 0.5 else 0.0
+            }
+            else -> mistakes.add("Unsupported task type: $type")
+        }
+
+        val eval = Evaluation(
+            isCorrect = isCorrect,
+            mistakes = mistakes,
+            score = score,
+            explanation = if (mistakes.isEmpty()) "Looks good" else "Please review the feedback"
+        )
+        val submission = TaskSubmission(
+            taskId = taskId,
+            userId = null,
+            type = type,
+            selectedOption = taskSubmissionRequest.selectedOption,
+            selectedOptions = taskSubmissionRequest.selectedOptions,
+            textAnswer = taskSubmissionRequest.textAnswer,
+            fileName = null,
+            evaluation = eval
+        )
+        taskSubmissionRepository.save(submission)
+
+        val apiEval = TaskEvaluation()
+            .isCorrect(isCorrect)
+            .mistakes(mistakes)
+            .score(java.math.BigDecimal.valueOf(score))
+            .explanation(eval.explanation)
+        val resp = TaskSubmissionResponse()
+            .success(true)
+            .evaluation(apiEval)
+        return ResponseEntity.ok(resp)
     }
 
     override fun apiV1TasksTaskIdUploadPost(
         taskId: String,
         file: MultipartFile
     ): ResponseEntity<TaskSubmissionResponse> {
-        TODO("Not yet implemented")
+        val original = (file.originalFilename ?: "upload.bin").lowercase()
+        val isPdf = original.endsWith(".pdf")
+        val mistakes = mutableListOf<String>()
+        if (!isPdf) mistakes.add("Only PDF files are supported")
+        val uploadDir = Path.of("uploads", "tasks", taskId).toAbsolutePath()
+        Files.createDirectories(uploadDir)
+        val storedName = UUID.randomUUID().toString() + "-" + original
+        val dest = uploadDir.resolve(storedName)
+        return try {
+            file.inputStream.use { input ->
+                Files.copy(input, dest, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+            }
+            val eval = Evaluation(
+                isCorrect = mistakes.isEmpty(),
+                mistakes = mistakes,
+                score = if (mistakes.isEmpty()) 1.0 else 0.0,
+                explanation = if (mistakes.isEmpty()) "File uploaded successfully" else "Invalid file"
+            )
+            val submission = TaskSubmission(
+                taskId = taskId,
+                userId = null,
+                type = "upload-pdf",
+                fileName = storedName,
+                evaluation = eval
+            )
+            taskSubmissionRepository.save(submission)
+
+            val apiEval = TaskEvaluation()
+                .isCorrect(eval.isCorrect == true)
+                .mistakes(eval.mistakes ?: emptyList())
+                .score(java.math.BigDecimal.valueOf(eval.score ?: 0.0))
+                .explanation(eval.explanation)
+            val resp = TaskSubmissionResponse()
+                .success(true)
+                .evaluation(apiEval)
+            ResponseEntity.ok(resp)
+        } catch (ex: Exception) {
+            logger.error("Failed to store task file", ex)
+            ResponseEntity.internalServerError().build()
+        }
     }
 
     private fun extractPagesText(file: java.io.File, start: Int, end: Int?): String {
