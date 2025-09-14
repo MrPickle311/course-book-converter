@@ -1,53 +1,33 @@
 package com.bcc.backend.controller
 
 import com.bcc.api.DefaultApi
-import com.bcc.api.model.BookDetail
-import com.bcc.api.model.BookDetailResponse
-import com.bcc.api.model.Chapter
-import com.bcc.api.model.CourseModule
-import com.bcc.api.model.CourseSection
-import com.bcc.api.model.CourseTask
-import com.bcc.api.model.GenerateCourseRequest
-import com.bcc.api.model.GenerateCourseResponse
-import com.bcc.api.model.PaginatedBooks
-import com.bcc.api.model.PaginatedBooksResponse
-import com.bcc.api.model.PaginationMeta
-import com.bcc.api.model.ProcessPdfData
-import com.bcc.api.model.ProcessPdfResponse
-import com.bcc.api.model.TaskSubmissionRequest
-import com.bcc.api.model.TaskSubmissionResponse
-import com.bcc.api.model.TaskEvaluation
+import com.bcc.api.model.*
+import com.bcc.backend.persistence.*
 import com.bcc.backend.service.CourseGeneratorService
 import com.bcc.backend.service.PdfProcessor
-import com.bcc.backend.persistence.Book
-import com.bcc.backend.persistence.BookRepository
-import com.bcc.backend.persistence.CleanText
-import com.bcc.backend.persistence.TocItem
-import com.bcc.backend.persistence.TaskSubmission
-import com.bcc.backend.persistence.TaskSubmissionRepository
-import com.bcc.backend.persistence.Evaluation
 import jakarta.validation.Valid
 import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.text.PDFTextStripper
 import org.slf4j.LoggerFactory
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.multipart.MultipartFile
-import org.springframework.data.domain.PageRequest
-import org.springframework.data.domain.Sort
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
- 
+
 
 @RestController
 class PdfController(
     private val pdfProcessor: PdfProcessor,
     private val courseGeneratorService: CourseGeneratorService,
     private val bookRepository: BookRepository,
-    private val taskSubmissionRepository: TaskSubmissionRepository
+    private val taskSubmissionRepository: TaskSubmissionRepository,
+    private val chapterContentRepository: ChapterContentRepository
 ) : DefaultApi {
     private val logger = LoggerFactory.getLogger(PdfController::class.java)
 
@@ -89,8 +69,8 @@ class PdfController(
             return ResponseEntity.notFound().build()
         }
         val b = found.get()
-        fun mapToc(item: TocItem): com.bcc.api.model.TocItem {
-            return com.bcc.api.model.TocItem()
+        fun mapToc(item: TableOfContentItem): TocItem {
+            return TocItem()
                 .id(item.id)
                 .title(item.title)
                 .page(item.page)
@@ -110,8 +90,8 @@ class PdfController(
             bookRepository.deleteById(uploadId)
             // best-effort remove uploaded file
             runCatching {
-                val path = java.nio.file.Path.of("uploads").resolve("$uploadId.pdf")
-                java.nio.file.Files.deleteIfExists(path)
+                val path = Path.of("uploads").resolve("$uploadId.pdf")
+                Files.deleteIfExists(path)
             }
             ResponseEntity.noContent().build()
         } catch (ex: Exception) {
@@ -125,7 +105,32 @@ class PdfController(
     ): ResponseEntity<GenerateCourseResponse> {
         return try {
             val pdfPath = Path.of("uploads").resolve("${generateCourseRequest.uploadId}.pdf").toFile()
-            val context = extractPagesText(pdfPath, generateCourseRequest.startPage ?: 0, generateCourseRequest.endPage)
+            val start = generateCourseRequest.startPage ?: 0
+            val end = generateCourseRequest.endPage ?: run {
+                // Derive end from next chapter start in persisted TOC, if available
+                val opt = bookRepository.findById(generateCourseRequest.uploadId)
+                if (opt.isPresent) {
+                    val toc = opt.get().tableOfContents.sortedBy { it.page }
+                    val idx = toc.indexOfFirst { it.page == start }
+                    if (idx >= 0 && idx + 1 < toc.size) {
+                        val nextStart = toc[idx + 1].page
+                        maxOf(start, nextStart - 1)
+                    } else null
+                } else null
+            }
+            val context = extractPagesText(pdfPath, start, end)
+            // Persist chapter content for future reuse
+            val chapterId = chapterIdFromPage(generateCourseRequest.uploadId, start)
+            chapterContentRepository.save(
+                ChapterContent(
+                    bookId = generateCourseRequest.uploadId,
+                    chapterId = chapterId,
+                    title = generateCourseRequest.chapterTitle,
+                    startPage = start,
+                    endPage = end,
+                    content = context
+                )
+            )
             val module = courseGeneratorService.generateFromChapter(
                 CourseGeneratorService.GenerateCourseRequest(
                     generateCourseRequest.chapterTitle,
@@ -169,12 +174,12 @@ class PdfController(
                 Files.copy(input, dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
             }
             val res = pdfProcessor.process(dest)
-            // Persist book document with extracted metadata and ToC
-            val tocItems = res.toc.mapIndexed { idx, m ->
-                TocItem(
+            // Persist book document with ToC built from chapter start pages
+            val tableOfContentItems = res.chapters.mapIndexed { idx, ch ->
+                TableOfContentItem(
                     id = "$uploadId-${idx + 1}",
-                    title = (m["title"] as? String)?.trim() ?: "",
-                    page = (m["page"] as? Int) ?: 0,
+                    title = ch.title.trim(),
+                    page = ch.startPage,
                     hasSubchapters = false,
                     subchapters = emptyList()
                 )
@@ -184,16 +189,9 @@ class PdfController(
                 title = (file.originalFilename ?: "Uploaded Book").removeSuffix(".pdf"),
                 uploadDate = java.time.LocalDate.now(),
                 lastUsedAt = java.time.Instant.now(),
-                tableOfContents = tocItems,
+                tableOfContents = tableOfContentItems,
                 pageCount = res.pageCount,
-                wordCount = res.wordCount,
-                structuredCounts = res.structuredCounts,
-                images = res.images,
-                tables = res.tables,
-                cleanText = CleanText(
-                    wordCount = (res.cleanText["wordCount"] as? Int) ?: 0,
-                    removedElements = (res.cleanText["removedElements"] as? List<*>)?.map { it.toString() } ?: emptyList()
-                )
+                wordCount = res.wordCount
             )
             bookRepository.save(book)
             val data = ProcessPdfData()
@@ -331,4 +329,6 @@ class PdfController(
             return stripper.getText(doc)
         }
     }
+
+    private fun chapterIdFromPage(uploadId: String, startPage: Int): String = "$uploadId-$startPage"
 }
