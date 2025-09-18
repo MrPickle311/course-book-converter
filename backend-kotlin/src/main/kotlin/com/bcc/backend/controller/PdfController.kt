@@ -45,7 +45,7 @@ class PdfController(
             bookRepository.findAll(pageable)
         }
         val items = pageData.content.map { b ->
-            val s = com.bcc.api.model.BookSummary()
+            val s = BookSummary()
                 .id(b.id)
                 .title(b.title)
                 .uploadDate(b.uploadDate.toString())
@@ -105,19 +105,8 @@ class PdfController(
     ): ResponseEntity<GenerateCourseResponse> {
         return try {
             val pdfPath = Path.of("uploads").resolve("${generateCourseRequest.uploadId}.pdf").toFile()
-            val start = generateCourseRequest.startPage ?: 0
-            val end = generateCourseRequest.endPage ?: run {
-                // Derive end from next chapter start in persisted TOC, if available
-                val opt = bookRepository.findById(generateCourseRequest.uploadId)
-                if (opt.isPresent) {
-                    val toc = opt.get().tableOfContents.sortedBy { it.page }
-                    val idx = toc.indexOfFirst { it.page == start }
-                    if (idx >= 0 && idx + 1 < toc.size) {
-                        val nextStart = toc[idx + 1].page
-                        maxOf(start, nextStart - 1)
-                    } else null
-                } else null
-            }
+            val start = generateCourseRequest.startPage
+            val end = generateCourseRequest.endPage
             val context = extractPagesText(pdfPath, start, end)
             // Persist chapter content for future reuse
             val chapterId = chapterIdFromPage(generateCourseRequest.uploadId, start)
@@ -137,15 +126,10 @@ class PdfController(
                     context
                 )
             )
-            val apiModule = CourseModule()
+            val response = GenerateCourseResponse()
                 .title(module.title)
                 .objectives(module.objectives)
-                .sections(module.sections.map { s ->
-                    CourseSection()
-                        .title(s.title)
-                        .summary(s.summary)
-                        .keyConcepts(s.keyConcepts)
-                })
+                .content("")
                 .tasks(module.tasks.map { t ->
                     CourseTask()
                         .type(t.type)
@@ -153,7 +137,7 @@ class PdfController(
                         .description(t.description)
                         .successCriteria(t.successCriteria)
                 })
-            ResponseEntity.ok(GenerateCourseResponse(true, apiModule))
+            ResponseEntity.ok(response)
         } catch (ex: Exception) {
             logger.error("Failed to generate course", ex)
             ResponseEntity.internalServerError().build()
