@@ -8,47 +8,33 @@ import jakarta.persistence.Table
 import org.hibernate.annotations.Type
 import java.time.Instant
 import java.time.LocalDate
+import java.util.UUID
 
 @Entity
 @Table(name = "books")
 data class Book(
+
     @Id
 	@Column(name = "id", nullable = false, length = 64)
-	var id: String, // uploadId
+	var uploadId: String,
+
     @Column(name = "title", nullable = false)
 	var title: String,
+
     @Column(name = "upload_date", nullable = false)
 	var uploadDate: LocalDate,
+
     @Column(name = "last_used_at")
-	var lastUsedAt: Instant? = null,
+	var lastUsedAt: Instant = Instant.now(),
+
     @Type(JsonType::class)
 	@Column(name = "table_of_contents", columnDefinition = "jsonb")
-	var tableOfContents: List<TableOfContentItem> = emptyList(),
-    @Column(name = "page_count", nullable = false)
-	var pageCount: Int = 0,
-    @Column(name = "word_count", nullable = false)
-	var wordCount: Int = 0,
-    @Type(JsonType::class)
-	@Column(name = "structured_counts", columnDefinition = "jsonb")
-	var structuredCounts: Map<String, Int> = emptyMap(),
-    @Column(name = "images", nullable = false)
-	var images: Int = 0,
-    @Column(name = "tables", nullable = false)
-	var tables: Int = 0,
-    @Type(JsonType::class)
-	@Column(name = "clean_text", columnDefinition = "jsonb")
-	var cleanText: CleanText? = null
+	var chapters: List<Chapter> = emptyList(),
 )
 
-data class TableOfContentItem(
-	var id: String? = null,
-	var title: String = "",
-	var page: Int = 0,
-	var hasSubchapters: Boolean = false,
-	var subchapters: List<TableOfContentItem> = emptyList()
-)
-
-data class CleanText(
-	var wordCount: Int = 0,
-	var removedElements: List<String> = emptyList()
+data class Chapter(
+    var id: String = UUID.randomUUID().toString(),
+    var title: String,
+    var startPage: Int = 0,
+    var endPage: Int = 0
 )

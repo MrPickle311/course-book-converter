@@ -3,14 +3,16 @@ package com.bcc.backend.service
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
+import org.springframework.ai.chat.client.ChatClient
 import org.springframework.ai.chat.messages.SystemMessage
 import org.springframework.ai.chat.messages.UserMessage
-import org.springframework.ai.chat.model.ChatModel
-import org.springframework.ai.chat.prompt.Prompt
 import org.springframework.stereotype.Service
 
 @Service
-class CourseGeneratorService(private val chatModel: ChatModel) {
+class CourseGeneratorService(
+    private val chatClientBuilder: ChatClient.Builder,
+    private val chatClient: ChatClient = chatClientBuilder.build()
+) {
     private val logger = LoggerFactory.getLogger(CourseGeneratorService::class.java)
     private val mapper = ObjectMapper()
 
@@ -57,8 +59,11 @@ class CourseGeneratorService(private val chatModel: ChatModel) {
                 }
             }
         )
-        val response = chatModel.call(Prompt(listOf(system, user)))
-        val raw = response.result.output.content
+        val raw = chatClient
+            .prompt()
+            .messages(listOf(system, user))
+            .call()
+            .content()
         val json = extractJson(raw)
         val root: JsonNode = mapper.readTree(json)
         fun arr(n: JsonNode, name: String) = n.path(name).takeIf { it.isArray } ?: mapper.createArrayNode()

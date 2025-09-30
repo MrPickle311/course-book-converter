@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.multipart.MultipartFile
 import java.nio.file.Files
 import java.nio.file.Path
+import com.bcc.backend.persistence.Chapter;
 import java.util.*
 
 
@@ -31,7 +32,7 @@ class PdfController(
 ) : DefaultApi {
     private val logger = LoggerFactory.getLogger(PdfController::class.java)
 
-    override fun apiV1BooksGet(
+    override fun getBooksList(
         page: @Min(1) @Valid Int?,
         pageSize: @Min(1) @Max(200) @Valid Int?,
         search: @Valid String?
@@ -46,7 +47,7 @@ class PdfController(
         }
         val items = pageData.content.map { b ->
             val s = BookSummary()
-                .id(b.id)
+                .id(b.uploadId)
                 .title(b.title)
                 .uploadDate(b.uploadDate.toString())
             if (b.lastUsedAt != null) {
@@ -63,29 +64,30 @@ class PdfController(
         return ResponseEntity.ok(PaginatedBooksResponse(true, payload))
     }
 
-    override fun apiV1BooksUploadIdGet(uploadId: String): ResponseEntity<BookDetailResponse> {
+    override fun getBookById(uploadId: String): ResponseEntity<BookDetailResponse> {
         val found = bookRepository.findById(uploadId)
         if (found.isEmpty) {
             return ResponseEntity.notFound().build()
         }
         val b = found.get()
-        fun mapToc(item: TableOfContentItem): TocItem {
+        fun mapToc(item: Chapter): TocItem {
             return TocItem()
                 .id(item.id)
-                .title(item.title)
-                .page(item.page)
-                .hasSubchapters(item.hasSubchapters)
-                .subchapters(item.subchapters.map { mapToc(it) })
+//                .title(item.title)
+//                .page(item.page)
+//                .hasSubchapters(item.hasSubchapters)
+//                .subchapters(item.subchapters.map { mapToc(it) })
         }
+
         val detail = BookDetail()
-            .id(b.id)
+            .id(b.uploadId)
             .title(b.title)
             .uploadDate(b.uploadDate.toString())
-            .tableOfContents(b.tableOfContents.map { mapToc(it) })
+            .tableOfContents(b.chapters.map { mapToc(it) })
         return ResponseEntity.ok(BookDetailResponse(true, detail))
     }
 
-    override fun apiV1BooksUploadIdDelete(uploadId: String): ResponseEntity<Void> {
+    override fun deleteBook(uploadId: String): ResponseEntity<Void> {
         return try {
             bookRepository.deleteById(uploadId)
             // best-effort remove uploaded file
@@ -100,29 +102,29 @@ class PdfController(
         }
     }
 
-    override fun apiV1CourseGeneratePost(
+    override fun generateCourse(
         generateCourseRequest: @Valid GenerateCourseRequest
     ): ResponseEntity<GenerateCourseResponse> {
         return try {
             val pdfPath = Path.of("uploads").resolve("${generateCourseRequest.uploadId}.pdf").toFile()
-            val start = generateCourseRequest.startPage
-            val end = generateCourseRequest.endPage
-            val context = extractPagesText(pdfPath, start, end)
+//            val start = generateCourseRequest.startPage
+//            val end = generateCourseRequest.endPage
+            val context = extractPagesText(pdfPath, 0, 0)
             // Persist chapter content for future reuse
-            val chapterId = chapterIdFromPage(generateCourseRequest.uploadId, start)
+            val chapterId = chapterIdFromPage(generateCourseRequest.uploadId, 0)
             chapterContentRepository.save(
                 ChapterContent(
                     bookId = generateCourseRequest.uploadId,
                     chapterId = chapterId,
-                    title = generateCourseRequest.chapterTitle,
-                    startPage = start,
-                    endPage = end,
+                    title = "",
+                    startPage = 0,
+                    endPage = 0,
                     content = context
                 )
             )
             val module = courseGeneratorService.generateFromChapter(
                 CourseGeneratorService.GenerateCourseRequest(
-                    generateCourseRequest.chapterTitle,
+                    "",
                     context
                 )
             )
@@ -144,7 +146,7 @@ class PdfController(
         }
     }
 
-    override fun apiV1PdfProcessPost(file: MultipartFile): ResponseEntity<ProcessPdfResponse> {
+    override fun processPdf(file: MultipartFile): ResponseEntity<ProcessPdfResponse> {
         val name = (file.originalFilename ?: "upload.pdf").lowercase()
         if (!name.endsWith(".pdf")) {
             return ResponseEntity.badRequest().build()
@@ -159,33 +161,26 @@ class PdfController(
             }
             val res = pdfProcessor.process(dest)
             // Persist book document with ToC built from chapter start pages
-            val tableOfContentItems = res.chapters.mapIndexed { idx, ch ->
-                TableOfContentItem(
-                    id = "$uploadId-${idx + 1}",
-                    title = ch.title.trim(),
-                    page = ch.startPage,
-                    hasSubchapters = false,
-                    subchapters = emptyList()
+            val chapters = res.chapters.mapIndexed { _, ch ->
+                Chapter(
+                    startPage = ch.startPage,
+                    endPage = ch.endPage,
+                    title = ch.title,
                 )
             }
             val book = Book(
-                id = uploadId,
+                uploadId = uploadId,
                 title = (file.originalFilename ?: "Uploaded Book").removeSuffix(".pdf"),
                 uploadDate = java.time.LocalDate.now(),
                 lastUsedAt = java.time.Instant.now(),
-                tableOfContents = tableOfContentItems,
-                pageCount = res.pageCount,
-                wordCount = res.wordCount
+                chapters = chapters,
             )
             bookRepository.save(book)
             val data = ProcessPdfData()
                 .uploadId(uploadId)
-                .pageCount(res.pageCount)
-                .wordCount(res.wordCount)
-                .chapters(res.chapters.map { ch ->
-                    Chapter()
+                .chapters(book.chapters.map {  ch ->
+                    com.bcc.api.model.Chapter()
                         .title(ch.title)
-                        .level(ch.level)
                         .startPage(ch.startPage)
                         .endPage(ch.endPage)
                 })
@@ -197,7 +192,7 @@ class PdfController(
         }
     }
 
-    override fun apiV1TasksTaskIdSubmitPost(
+    override fun submitTask(
         taskId: String,
         taskSubmissionRequest: @Valid TaskSubmissionRequest
     ): ResponseEntity<TaskSubmissionResponse> {
@@ -213,6 +208,7 @@ class PdfController(
                     isCorrect = true; score = 1.0
                 }
             }
+
             "multiple-select" -> {
                 val sel = taskSubmissionRequest.selectedOptions ?: emptyList()
                 if (sel.isEmpty()) mistakes.add("No options selected") else {
@@ -220,6 +216,7 @@ class PdfController(
                     isCorrect = true; score = 1.0
                 }
             }
+
             "short-answer", "code" -> {
                 val txt = taskSubmissionRequest.textAnswer?.trim() ?: ""
                 if (txt.isBlank()) mistakes.add("Answer is empty")
@@ -227,6 +224,7 @@ class PdfController(
                 isCorrect = mistakes.isEmpty()
                 score = if (isCorrect) 1.0 else if (txt.isNotBlank()) 0.5 else 0.0
             }
+
             else -> mistakes.add("Unsupported task type: $type")
         }
 
@@ -259,7 +257,7 @@ class PdfController(
         return ResponseEntity.ok(resp)
     }
 
-    override fun apiV1TasksTaskIdUploadPost(
+    override fun submitTaskFile(
         taskId: String,
         file: MultipartFile
     ): ResponseEntity<TaskSubmissionResponse> {
