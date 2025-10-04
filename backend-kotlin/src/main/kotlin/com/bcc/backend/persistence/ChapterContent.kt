@@ -8,6 +8,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.Index
 import jakarta.persistence.Lob
 import jakarta.persistence.Table
+import org.springframework.data.jpa.repository.JpaRepository
 import java.time.Instant
 import java.util.UUID
 
@@ -37,4 +38,7 @@ data class ChapterContent(
 	var createdAt: Instant = Instant.now()
 )
 
+interface ChapterContentRepository : JpaRepository<ChapterContent, UUID> {
+    fun findByBookIdAndChapterId(bookId: String, chapterId: String): ChapterContent?
+}
 

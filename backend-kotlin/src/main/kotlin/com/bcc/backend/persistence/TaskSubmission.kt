@@ -8,6 +8,7 @@ import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Table
 import org.hibernate.annotations.Type
+import org.springframework.data.jpa.repository.JpaRepository
 import java.time.Instant
 import java.util.UUID
 
@@ -48,3 +49,7 @@ data class Evaluation(
 	var score: Double? = null,
 	var explanation: String? = null
 )
+
+interface TaskSubmissionRepository : JpaRepository<TaskSubmission, UUID> {
+    fun findByTaskId(taskId: String): List<TaskSubmission>
+}

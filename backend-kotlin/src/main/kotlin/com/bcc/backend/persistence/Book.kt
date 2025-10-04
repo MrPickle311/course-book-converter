@@ -6,6 +6,9 @@ import jakarta.persistence.Entity
 import jakarta.persistence.Id
 import jakarta.persistence.Table
 import org.hibernate.annotations.Type
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
+import org.springframework.data.jpa.repository.JpaRepository
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
@@ -38,3 +41,7 @@ data class Chapter(
     var startPage: Int = 0,
     var endPage: Int = 0
 )
+
+interface BookRepository : JpaRepository<Book, String> {
+    fun findByTitleContainingIgnoreCase(title: String, pageable: Pageable): Page<Book>
+}
