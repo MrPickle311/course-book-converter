@@ -8,6 +8,7 @@ paths:
   /api/v1/pdf/process:
     post:
       summary: Process uploaded PDF
+      operationId: processPdf
       description: Accepts a PDF file and returns structure info with chapters and uploadId.
       requestBody:
         required: true
@@ -30,6 +31,7 @@ paths:
   /api/v1/course/generate:
     post:
       summary: Generate course module from chapter
+      operationId: generateCourse
       requestBody:
         required: true
         content:
@@ -46,6 +48,7 @@ paths:
   /api/v1/books:
     get:
       summary: List books (paginated)
+      operationId: getBooksList
       parameters:
         - in: query
           name: page
@@ -75,6 +78,7 @@ paths:
   /api/v1/books/{uploadId}:
     get:
       summary: Get book by uploadId (with table of contents)
+      operationId: getBookById
       parameters:
         - in: path
           name: uploadId
@@ -90,6 +94,7 @@ paths:
                 $ref: '#/components/schemas/BookDetailResponse'
     delete:
       summary: Delete book by uploadId
+      operationId: deleteBook
       parameters:
         - in: path
           name: uploadId
@@ -102,6 +107,7 @@ paths:
   /api/v1/tasks/{taskId}/submit:
     post:
       summary: Submit a task answer (non-file)
+      operationId: submitTask
       parameters:
         - in: path
           name: taskId
@@ -155,9 +161,6 @@ components:
       properties:
         title:
           type: string
-        level:
-          type: integer
-          format: int32
         startPage:
           type: integer
           format: int32
@@ -191,15 +194,13 @@ components:
     GenerateCourseRequest:
       type: object
       properties:
-        chapterTitle:
-          type: string
         uploadId:
           type: string
-        startPage:
-          type: integer
-        endPage:
-          type: integer
-      required: [chapterTitle, uploadId, startPage]
+          nullable: false
+        chapterId:
+          type: string
+          nullable: false
+      required: [uploadId, chapterId]
     CourseTask:
       type: object
       properties:
@@ -224,7 +225,7 @@ components:
           type: array
           items:
             type: string
-    CourseModule:
+    GenerateCourseResponse:
       type: object
       properties:
         title:
@@ -233,37 +234,22 @@ components:
           type: array
           items:
             type: string
-        sections:
-          type: array
-          items:
-            $ref: '#/components/schemas/CourseSection'
+        content:
+          type: string
         tasks:
           type: array
           items:
             $ref: '#/components/schemas/CourseTask'
-    GenerateCourseResponse:
+      required: [data]
+    TableOfContentItem:
       type: object
       properties:
-        success:
-          type: boolean
-        data:
-          $ref: '#/components/schemas/CourseModule'
-      required: [success, data]
-    TocItem:
-      type: object
-      properties:
-        id:
+        chapterId:
           type: string
         title:
           type: string
-        page:
+        firstPage:
           type: integer
-        hasSubchapters:
-          type: boolean
-        subchapters:
-          type: array
-          items:
-            $ref: '#/components/schemas/TocItem'
     BookSummary:
       type: object
       properties:
@@ -287,10 +273,10 @@ components:
           type: string
         uploadDate:
           type: string
-        tableOfContents:
+        chapters:
           type: array
           items:
-            $ref: '#/components/schemas/TocItem'
+            $ref: '#/components/schemas/TableOfContentItem'
     PaginationMeta:
       type: object
       properties:
@@ -324,11 +310,9 @@ components:
     BookDetailResponse:
       type: object
       properties:
-        success:
-          type: boolean
         data:
           $ref: '#/components/schemas/BookDetail'
-      required: [success, data]
+      required: [data]
     TaskSubmissionRequest:
       type: object
       properties:
