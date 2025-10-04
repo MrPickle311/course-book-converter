@@ -6,7 +6,6 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Index
-import jakarta.persistence.Lob
 import jakarta.persistence.Table
 import org.springframework.data.jpa.repository.JpaRepository
 import java.time.Instant
@@ -31,8 +30,7 @@ data class ChapterContent(
 	var startPage: Int,
 	@Column(name = "end_page")
 	var endPage: Int?,
-	@Lob
-	@Column(name = "content", nullable = false)
+	@Column(name = "content", nullable = false, columnDefinition = "text")
 	var content: String,
 	@Column(name = "created_at", nullable = false)
 	var createdAt: Instant = Instant.now()

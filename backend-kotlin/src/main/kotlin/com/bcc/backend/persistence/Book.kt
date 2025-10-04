@@ -11,28 +11,28 @@ import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import java.time.Instant
 import java.time.LocalDate
-import java.util.UUID
+import java.util.*
 
 @Entity
 @Table(name = "books")
 data class Book(
 
     @Id
-	@Column(name = "id", nullable = false, length = 64)
-	var uploadId: String,
+    @Column(name = "id", nullable = false, length = 64)
+    var uploadId: String,
 
     @Column(name = "title", nullable = false)
-	var title: String,
+    var title: String,
 
     @Column(name = "upload_date", nullable = false)
-	var uploadDate: LocalDate,
+    var uploadDate: LocalDate,
 
     @Column(name = "last_used_at")
-	var lastUsedAt: Instant = Instant.now(),
+    var lastUsedAt: Instant = Instant.now(),
 
     @Type(JsonType::class)
-	@Column(name = "table_of_contents", columnDefinition = "jsonb")
-	var chapters: List<Chapter> = emptyList(),
+    @Column(name = "table_of_contents", columnDefinition = "jsonb")
+    var chapters: List<Chapter> = emptyList(),
 )
 
 data class Chapter(
@@ -44,4 +44,5 @@ data class Chapter(
 
 interface BookRepository : JpaRepository<Book, String> {
     fun findByTitleContainingIgnoreCase(title: String, pageable: Pageable): Page<Book>
+    fun findByUploadId(uploadId: String): Book?
 }

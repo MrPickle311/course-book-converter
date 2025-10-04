@@ -3,23 +3,29 @@ package com.bcc.backend.controller
 import com.bcc.api.DefaultApi
 import com.bcc.api.model.*
 import com.bcc.backend.persistence.*
+import com.bcc.backend.persistence.Chapter
 import com.bcc.backend.service.CourseGeneratorService
 import com.bcc.backend.service.PdfProcessor
 import jakarta.validation.Valid
 import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
 import org.apache.pdfbox.pdmodel.PDDocument
+import org.apache.pdfbox.pdmodel.PDResources
+import org.apache.pdfbox.pdmodel.graphics.form.PDFormXObject
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject
 import org.apache.pdfbox.text.PDFTextStripper
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
+import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.multipart.MultipartFile
+import java.awt.image.RenderedImage
 import java.nio.file.Files
 import java.nio.file.Path
-import com.bcc.backend.persistence.Chapter;
 import java.util.*
+import javax.imageio.ImageIO
 
 
 @RestController
@@ -69,22 +75,20 @@ class PdfController(
         if (found.isEmpty) {
             return ResponseEntity.notFound().build()
         }
-        val b = found.get()
-        fun mapToc(item: Chapter): TocItem {
-            return TocItem()
-                .id(item.id)
-//                .title(item.title)
-//                .page(item.page)
-//                .hasSubchapters(item.hasSubchapters)
-//                .subchapters(item.subchapters.map { mapToc(it) })
+        val book = found.get()
+        fun mapToc(item: Chapter): TableOfContentItem {
+            return TableOfContentItem()
+                .chapterId(item.id)
+                .title(item.title)
+                .firstPage(item.startPage)
         }
 
         val detail = BookDetail()
-            .id(b.uploadId)
-            .title(b.title)
-            .uploadDate(b.uploadDate.toString())
-            .tableOfContents(b.chapters.map { mapToc(it) })
-        return ResponseEntity.ok(BookDetailResponse(true, detail))
+            .id(book.uploadId)
+            .title(book.title)
+            .uploadDate(book.uploadDate.toString())
+            .chapters(book.chapters.map { mapToc(it) })
+        return ResponseEntity.ok(BookDetailResponse(detail))
     }
 
     override fun deleteBook(uploadId: String): ResponseEntity<Void> {
@@ -106,31 +110,77 @@ class PdfController(
         generateCourseRequest: @Valid GenerateCourseRequest
     ): ResponseEntity<GenerateCourseResponse> {
         return try {
-            val pdfPath = Path.of("uploads").resolve("${generateCourseRequest.uploadId}.pdf").toFile()
-//            val start = generateCourseRequest.startPage
-//            val end = generateCourseRequest.endPage
-            val context = extractPagesText(pdfPath, 0, 0)
-            // Persist chapter content for future reuse
-            val chapterId = chapterIdFromPage(generateCourseRequest.uploadId, 0)
-            chapterContentRepository.save(
-                ChapterContent(
-                    bookId = generateCourseRequest.uploadId,
-                    chapterId = chapterId,
-                    title = "",
-                    startPage = 0,
-                    endPage = 0,
-                    content = context
+            val uploadId = generateCourseRequest.uploadId
+            val chapterId = generateCourseRequest.chapterId
+            if (uploadId.isNullOrBlank() || chapterId.isNullOrBlank()) {
+                return ResponseEntity.badRequest().build()
+            }
+
+            val pdfPath = Path.of("uploads").resolve("$uploadId.pdf").toFile()
+
+            // Try to reuse stored chapter content first
+            val chapterContent = chapterContentRepository.findByBookIdAndChapterId(uploadId, chapterId)
+            val contextTitleStartEnd = if (chapterContent != null) {
+                Triple(
+                    chapterContent.content,
+                    chapterContent.title,
+                    Pair(chapterContent.startPage, chapterContent.endPage)
                 )
-            )
+            } else {
+                val book = bookRepository.findByUploadId(uploadId) ?: return ResponseEntity.notFound().build()
+                val chapter = book.chapters.firstOrNull { it.id == chapterId }
+                if (chapter == null) {
+                    return ResponseEntity.notFound().build()
+                }
+                val start = chapter.startPage
+                val end = chapter.endPage
+                val text = extractPagesText(pdfPath, start, end)
+
+                // Persist for future reuse
+                chapterContentRepository.save(
+                    ChapterContent(
+                        bookId = uploadId,
+                        chapterId = chapterId,
+                        title = chapter.title,
+                        startPage = start,
+                        endPage = end,
+                        content = text
+                    )
+                )
+
+                Triple(text, chapter.title, Pair(start, end))
+            }
+            val context = contextTitleStartEnd.first
+            val title = contextTitleStartEnd.second
+            val pagesRange = contextTitleStartEnd.third
             val module = courseGeneratorService.generateFromChapter(
                 CourseGeneratorService.GenerateCourseRequest(
-                    "",
+                    title,
                     context
                 )
             )
+
+            val outDir = Path.of("uploads").resolve("notes/${uploadId}/${chapterId}").toAbsolutePath()
+            Files.createDirectories(outDir)
+
+            PDDocument.load(pdfPath).use { doc ->
+                val firstPage = pagesRange.first
+                val lastPage = pagesRange.second ?: (doc.numberOfPages - 1)
+                for (page in firstPage..lastPage) {
+                    val pageImages = getImagesFromResources(doc.pages[page].resources)
+                    pageImages.forEachIndexed { idx, it ->
+                        val filename = "page-$page-$idx.png"
+                        val filePath = outDir.resolve(filename)
+                        ImageIO.write(it, "png", filePath.toFile())
+                    }
+                }
+            }
+
+            val mdxPath = outDir.resolve("index.mdx")
+            Files.writeString(mdxPath, module.notes.mdx)
+
             val response = GenerateCourseResponse()
-                .title(module.title)
-                .objectives(module.objectives)
+                .title(module.notes.title)
                 .content("")
                 .tasks(module.tasks.map { t ->
                     CourseTask()
@@ -178,7 +228,7 @@ class PdfController(
             bookRepository.save(book)
             val data = ProcessPdfData()
                 .uploadId(uploadId)
-                .chapters(book.chapters.map {  ch ->
+                .chapters(book.chapters.map { ch ->
                     com.bcc.api.model.Chapter()
                         .title(ch.title)
                         .startPage(ch.startPage)
@@ -303,6 +353,34 @@ class PdfController(
         }
     }
 
+    override fun getChapterNotes(uploadId: String, chapterId: String): ResponseEntity<String> {
+        return try {
+            val outDir = Path.of("uploads").resolve("notes/${uploadId}/${chapterId}").toAbsolutePath()
+            ResponseEntity.ok()
+                .contentType(MediaType.TEXT_PLAIN)
+                .body(Files.readString(outDir))
+        } catch (ex: Exception) {
+            logger.error("Failed to get chapter notes", ex)
+            ResponseEntity.internalServerError().build()
+        }
+    }
+
+    private fun getImagesFromResources(resources: PDResources): MutableList<RenderedImage?> {
+        val images: MutableList<RenderedImage?> = ArrayList<RenderedImage?>()
+
+        for (xObjectName in resources.xObjectNames) {
+            val xObject = resources.getXObject(xObjectName)
+
+            if (xObject is PDFormXObject) {
+                images.addAll(getImagesFromResources(xObject.getResources()))
+            } else if (xObject is PDImageXObject) {
+                images.add(xObject.image)
+            }
+        }
+
+        return images
+    }
+
     private fun extractPagesText(file: java.io.File, start: Int, end: Int?): String {
         PDDocument.load(file).use { doc ->
             val stripper = PDFTextStripper()
@@ -311,6 +389,4 @@ class PdfController(
             return stripper.getText(doc)
         }
     }
-
-    private fun chapterIdFromPage(uploadId: String, startPage: Int): String = "$uploadId-$startPage"
 }
