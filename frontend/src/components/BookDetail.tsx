@@ -4,7 +4,7 @@ import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
 import { Calendar, CheckCircle, ChevronRight, BookOpen, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
-import { DefaultService } from '@bcc/openapi-client';
+import { DefaultService } from '@/openapi';
 
 interface Book {
   id: string;
@@ -69,7 +69,7 @@ export function BookDetail({ book, courses, onSelectCourse, onGenerateCourse }: 
             <div className="ml-auto">
               <Button variant="destructive" size="sm" onClick={async () => {
                 try {
-                  await DefaultService.deleteApiV1Books({ uploadId: book.id });
+                  await DefaultService.deleteBook({ uploadId: book.id });
                   window.location.href = '/';
                 } catch (e) {
                   console.error('Failed to delete book', e);

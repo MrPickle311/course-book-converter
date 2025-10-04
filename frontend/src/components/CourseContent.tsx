@@ -31,7 +31,6 @@ interface Task {
   completed: boolean;
 }
 
-import type { NoteBlock } from '../mocks/Mock';
 import { MDXProvider } from '@mdx-js/react';
 import '../styles/mdx.css';
 
@@ -282,8 +281,17 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
         return (
           <div key={index} className="space-y-2">
             {block.title && <h3 className="mt-2">{block.title}</h3>}
-            {/* basic markdown handling for headings, lists, paragraphs */}
+            {/* minimal MDX/HTML passthrough: render known <img> tags and basic lines */}
             {block.markdown.split('\n').map((line, i) => {
+              const imgMatch = line.match(/<img\s+[^>]*src=\"([^\"]+)\"[^>]*>/i);
+              if (imgMatch) {
+                const src = imgMatch[1];
+                return (
+                  <div key={i} className="mt-4 text-center">
+                    <img src={src} alt="Figure" className="mx-auto max-h-96 rounded border" />
+                  </div>
+                );
+              }
               if (line.startsWith('# ')) return <h1 key={i} className="mb-4 mt-6">{line.slice(2)}</h1>;
               if (line.startsWith('## ')) return <h2 key={i} className="mb-3 mt-5">{line.slice(3)}</h2>;
               if (line.startsWith('### ')) return <h3 key={i} className="mb-2 mt-4">{line.slice(4)}</h3>;
