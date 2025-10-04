@@ -130,6 +130,7 @@ paths:
   /api/v1/tasks/{taskId}/upload:
     post:
       summary: Submit a task file (upload)
+      operationId: submitTaskFile
       parameters:
         - in: path
           name: taskId
