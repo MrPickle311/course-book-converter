@@ -77,10 +77,12 @@ class PdfController(
         }
         val book = found.get()
         fun mapToc(item: Chapter): TableOfContentItem {
+            val generated = chapterContentRepository.findByBookIdAndChapterId(book.uploadId, item.id) != null
             return TableOfContentItem()
                 .chapterId(item.id)
                 .title(item.title)
                 .firstPage(item.startPage)
+                .isGenerated(generated)
         }
 
         val detail = BookDetail()
