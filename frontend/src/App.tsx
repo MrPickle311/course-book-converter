@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getMockNotesByChapter, defaultDemoBlocks } from './mocks/Mock';
-import { DefaultService, OpenAPI, type ProcessPdfResponse, type GenerateCourseRequest, type GenerateCourseResponse } from '@bcc/openapi-client';
-import type { NoteBlock } from './mocks/Mock';
+import { DefaultService, OpenAPI, type ProcessPdfResponse, type GenerateCourseRequest, type GenerateCourseResponse } from '@/openapi';
+import type { NoteBlock } from './types/notes';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import { ThemeProvider } from './components/ThemeContext';
 import { SettingsProvider } from './components/SettingsContext';
@@ -29,8 +28,7 @@ interface Chapter {
   id: string;
   title: string;
   page: number;
-  hasSubchapters?: boolean;
-  subchapters?: Chapter[];
+  isGenerated?: boolean;
 }
 
 interface Course {
@@ -67,171 +65,6 @@ interface Task {
   completed: boolean;
 }
 
-const generateMockBooks = (count: number): Book[] => {
-  const sampleTitles = [
-    'Architecture: The Hard Parts',
-    'Optimizing Java',
-    'Clean Code',
-    'Refactoring',
-    'Designing Data-Intensive Applications',
-    "You Don't Know JS",
-    'Effective TypeScript',
-    'Domain-Driven Design',
-    'The Pragmatic Programmer',
-    'Patterns of Enterprise Application Architecture',
-    'Introduction to Algorithms',
-    'Operating Systems: Three Easy Pieces',
-    'Site Reliability Engineering',
-    'Microservices Patterns',
-    'Kubernetes Up & Running',
-    'The Art of Computer Programming',
-    'The Mythical Man-Month',
-    'The Design of Everyday Things',
-    'The Little Schemer',
-    'The Pragmatic Developer',
-    'The Clean Coder',
-    'The Clean Architecture',
-    'The Software Craftsman',
-    'The Mythical Man-Month',
-    'The Design of Everyday Things',
-    'The Little Schemer',
-    'The Pragmatic Developer',
-    'The Clean Coder',
-    'The Clean Architecture',
-    'The Software Craftsman',
-    'The Pragmatic Programmer',
-
-  ];
-
-  const books: Book[] = [];
-  for (let i = 0; i < count; i++) {
-    const id = (i + 1).toString();
-    const title = sampleTitles[i % sampleTitles.length] + (i >= sampleTitles.length ? ` (Vol. ${Math.floor(i / sampleTitles.length) + 1})` : '');
-    const uploadDate = `2024-${String(((i % 12) + 1)).padStart(2, '0')}-${String(((i % 27) + 1)).padStart(2, '0')}`;
-    const chapters = Array.from({ length: 6 }, (_, c) => ({
-      id: `${id}-${c + 1}`,
-      title: c === 0 ? 'Introduction' : c === 1 ? 'Core Concepts' : c === 2 ? 'Advanced Topics' : c === 3 ? 'Best Practices' : c === 4 ? 'Case Studies' : 'Appendix',
-      page: c === 0 ? 1 : c * 20 + 1,
-    }));
-
-    books.push({ id, title, uploadDate, tableOfContents: chapters, lastUsedAt: uploadDate });
-  }
-  return books;
-};
-
-// Generate many mock courses for pagination/performance testing
-const generateMockCourses = (books: Book[], userId: string, replicationsPerChapter = 100): Course[] => {
-  const courses: Course[] = [];
-  const adjectives = ['Foundations of', 'Deep Dive into', 'Practical', 'Modern', 'Advanced', 'Hands-on', 'Applied', 'Strategic', 'Tactical', 'Essential'];
-  const topics = ['Patterns', 'Workflows', 'Techniques', 'Guides', 'Blueprints', 'Playbook', 'Concepts', 'Principles', 'Scenarios', 'Case Studies'];
-  const variants = ['Overview', 'Checklist', 'Anti-Patterns', 'Pitfalls', 'Heuristics', 'Recipes', 'Field Notes', 'Insights', 'Best Practices', 'FAQ'];
-
-  const buildVariedTitle = (base: string, index: number): string => {
-    const a = adjectives[index % adjectives.length];
-    const t = topics[Math.floor(index / adjectives.length) % topics.length];
-    const v = variants[Math.floor(index ) % variants.length];
-    return `${base}: ${a} ${t} — ${v}`;
-  };
-  books.forEach((book) => {
-    book.tableOfContents.forEach((chapter) => {
-      // Leave some chapters without generated courses to simulate "Not generated" state
-      const chapterNum = parseInt((chapter.id.split('-').pop() || '0'), 10);
-      const shouldGenerate = ((Number(book.id) + chapterNum) % 3) !== 0;
-      if (!shouldGenerate) {
-        return;
-      }
-      for (let i = 1; i <= replicationsPerChapter; i++) {
-        const titleWithPart = buildVariedTitle(chapter.title, i - 1);
-        const chapterForNotes = `Chapter ${((i - 1) % 6) + 1}`; // cycle through chapter 1..6 from mocks
-        courses.push({
-          id: `seed-${book.id}-${chapter.id}-${i}`,
-          bookId: book.id,
-          bookTitle: book.title,
-          chapterId: `${chapter.id}-p${i}`,
-          chapterTitle: titleWithPart,
-          notes: (getMockNotesByChapter(chapterForNotes) as NoteBlock[]) || defaultDemoBlocks,
-          tasks: [
-            {
-              id: `task-${book.id}-${chapter.id}-${i}-1`,
-              question: `What are the main concepts covered in ${titleWithPart}?`,
-              type: 'short-answer',
-              expectedKeywords: ['trade-offs', 'fitness functions', 'adr'],
-              completed: false
-            },
-            {
-              id: `task-${book.id}-${chapter.id}-${i}-2`,
-              question: `Which statement best describes ${titleWithPart}?`,
-              type: 'multiple-choice',
-              options: [
-                'This quite longer response A. Blah blah blah with extra words and even more words to test the length of the answer. Also another sentence.', 
-                'This is a much longer option B with even more words to test the length of the answer. Also another sentence.', 
-                'This is a shorter option C with even more words to test the length of the answer. Also another sentence.', 
-                'This is a shorter option D with even more words to test the length of the answer. Also another sentence.'
-              ],
-              correctAnswer: 'This quite longer response A. Blah blah blah with extra words and even more words to test the length of the answer. Also another sentence.',
-              completed: false
-            },
-            {
-              id: `task-${book.id}-${chapter.id}-${i}-3`,
-              question: `Select all that apply to ${titleWithPart}`,
-              type: 'multiple-select',
-              options: [
-                'This quite longer response A. Blah blah blah with extra words and even more words to test the length of the answer. Also another sentence.', 
-                'This is a much shorter option B with even more words to test the length of the answer. Also another sentence.', 
-                'This is a much shorter option C with even more words to test the length of the answer. Also another sentence.', 
-                'This is a shorter option D with even more words to test the length of the answer. Also another sentence.'],
-              correctAnswers: ['This quite longer response A. Blah blah blah with extra words and even more words to test the length of the answer. Also another sentence.', 
-                'This is a much shorter option B with even more words to test the length of the answer. Also another sentence.'],
-              completed: false
-            },
-            {
-              id: `task-${book.id}-${chapter.id}-${i}-4`,
-              question: `Upload a supporting PDF related to ${titleWithPart}`,
-              type: 'upload-pdf',
-              completed: false
-            },
-            {
-              id: `task-${book.id}-${chapter.id}-${i}-5`,
-              question: `Demo: Correct file upload example for ${titleWithPart}`,
-              type: 'upload-pdf',
-              userFileName: 'chapter-notes.pdf',
-              feedback: undefined,
-              completed: true,
-              evaluation: {
-                isCorrect: true,
-                mistakes: [],
-                score: 1,
-                explanation: 'Pre-evaluated as a correct upload for demo.'
-              }
-            },
-            {
-              id: `task-${book.id}-${chapter.id}-${i}-6`,
-              question: `Demo: Correct short answer example for ${titleWithPart}`,
-              type: 'short-answer',
-              expectedKeywords: ['trade-offs', 'fitness functions', 'adr'],
-              userAnswer: 'This answer thoroughly explains trade-offs, discusses fitness functions in governance, and references ADR practices in detail to justify decisions.',
-              feedback: undefined,
-              completed: true,
-              evaluation: {
-                isCorrect: true,
-                mistakes: [],
-                score: 1,
-                explanation: 'Pre-evaluated as a correct short answer for demo.'
-              }
-            }
-          ],
-          createdDate: '2024-01-20',
-          completed: false,
-          userId
-        });
-      }
-    });
-  });
-  return courses;
-};
-
-// Seed per logged-in user in component once user is available
-const mockCourses: Course[] = [];
 
 function AppContent() {
   // Configure OpenAPI base URL from Vite env (fallback to backend-kotlin default)
@@ -241,7 +74,7 @@ function AppContent() {
   const { user, isLoading, logout } = useAuth();
   const [appState, setAppState] = useState<AppState>('upload');
   const [books, setBooks] = useState<Book[]>([]);
-  const [courses, setCourses] = useState<Course[]>(mockCourses);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [currentBook, setCurrentBook] = useState<Book | null>(null);
   const [currentCourse, setCurrentCourse] = useState<Course | null>(null);
   const [headerHeight, setHeaderHeight] = useState(0);
@@ -251,12 +84,12 @@ function AppContent() {
     setHeaderHeight(node.getBoundingClientRect().height ?? 0);
   }, []);
 
-  // Load books from API and seed courses on first login
+  // Load books from API on first login
   useEffect(() => {
     if (!user) return;
     (async () => {
       try {
-        const res = await DefaultService.getApiV1Books({ page: 1, pageSize: 20 });
+        const res = await DefaultService.getBooksList({ page: 1, pageSize: 20 });
         const apiBooks = res.data?.items || [];
         const mapped: Book[] = apiBooks.map((b) => ({
           id: b.id || '',
@@ -266,14 +99,9 @@ function AppContent() {
           lastUsedAt: b.lastUsedAt || undefined,
         }));
         setBooks(mapped);
-        if (courses.length === 0) {
-          const seeded = generateMockCourses(mapped, user.id, 5);
-          setCourses(seeded);
-        }
+        // courses are created when generating a chapter
       } catch (e) {
-        // fallback to mock list if API fails
-        if (books.length === 0) setBooks(generateMockBooks(20));
-        if (courses.length === 0) setCourses(generateMockCourses(books.length ? books : generateMockBooks(20), user.id, 5));
+        console.error('Failed to load books', e);
       }
     })();
   }, [user?.id]);
@@ -294,7 +122,7 @@ function AppContent() {
 
   const handleFileUpload = async (file: File) => {
     const form = { file } as any;
-    const resp: ProcessPdfResponse = await DefaultService.postApiV1PdfProcess({ formData: form });
+    const resp: ProcessPdfResponse = await DefaultService.processPdf({ formData: form });
     if (!resp?.success || !resp.data) return;
     const { uploadId, chapters } = resp.data;
     const toc = (chapters || []).map((c, idx) => ({
@@ -322,67 +150,8 @@ function AppContent() {
       bookTitle: currentBook!.title,
       chapterId: chapter.id,
       chapterTitle: chapter.title,
-      notes: (getMockNotesByChapter(chapter.title) as NoteBlock[]) || defaultDemoBlocks,
-      tasks: [
-        {
-          id: `task-${Date.now()}-1`,
-          question: `What are the main concepts covered in ${chapter.title}?`,
-          type: 'short-answer',
-          expectedKeywords: ['trade-offs', 'fitness functions', 'adr'],
-          completed: false
-        },
-        {
-          id: `task-${Date.now()}-2`,
-          question: `Which statement best describes ${chapter.title}?`,
-          type: 'multiple-choice',
-          options: ['Option A', 'Option B', 'Option C', 'Option D'],
-          correctAnswer: 'Option A',
-          completed: false
-        },
-        {
-          id: `task-${Date.now()}-3`,
-          question: `Select all that apply to ${chapter.title}`,
-          type: 'multiple-select',
-          options: ['Concept A', 'Concept B', 'Concept C', 'Concept D'],
-          correctAnswers: ['Concept B', 'Concept D'],
-          completed: false
-        },
-        {
-          id: `task-${Date.now()}-4`,
-          question: `Upload a supporting PDF related to ${chapter.title}`,
-          type: 'upload-pdf',
-          completed: false
-        },
-        {
-          id: `task-${Date.now()}-5`,
-          question: `Demo: Correct file upload example for ${chapter.title}`,
-          type: 'upload-pdf',
-          userFileName: 'chapter-notes.pdf',
-          feedback: 'Mock review: "chapter-notes.pdf" received and looks valid.',
-          completed: true,
-          evaluation: {
-            isCorrect: true,
-            mistakes: [],
-            score: 1,
-            explanation: 'Pre-evaluated as a correct upload for demo.'
-          }
-        },
-        {
-          id: `task-${Date.now()}-6`,
-          question: `Demo: Correct short answer example for ${chapter.title}`,
-          type: 'short-answer',
-          expectedKeywords: ['trade-offs', 'fitness functions', 'adr'],
-          userAnswer: 'This answer thoroughly explains trade-offs, discusses fitness functions in governance, and references ADR practices in detail to justify decisions.',
-          feedback: 'Well covered with key concepts present.',
-          completed: true,
-          evaluation: {
-            isCorrect: true,
-            mistakes: [],
-            score: 1,
-            explanation: 'Pre-evaluated as a correct short answer for demo.'
-          }
-        }
-      ],
+      notes: [],
+      tasks: [],
       createdDate: new Date().toISOString().split('T')[0],
       completed: false,
       userId: user.id
@@ -401,32 +170,33 @@ function AppContent() {
     const chapter = currentBook.tableOfContents.find(c => c.id === chapterId);
     if (!chapter) return;
     const req: GenerateCourseRequest = {
-      chapterTitle: chapter.title,
-      uploadId: currentBook.id,
-      startPage: chapter.page,
-      endPage: undefined,
+      chapterId: chapter.id,
+      uploadId: currentBook.id
     };
-    const gen: GenerateCourseResponse = await DefaultService.postApiV1CourseGenerate({ requestBody: req });
-    const moduleData = gen?.data;
-    const tasks: Task[] = (moduleData?.tasks || []).map((t, idx) => ({
+    const gen: GenerateCourseResponse = await DefaultService.generateCourse({ requestBody: req });
+    const tasks: Task[] = (gen?.tasks || []).map((t, idx) => ({
       id: `task-${currentBook.id}-${chapter.id}-gen-${idx + 1}`,
       question: t.title || `Task ${idx + 1}`,
       type: 'short-answer',
       expectedKeywords: t.successCriteria,
       completed: false,
     }));
-    const notes: NoteBlock[] = (moduleData?.sections || []).map((s) => ({
-      type: 'richText',
-      title: s.title || undefined,
-      markdown: (s.summary || '') + '\n' + (s.keyConcepts?.map(k => `- ${k}`).join('\n') || ''),
-    }));
+    // Fetch generated MDX notes bundle for this chapter
+    let notes: NoteBlock[] = [];
+    try {
+      const mdxText = await DefaultService.getChapterNotes({ uploadId: currentBook.id, chapterId: chapter.id });
+      if (typeof mdxText === 'string' && mdxText.trim().length > 0) {
+        notes = [{ type: 'richText', title: gen?.title || chapter.title, markdown: mdxText } as any];
+      }
+    } catch {
+    }
     const newCourse: Course = {
       id: `canonical-${currentBook.id}-${chapter.id}`,
       bookId: currentBook.id,
       bookTitle: currentBook.title,
       chapterId: chapter.id,
-      chapterTitle: moduleData?.title || chapter.title,
-      notes: notes.length ? notes : ((getMockNotesByChapter('Chapter 1') as NoteBlock[]) || defaultDemoBlocks),
+      chapterTitle: gen?.title || chapter.title,
+      notes,
       tasks,
       createdDate: new Date().toISOString().split('T')[0],
       completed: false,
@@ -464,19 +234,14 @@ function AppContent() {
     // update last used timestamp in list
     setBooks((prev) => prev.map((b) => b.id === book.id ? { ...b, lastUsedAt: new Date().toISOString() } : b));
     try {
-      const detail = await DefaultService.getApiV1Books1({ uploadId: book.id });
+      const detail = await DefaultService.getBookById({ uploadId: book.id });
       const data = detail?.data;
       if (data) {
-        const toc: Chapter[] = (data.tableOfContents || []).map((t) => ({
-          id: t.id || `${book.id}-${t.page ?? 0}`,
+        const toc: Chapter[] = (data.chapters || []).map((t) => ({
+          id: t.chapterId || `${book.id}-${t.firstPage ?? 0}`,
           title: t.title || 'Chapter',
-          page: t.page ?? 0,
-          hasSubchapters: t.hasSubchapters || false,
-          subchapters: (t.subchapters || []).map((s) => ({
-            id: s.id || `${book.id}-${s.page ?? 0}`,
-            title: s.title || 'Section',
-            page: s.page ?? 0,
-          })),
+          page: t.firstPage ?? 0,
+          isGenerated: (t as any).isGenerated ?? false,
         }));
         setCurrentBook({
           id: data.id || book.id,
