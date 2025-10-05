@@ -251,6 +251,8 @@ components:
           type: string
         firstPage:
           type: integer
+        isGenerated:
+          type: boolean
     BookSummary:
       type: object
       properties:
