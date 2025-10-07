@@ -76,13 +76,21 @@ class PdfController(
             return ResponseEntity.notFound().build()
         }
         val book = found.get()
-        fun mapToc(item: Chapter): TableOfContentItem {
-            val generated = chapterContentRepository.findByBookIdAndChapterId(book.uploadId, item.id) != null
-            return TableOfContentItem()
+        fun mapToc(item: Chapter): com.bcc.api.model.Chapter {
+            val isGenerated = chapterContentRepository.findByBookIdAndChapterId(book.uploadId, item.id) != null
+            return com.bcc.api.model.Chapter()
                 .chapterId(item.id)
                 .title(item.title)
-                .firstPage(item.startPage)
-                .isGenerated(generated)
+                .startPage(item.startPage)
+                .endPage(item.endPage)
+                .progressData(
+                    if (isGenerated) ChapterProgressData()
+                        .tasksCount(5)
+                        .tasksFailed(1)
+                        .tasksCompleted(2)
+                    else null
+                )
+                .isGenerated(isGenerated)
         }
 
         val detail = BookDetail()
@@ -357,10 +365,14 @@ class PdfController(
 
     override fun getChapterNotes(uploadId: String, chapterId: String): ResponseEntity<String> {
         return try {
-            val outDir = Path.of("uploads").resolve("notes/${uploadId}/${chapterId}").toAbsolutePath()
+            val mdxPath = Path.of("uploads").resolve("notes/${uploadId}/${chapterId}").resolve("index.mdx").toAbsolutePath()
+            if (!Files.exists(mdxPath)) {
+                return ResponseEntity.notFound().build()
+            }
+            val content = Files.readString(mdxPath)
             ResponseEntity.ok()
-                .contentType(MediaType.TEXT_PLAIN)
-                .body(Files.readString(outDir))
+                .contentType(MediaType.parseMediaType("text/markdown"))
+                .body(content)
         } catch (ex: Exception) {
             logger.error("Failed to get chapter notes", ex)
             ResponseEntity.internalServerError().build()
