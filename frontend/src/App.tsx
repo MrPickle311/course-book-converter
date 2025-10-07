@@ -45,6 +45,10 @@ function AppContent() {
   // Vite exposes env via import.meta as any in this template; cast to any to avoid TS error
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   OpenAPI.BASE = 'http://localhost:8080';
+  // Allow backend endpoints that return text (MDX notes) to negotiate properly
+  OpenAPI.HEADERS = {
+    Accept: 'application/json, text/plain, text/markdown, */*',
+  } as any;
   const { user, isLoading, logout } = useAuth();
   const [appState, setAppState] = useState<AppState>('upload');
   const [books, setBooks] = useState<Book[]>([]);
