@@ -7,32 +7,13 @@ import { Progress } from './ui/progress';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from './ui/pagination';
 import { BookOpen, CheckCircle, ChevronRight, Search, Trophy, Clock } from 'lucide-react';
 import { useSettings } from './SettingsContext';
-
-interface Book {
-  id: string;
-  title: string;
-  uploadDate: string;
-  tableOfContents: any[];
-  lastUsedAt?: string;
-}
-
-interface Course {
-  id: string;
-  bookId: string;
-  bookTitle: string;
-  chapterId: string;
-  chapterTitle: string;
-  notes: any;
-  tasks: any[];
-  createdDate: string;
-  completed: boolean;
-  userId: string;
-}
+import type {Course} from "@/components/CourseContent.tsx";
+import type {BookDetail} from "@/openapi";
 
 interface BooksLibraryProps {
-  books: Book[];
+  books: BookDetail[];
   courses: Course[];
-  onOpenBook: (book: Book) => void;
+  onOpenBook: (book: BookDetail) => void;
 }
 
 export function BooksLibrary({ books, courses, onOpenBook }: BooksLibraryProps) {
@@ -78,8 +59,12 @@ export function BooksLibrary({ books, courses, onOpenBook }: BooksLibraryProps) 
     const base = books.filter((b) => {
       const stats = bookStats.get(b.id);
       const matches = b.title.toLowerCase().includes(q);
-      if (activeView === 'completed') return matches && !!stats?.isCompleted;
-      if (activeView === 'in-progress') return matches && !!stats?.isInProgress;
+      if (activeView === 'completed') {
+          return matches && !!stats?.isCompleted;
+      }
+      if (activeView === 'in-progress') {
+          return matches && !!stats?.isInProgress;
+      }
       return matches;
     });
     // sort by lastUsedAt desc, fallback to uploadDate desc

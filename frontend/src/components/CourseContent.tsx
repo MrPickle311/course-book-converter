@@ -4,7 +4,6 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Progress } from './ui/progress';
-// radio-group removed to unify visuals; using Checkbox for both single and multi select
 import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
@@ -34,20 +33,20 @@ interface Task {
 import { MDXProvider } from '@mdx-js/react';
 import '../styles/mdx.css';
 
-interface Course {
+export interface Course {
   id: string;
   bookId: string;
   bookTitle: string;
   chapterId: string;
   chapterTitle: string;
-  notes: NoteBlock[];
+  notes: any;
   tasks: Task[];
   createdDate: string;
   completed: boolean;
   userId: string;
 }
 
-interface CourseContentProps {
+export interface CourseContentProps {
   course: Course;
   onUpdateCourse: (course: Course) => void;
 }
@@ -265,7 +264,7 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
     onUpdateCourse(updatedCourse);
   };
 
-  const renderBlocks = (blocks: NoteBlock[]) => {
+  const renderBlocks = (blocks: any) => {
     return blocks.map((block, index) => {
       if ((block as any).type === 'mdx') {
         const C = (block as any).component as React.ComponentType<any>;

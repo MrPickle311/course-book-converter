@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { DefaultService, OpenAPI, type ProcessPdfResponse, type GenerateCourseRequest, type GenerateCourseResponse } from '@/openapi';
-import type { NoteBlock } from './types/notes';
+import { DefaultService, OpenAPI, type ProcessPdfResponse, type GenerateCourseRequest, type GenerateCourseResponse, type BookDetail as ApiBookDetail, type Chapter as ApiChapter } from '@/openapi';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import { ThemeProvider } from './components/ThemeContext';
 import { SettingsProvider } from './components/SettingsContext';
@@ -8,7 +7,7 @@ import { AuthForm } from './components/AuthForm';
 import { UserMenu } from './components/UserMenu';
 import { UploadPDF } from './components/UploadPDF';
 import { TableOfContents } from './components/TableOfContents';
-import { CourseContent } from './components/CourseContent';
+import {type Course, CourseContent} from './components/CourseContent';
 import { BooksLibrary } from './components/BooksLibrary';
 import { BookDetail } from './components/BookDetail.tsx';
 import { Button } from './components/ui/button';
@@ -16,33 +15,8 @@ import { ArrowLeft, Library, LogOut } from 'lucide-react';
 
 type AppState = 'upload' | 'toc' | 'course' | 'library' | 'book';
 
-interface Book {
-  id: string;
-  title: string;
-  uploadDate: string;
-  tableOfContents: Chapter[];
-  lastUsedAt?: string;
-}
-
-interface Chapter {
-  id: string;
-  title: string;
-  page: number;
-  isGenerated?: boolean;
-}
-
-interface Course {
-  id: string;
-  bookId: string;
-  bookTitle: string;
-  chapterId: string;
-  chapterTitle: string;
-  notes: NoteBlock[];
-  tasks: Task[];
-  createdDate: string;
-  completed: boolean;
-  userId: string;
-}
+type Book = ApiBookDetail;
+type Chapter = ApiChapter;
 
 interface Task {
   id: string;
@@ -95,9 +69,8 @@ function AppContent() {
           id: b.id || '',
           title: b.title || '',
           uploadDate: b.uploadDate || new Date().toISOString().split('T')[0],
-          tableOfContents: [],
-          lastUsedAt: b.lastUsedAt || undefined,
-        }));
+          chapters: [],
+        } as Book));
         setBooks(mapped);
         // courses are created when generating a chapter
       } catch (e) {
@@ -125,76 +98,53 @@ function AppContent() {
     const resp: ProcessPdfResponse = await DefaultService.processPdf({ formData: form });
     if (!resp?.success || !resp.data) return;
     const { uploadId, chapters } = resp.data;
-    const toc = (chapters || []).map((c, idx) => ({
-      id: `${uploadId}-${idx + 1}`,
-      title: c.title || `Chapter ${idx + 1}`,
-      page: c.startPage ?? (idx * 10 + 1),
-    }));
     const newBook: Book = {
       id: uploadId,
       title: file.name.replace('.pdf', ''),
       uploadDate: new Date().toISOString().split('T')[0],
-      tableOfContents: toc,
-      lastUsedAt: new Date().toISOString()
-    };
+      chapters: (chapters as any) || [],
+    } as Book;
     setBooks(prev => [newBook, ...prev]);
     setCurrentBook(newBook);
+    console.log("library")
     setAppState('library');
   };
 
   const handleChapterSelect = (chapter: Chapter) => {
-    // Generate course for selected chapter
-    const newCourse: Course = {
-      id: Date.now().toString(),
-      bookId: currentBook!.id,
-      bookTitle: currentBook!.title,
-      chapterId: chapter.id,
-      chapterTitle: chapter.title,
-      notes: [],
-      tasks: [],
-      createdDate: new Date().toISOString().split('T')[0],
-      completed: false,
-      userId: user.id
-    };
-    
-    setCourses(prev => [...prev, newCourse]);
-    // bump last used for the book when starting a course
-    setBooks(prev => prev.map(b => b.id === currentBook!.id ? { ...b, lastUsedAt: new Date().toISOString() } : b));
-    setCurrentCourse(newCourse);
-    setAppState('course');
-    setLastContentOrigin('toc');
+    // In new model, selecting a chapter should trigger generation flow
+    handleGenerateCourseForChapter(chapter.chapterId);
   };
 
   const handleGenerateCourseForChapter = async (chapterId: string) => {
     if (!currentBook || !user) return;
-    const chapter = currentBook.tableOfContents.find(c => c.id === chapterId);
+    const chapter = currentBook.chapters.find(c => c.chapterId === chapterId);
     if (!chapter) return;
     const req: GenerateCourseRequest = {
-      chapterId: chapter.id,
+      chapterId: chapter.chapterId,
       uploadId: currentBook.id
     };
     const gen: GenerateCourseResponse = await DefaultService.generateCourse({ requestBody: req });
     const tasks: Task[] = (gen?.tasks || []).map((t, idx) => ({
-      id: `task-${currentBook.id}-${chapter.id}-gen-${idx + 1}`,
+      id: `task-${currentBook.id}-${chapter.chapterId}-gen-${idx + 1}`,
       question: t.title || `Task ${idx + 1}`,
       type: 'short-answer',
       expectedKeywords: t.successCriteria,
       completed: false,
     }));
     // Fetch generated MDX notes bundle for this chapter
-    let notes: NoteBlock[] = [];
+    let notes: any = [];
     try {
-      const mdxText = await DefaultService.getChapterNotes({ uploadId: currentBook.id, chapterId: chapter.id });
+      const mdxText = await DefaultService.getChapterNotes({ uploadId: currentBook.id, chapterId: chapter.chapterId });
       if (typeof mdxText === 'string' && mdxText.trim().length > 0) {
         notes = [{ type: 'richText', title: gen?.title || chapter.title, markdown: mdxText } as any];
       }
     } catch {
     }
     const newCourse: Course = {
-      id: `canonical-${currentBook.id}-${chapter.id}`,
+      id: `canonical-${currentBook.id}-${chapter.chapterId}`,
       bookId: currentBook.id,
       bookTitle: currentBook.title,
-      chapterId: chapter.id,
+      chapterId: chapter.chapterId,
       chapterTitle: gen?.title || chapter.title,
       notes,
       tasks,
@@ -203,14 +153,16 @@ function AppContent() {
       userId: user.id
     };
     setCourses(prev => [...prev, newCourse]);
-    setBooks(prev => prev.map(b => b.id === currentBook.id ? { ...b, lastUsedAt: new Date().toISOString() } : b));
+    setBooks(prev => prev.map(b => b.id === currentBook.id ? { ...b } : b));
   };
 
   const handleBackToTOC = () => {
+      console.log("toc")
     setAppState('toc');
   };
 
   const handleBackToUpload = () => {
+      console.log("upload")
     setAppState('upload');
     setCurrentBook(null);
   };
@@ -219,37 +171,25 @@ function AppContent() {
     setAppState('library');
   };
 
-  const handleSelectCourse = (course: Course) => {
-    // bump last used for the corresponding book when opening a course directly
-    setBooks(prev => prev.map(b => b.id === course.bookId ? { ...b, lastUsedAt: new Date().toISOString() } : b));
-    setCurrentCourse(course);
-    setAppState('course');
-    setLastContentOrigin('book');
-  };
+  // removed legacy select course handler in favor of chapter-driven flows
 
   const handleOpenBook = async (book: Book) => {
+      console.log("book")
     setAppState('book');
     // optimistic open with summary
-    setCurrentBook({ ...book, lastUsedAt: new Date().toISOString() });
+    setCurrentBook({ ...book });
     // update last used timestamp in list
-    setBooks((prev) => prev.map((b) => b.id === book.id ? { ...b, lastUsedAt: new Date().toISOString() } : b));
+    setBooks((prev) => prev.map((b) => b.id === book.id ? { ...b } : b));
     try {
       const detail = await DefaultService.getBookById({ uploadId: book.id });
       const data = detail?.data;
       if (data) {
-        const toc: Chapter[] = (data.chapters || []).map((t) => ({
-          id: t.chapterId || `${book.id}-${t.firstPage ?? 0}`,
-          title: t.title || 'Chapter',
-          page: t.firstPage ?? 0,
-          isGenerated: (t as any).isGenerated ?? false,
-        }));
         setCurrentBook({
           id: data.id || book.id,
           title: data.title || book.title,
           uploadDate: data.uploadDate || book.uploadDate,
-          tableOfContents: toc,
-          lastUsedAt: new Date().toISOString(),
-        });
+          chapters: data.chapters as Chapter[] || [],
+        } as Book);
       }
     } catch (e) {
       // leave optimistic state if detail fetch fails
@@ -273,13 +213,26 @@ function AppContent() {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  if (appState === 'toc') handleBackToUpload();
-                  else if (appState === 'course') {
-                    if (lastContentOrigin === 'book') setAppState('book');
-                    else handleBackToTOC();
+                  if (appState === 'toc') {
+                      handleBackToUpload();
                   }
-                  else if (appState === 'library') setAppState('upload');
-                  else if (appState === 'book') setAppState('library');
+                  else if (appState === 'course') {
+                    if (lastContentOrigin === 'book') {
+                        console.log("book")
+                        setAppState('book');
+                    }
+                    else {
+                        handleBackToTOC();
+                    }
+                  }
+                  else if (appState === 'library') {
+                      console.log("upload")
+                      setAppState('upload');
+                  }
+                  else if (appState === 'book') {
+                      console.log("library")
+                      setAppState('library');
+                  }
                 }}
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -293,7 +246,7 @@ function AppContent() {
               </p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
@@ -320,26 +273,42 @@ function AppContent() {
       {/* Main Content */}
       <div className="container mx-auto px-4 pb-8" style={{ paddingTop: headerHeight + 10}}>
         {appState === 'upload' && (
-          <UploadPDF 
-            onFileUpload={handleFileUpload} 
+          <UploadPDF
+            onFileUpload={handleFileUpload}
             userCourses={courses.filter(course => course.userId === user.id)}
           />
         )}
-        
+
         {appState === 'toc' && currentBook && (
           <TableOfContents
-            book={currentBook}
-            onChapterSelect={handleChapterSelect}
+            // TableOfContents expects legacy shape; adapt minimally
+            book={{
+              id: currentBook.id,
+              title: currentBook.title,
+              uploadDate: currentBook.uploadDate,
+              tableOfContents: currentBook.chapters.map((c, idx) => ({
+                id: c.chapterId,
+                title: c.title,
+                page: c.startPage ?? (idx + 1),
+              })),
+            } as any}
+            onChapterSelect={(legacy) => handleChapterSelect({
+              chapterId: legacy.id,
+              title: legacy.title,
+              startPage: legacy.page,
+              endPage: legacy.page,
+              isGenerated: false,
+            } as Chapter)}
           />
         )}
-        
+
         {appState === 'course' && currentCourse && (
           <CourseContent
             course={currentCourse}
             onUpdateCourse={handleUpdateCourse}
           />
         )}
-        
+
         {appState === 'library' && (
           <BooksLibrary
             books={books}
@@ -351,9 +320,41 @@ function AppContent() {
         {appState === 'book' && currentBook && (
           <BookDetail
             book={currentBook}
-            courses={courses.filter(course => course.userId === user.id)}
-            onSelectCourse={handleSelectCourse}
             onGenerateCourse={handleGenerateCourseForChapter}
+            onOpenGeneratedCourse={async (chapterId) => {
+              // Open existing or fetch notes-only if needed
+              const existing = courses.find(c => c.bookId === currentBook.id && c.chapterId === chapterId);
+              if (existing) {
+                setCurrentCourse(existing);
+                setAppState('course');
+                setLastContentOrigin('book');
+                return;
+              }
+              const chapter = currentBook.chapters.find(c => c.chapterId === chapterId);
+              if (!chapter) return;
+              let notes: any = [];
+              try {
+                const mdxText = await DefaultService.getChapterNotes({ uploadId: currentBook.id, chapterId });
+                if (typeof mdxText === 'string' && mdxText.trim().length > 0) {
+                  notes = [{ type: 'richText', title: chapter.title, markdown: mdxText } as any];
+                }
+              } catch {}
+              const openCourse: Course = {
+                id: `canonical-${currentBook.id}-${chapter.chapterId}`,
+                bookId: currentBook.id,
+                bookTitle: currentBook.title,
+                chapterId: chapter.chapterId,
+                chapterTitle: chapter.title,
+                notes,
+                tasks: [],
+                createdDate: new Date().toISOString().split('T')[0],
+                completed: false,
+                userId: user.id,
+              };
+              setCurrentCourse(openCourse);
+              setAppState('course');
+              setLastContentOrigin('book');
+            }}
           />
         )}
       </div>
