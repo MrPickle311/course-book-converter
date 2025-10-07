@@ -4,55 +4,28 @@ import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
 import { Calendar, CheckCircle, ChevronRight, BookOpen, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
-import { DefaultService } from '@/openapi';
+import { type BookDetail, type Chapter, DefaultService } from '@/openapi';
 
-interface Book {
-  id: string;
-  title: string;
-  uploadDate: string;
-  tableOfContents: Array<{ id: string; title: string; page: number }>;
-}
-
-interface Course {
-  id: string;
-  bookId: string;
-  bookTitle: string;
-  chapterId: string;
-  chapterTitle: string;
-  notes: any;
-  tasks: any[];
-  createdDate: string;
-  completed: boolean;
-  userId: string;
-}
-
-interface BookDetailProps {
-  book: Book;
-  courses: Course[];
-  onSelectCourse: (course: Course) => void;
+export interface BookDetailProps {
+  book: BookDetail;
   onGenerateCourse?: (chapterId: string) => Promise<void> | void;
+  onOpenGeneratedCourse?: (chapterId: string) => Promise<void> | void;
 }
 
-export function BookDetail({ book, courses, onSelectCourse, onGenerateCourse }: BookDetailProps) {
+export function BookDetail({ book, onGenerateCourse, onOpenGeneratedCourse }: BookDetailProps) {
   const stats = useMemo(() => {
-    const bookCourses = courses.filter((c) => c.bookId === book.id);
-    // Unique generated chapters count (treat chapterId with suffix "-pX" as the same base chapter)
-    const generatedChapterIds = new Set<string>(
-      bookCourses.map((c) => c.chapterId.split('-p')[0])
-    );
-    const generatedChaptersCount = generatedChapterIds.size;
-    const completedCourses = bookCourses.filter((c) => c.completed).length;
-    const totalTasks = bookCourses.reduce((acc, c) => acc + c.tasks.length, 0);
-    const completedTasks = bookCourses.reduce((acc, c) => acc + c.tasks.filter((t: any) => t.completed).length, 0);
-    const failedTasks = bookCourses.reduce((acc, c) => acc + c.tasks.filter((t: any) => t.completed && t.evaluation?.isCorrect === false).length, 0);
+    const chapters: Chapter[] = book.chapters || [];
+    const generated = chapters.filter((ch) => ch.isGenerated);
+    const generatedChaptersCount = generated.length;
+    const totalTasks = chapters.reduce((acc, ch) => acc + (ch.progressData?.tasksCount || 0), 0);
+    const completedTasks = chapters.reduce((acc, ch) => acc + (ch.progressData?.tasksCompleted || 0), 0);
+    const failedTasks = chapters.reduce((acc, ch) => acc + (ch.progressData?.tasksFailed || 0), 0);
+    const completedCourses = generated.filter((ch) => (ch.progressData?.tasksCount || 0) > 0 && ch.progressData?.tasksCompleted === ch.progressData?.tasksCount).length;
     const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-    return { bookCourses, generatedChaptersCount, completedCourses, totalTasks, completedTasks, failedTasks, progress };
-  }, [book.id, courses]);
+    return { generatedChaptersCount, completedCourses, totalTasks, completedTasks, failedTasks, progress };
+  }, [book.id, book.chapters]);
 
   const [generating, setGenerating] = useState<Set<string>>(new Set());
-
-  const findRepresentativeCourse = (chapterId: string): Course | undefined =>
-    stats.bookCourses.find((c) => c.chapterId === chapterId || c.chapterId.startsWith(`${chapterId}-`));
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -94,68 +67,76 @@ export function BookDetail({ book, courses, onSelectCourse, onGenerateCourse }: 
       </Card>
 
       <div className="space-y-3">
-        {book.tableOfContents.map((chapter) => {
-          const course = findRepresentativeCourse(chapter.id);
-          if (!course) {
-            const isBusy = generating.has(chapter.id);
+        {book.chapters.map((chapter) => {
+          if (!chapter.isGenerated) {
+            const isBusy = generating.has(chapter.chapterId);
             return (
-              <Card key={chapter.id}>
+              <Card key={chapter.chapterId}>
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <h4 className="font-medium">{chapter.title}</h4>
                     </div>
-                    <div className="text-xs text-muted-foreground">Page {chapter.page}</div>
+                    <div className="text-xs text-muted-foreground">Page {chapter.startPage}</div>
                   </div>
                   <Button onClick={async () => {
-                    if (!onGenerateCourse || isBusy) return;
-                    setGenerating(prev => new Set(prev).add(chapter.id));
-                    await onGenerateCourse(chapter.id);
-                    setGenerating(prev => { const next = new Set(prev); next.delete(chapter.id); return next; });
+                    if (!onGenerateCourse || isBusy) {
+                        return;
+                    }
+                    setGenerating(prev => new Set(prev).add(chapter.chapterId));
+                    await onGenerateCourse(chapter.chapterId);
+                    setGenerating(prev => { const next = new Set(prev); next.delete(chapter.chapterId); return next; });
                   }} size="sm" disabled={isBusy}>{isBusy ? 'Generating…' : 'Generate course'}</Button>
                 </CardContent>
               </Card>
             );
           }
-          const completedTasks = course.tasks.filter((t: any) => t.completed).length;
-          const failedTasks = course.tasks.filter((t: any) => t.completed && t.evaluation?.isCorrect === false).length;
-          const progress = course.tasks.length > 0 ? (completedTasks / course.tasks.length) * 100 : 0;
-          return (
-            <Card key={chapter.id} className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => onSelectCourse(course)}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-medium">{course.chapterTitle}</h4>
-                      <Badge variant={course.completed ? 'default' : 'secondary'} className="text-xs">
-                        {course.completed ? 'Completed' : 'In Progress'}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        <span>Created {new Date(course.createdDate).toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <CheckCircle className="w-3 h-3" />
-                        <span>{completedTasks}/{course.tasks.length} tasks</span>
-                      </div>
-                      {failedTasks > 0 && (
-                        <div className="flex items-center gap-1 text-red-600">
-                          <span>• {failedTasks} failed</span>
+
+            const tasksCount = chapter.progressData?.tasksCount || 0;
+            const completedTasks = chapter.progressData?.tasksCompleted || 0;
+            const progress = tasksCount > 0 ? (completedTasks / tasksCount) * 100 : 0;
+            const isCourseCompleted = tasksCount > 0 && (chapter.progressData?.tasksCompleted === chapter.progressData?.tasksCount);
+            return (
+                <div
+                    key={chapter.chapterId}
+                    className="group border rounded-lg p-4 hover:bg-accent/50 transition-colors cursor-pointer"
+                    onClick={() => onOpenGeneratedCourse && onOpenGeneratedCourse(chapter.chapterId)}
+                >
+                    <div className="flex items-center justify-between">
+                        <div className="flex-1 space-y-2">
+                            <div className="flex items-center gap-2">
+                                <h4 className="font-medium">{chapter.title}</h4>
+                                <Badge
+                                    variant={isCourseCompleted ? "default" : "secondary"}
+                                    className="text-xs"
+                                >
+                                    {isCourseCompleted ? "Completed" : "In Progress"}
+                                </Badge>
+                            </div>
+
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                <div className="flex items-center gap-1">
+                                    <Calendar className="w-3 h-3" />
+                                    <span>Created {new Date(book.uploadDate).toLocaleDateString()}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <CheckCircle className="w-3 h-3" />
+                                    <span>{completedTasks}/{tasksCount} tasks</span>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <Progress value={progress} className="flex-1 h-2" />
+                                <span className="text-xs text-muted-foreground min-w-0">
+                                    {Math.round(progress)}%
+                                  </span>
+                            </div>
                         </div>
-                      )}
+
+                        <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Progress value={progress} className="flex-1 h-2" />
-                      <span className="text-xs text-muted-foreground min-w-0">{Math.round(progress)}%</span>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
                 </div>
-              </CardContent>
-            </Card>
-          );
+            );
         })}
       </div>
     </div>
