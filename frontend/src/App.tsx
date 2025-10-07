@@ -336,12 +336,9 @@ function AppContent() {
               }
               const chapter = currentBook.chapters.find(c => c.chapterId === chapterId);
               if (!chapter) return;
-              let notes: any = [];
+              let mdxText: string = '';
               try {
-                const mdxText = await DefaultService.getChapterNotes({ uploadId: currentBook.id, chapterId });
-                if (typeof mdxText === 'string' && mdxText.trim().length > 0) {
-                  notes = [{ type: 'richText', title: chapter.title, markdown: mdxText } as any];
-                }
+                mdxText = await DefaultService.getChapterNotes({ uploadId: currentBook.id, chapterId });
               } catch {}
               const openCourse: Course = {
                 id: `canonical-${currentBook.id}-${chapter.chapterId}`,
@@ -349,7 +346,7 @@ function AppContent() {
                 bookTitle: currentBook.title,
                 chapterId: chapter.chapterId,
                 chapterTitle: chapter.title,
-                notes,
+                notes: mdxText,
                 tasks: [],
                 createdDate: new Date().toISOString().split('T')[0],
                 completed: false,
