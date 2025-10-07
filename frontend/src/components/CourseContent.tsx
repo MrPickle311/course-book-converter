@@ -8,6 +8,8 @@ import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { CheckCircle, Circle, XCircle, BookOpen, CheckSquare, Award, Loader2 } from 'lucide-react';
+import * as runtime from 'react/jsx-runtime'
+import remarkGfm from 'remark-gfm'
 
 interface Task {
   id: string;
@@ -31,6 +33,7 @@ interface Task {
 }
 
 import { MDXProvider } from '@mdx-js/react';
+import {compileSync, runSync} from '@mdx-js/mdx'
 import '../styles/mdx.css';
 
 export interface Course {
@@ -39,7 +42,7 @@ export interface Course {
   bookTitle: string;
   chapterId: string;
   chapterTitle: string;
-  notes: any;
+  notes: string;
   tasks: Task[];
   createdDate: string;
   completed: boolean;
@@ -52,6 +55,7 @@ export interface CourseContentProps {
 }
 
 export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
+  console.log(course);
   const [activeTab, setActiveTab] = useState('notes');
   const [taskAnswers, setTaskAnswers] = useState<Record<string, string | string[] | File | null>>({});
   const [submitting, setSubmitting] = useState<Record<string, boolean>>({});
@@ -264,87 +268,26 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
     onUpdateCourse(updatedCourse);
   };
 
-  const renderBlocks = (blocks: any) => {
-    return blocks.map((block, index) => {
-      if ((block as any).type === 'mdx') {
-        const C = (block as any).component as React.ComponentType<any>;
-        return (
-          <div key={index} className="mdx-content">
-            <MDXProvider>
-              <C />
-            </MDXProvider>
-          </div>
-        );
-      }
-      if (block.type === 'richText') {
-        return (
-          <div key={index} className="space-y-2">
-            {block.title && <h3 className="mt-2">{block.title}</h3>}
-            {/* minimal MDX/HTML passthrough: render known <img> tags and basic lines */}
-            {block.markdown.split('\n').map((line, i) => {
-              const imgMatch = line.match(/<img\s+[^>]*src=\"([^\"]+)\"[^>]*>/i);
-              if (imgMatch) {
-                const src = imgMatch[1];
-                return (
-                  <div key={i} className="mt-4 text-center">
-                    <img src={src} alt="Figure" className="mx-auto max-h-96 rounded border" />
-                  </div>
-                );
-              }
-              if (line.startsWith('# ')) return <h1 key={i} className="mb-4 mt-6">{line.slice(2)}</h1>;
-              if (line.startsWith('## ')) return <h2 key={i} className="mb-3 mt-5">{line.slice(3)}</h2>;
-              if (line.startsWith('### ')) return <h3 key={i} className="mb-2 mt-4">{line.slice(4)}</h3>;
-              if (/^\d+\./.test(line)) return <li key={i} className="ml-4">{line}</li>;
-              if (line.startsWith('- ')) return <li key={i} className="ml-4 list-disc">{line.slice(2)}</li>;
-              if (line.trim() === '') return <br key={i} />;
-              return <p key={i} className="mb-2">{line}</p>;
-            })}
-          </div>
-        );
-      }
-      if (block.type === 'table') {
-        return (
-          <div key={index} className="overflow-x-auto">
-            {block.title && <h3 className="mt-4 mb-2">{block.title}</h3>}
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr>
-                  {block.headers.map((h, hi) => (
-                    <th key={hi} className="border p-2 text-left bg-muted/40">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {block.rows.map((row, ri) => (
-                  <tr key={ri}>
-                    {row.map((cell, ci) => (
-                      <td key={ci} className="border p-2 align-top">{cell}</td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        );
-      }
-      if (block.type === 'code') {
-        return (
-          <div key={index} className="mt-4">
-            {block.title && <h3 className="mb-2">{block.title}</h3>}
-            <pre className="p-3 bg-muted rounded text-sm overflow-x-auto"><code>{block.code}</code></pre>
-          </div>
-        );
-      }
-      if (block.type === 'figure') {
-        return (
-          <div key={index} className="mt-4 text-center">
-            <img src={`src/mocks/${block.src}`} alt={block.caption || 'Figure'} className="mx-auto max-h-96 rounded border" />
-            {block.caption && <div className="text-xs text-muted-foreground mt-2">{block.caption}</div>}
-          </div>
-        );
-      }
-      return null;
-    });
+  const renderBlocks = (notes: string) => {
+    try {
+    const code = compileSync(notes, { outputFormat: 'function-body',
+      development: false, remarkPlugins: [remarkGfm] } );
+      console.log(code);
+      const runned = runSync(code, runtime ) as any;
+      const C = runned.default;
+      console.log(C);
+    return (
+      <div className="mdx-content">
+        <MDXProvider>
+          <C />
+        </MDXProvider>
+      </div>
+    );
+    } catch (e) {
+      console.error(e);
+      return <div>Error rendering notes</div>;
+    }
+    
   };
 
   return (

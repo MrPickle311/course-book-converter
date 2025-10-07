@@ -2,14 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { BookOpen, ChevronRight, Clock } from 'lucide-react';
-
-interface Chapter {
-  id: string;
-  title: string;
-  page: number;
-  hasSubchapters?: boolean;
-  subchapters?: Chapter[];
-}
+import { type Chapter } from '@/openapi';
 
 interface Book {
   id: string;
@@ -75,7 +68,7 @@ export function TableOfContents({ book, onChapterSelect }: TableOfContentsProps)
         <CardContent className="space-y-4">
           {book.tableOfContents.map((chapter, index) => (
             <div
-              key={chapter.id}
+              key={chapter.chapterId}
               className="group border rounded-lg p-4 hover:bg-accent/50 transition-colors"
             >
               <div className="flex items-center justify-between">
@@ -87,7 +80,7 @@ export function TableOfContents({ book, onChapterSelect }: TableOfContentsProps)
                     <div>
                       <h4>{chapter.title}</h4>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span>Page {chapter.page}</span>
+                        <span>Page {chapter.startPage}</span>
                         <div className="flex items-center gap-1">
                           <Clock className="w-3 h-3" />
                           <span>~15 min read</span>
@@ -105,30 +98,6 @@ export function TableOfContents({ book, onChapterSelect }: TableOfContentsProps)
                   <ChevronRight className="w-4 h-4 ml-2" />
                 </Button>
               </div>
-
-              {chapter.hasSubchapters && chapter.subchapters && (
-                <div className="mt-4 ml-11 space-y-2">
-                  {chapter.subchapters.map((subchapter) => (
-                    <div
-                      key={subchapter.id}
-                      className="flex items-center justify-between p-2 rounded hover:bg-accent/30"
-                    >
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="w-2 h-2 bg-muted-foreground rounded-full" />
-                        <span>{subchapter.title}</span>
-                        <span className="text-muted-foreground">• Page {subchapter.page}</span>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleGenerateCourse(subchapter)}
-                      >
-                        Generate
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           ))}
         </CardContent>
