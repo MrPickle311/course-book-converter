@@ -91,7 +91,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BookDetailResponse'
+                $ref: '#/components/schemas/BookDetail'
     delete:
       summary: Delete book by uploadId
       operationId: deleteBook
@@ -338,12 +338,6 @@ components:
         data:
           $ref: '#/components/schemas/PaginatedBooks'
       required: [success, data]
-    BookDetailResponse:
-      type: object
-      properties:
-        data:
-          $ref: '#/components/schemas/BookDetail'
-      required: [data]
     TaskSubmissionRequest:
       type: object
       properties:
