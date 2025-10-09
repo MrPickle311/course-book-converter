@@ -15,6 +15,8 @@ import org.apache.pdfbox.pdmodel.graphics.form.PDFormXObject
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject
 import org.apache.pdfbox.text.PDFTextStripper
 import org.slf4j.LoggerFactory
+import org.springframework.core.io.ByteArrayResource
+import org.springframework.core.io.Resource
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.http.MediaType
@@ -52,14 +54,11 @@ class PdfController(
             bookRepository.findAll(pageable)
         }
         val items = pageData.content.map { b ->
-            val s = BookSummary()
+            BookSummary()
                 .id(b.uploadId)
                 .title(b.title)
                 .uploadDate(b.uploadDate.toString())
-            if (b.lastUsedAt != null) {
-                s.lastUsedAt(b.lastUsedAt.toString())
-            }
-            s
+                .lastUsedAt(b.lastUsedAt.toString())
         }
         val meta = PaginationMeta()
             .page(p)
@@ -70,7 +69,7 @@ class PdfController(
         return ResponseEntity.ok(PaginatedBooksResponse(true, payload))
     }
 
-    override fun getBookById(uploadId: String): ResponseEntity<BookDetailResponse> {
+    override fun getBookById(uploadId: String): ResponseEntity<BookDetail> {
         val found = bookRepository.findById(uploadId)
         if (found.isEmpty) {
             return ResponseEntity.notFound().build()
@@ -98,7 +97,7 @@ class PdfController(
             .title(book.title)
             .uploadDate(book.uploadDate.toString())
             .chapters(book.chapters.map { mapToc(it) })
-        return ResponseEntity.ok(BookDetailResponse(detail))
+        return ResponseEntity.ok(detail)
     }
 
     override fun deleteBook(uploadId: String): ResponseEntity<Void> {
@@ -365,7 +364,8 @@ class PdfController(
 
     override fun getChapterNotes(uploadId: String, chapterId: String): ResponseEntity<String> {
         return try {
-            val mdxPath = Path.of("uploads").resolve("notes/${uploadId}/${chapterId}").resolve("index.mdx").toAbsolutePath()
+            val mdxPath =
+                Path.of("uploads").resolve("notes/${uploadId}/${chapterId}").resolve("index.mdx").toAbsolutePath()
             if (!Files.exists(mdxPath)) {
                 return ResponseEntity.notFound().build()
             }
@@ -375,6 +375,28 @@ class PdfController(
                 .body(content)
         } catch (ex: Exception) {
             logger.error("Failed to get chapter notes", ex)
+            ResponseEntity.internalServerError().build()
+        }
+    }
+
+    override fun getChapterImage(
+        uploadId: String,
+        chapterId: String,
+        filename: String
+    ): ResponseEntity<Resource> {
+        println("image ${filename}")
+        return try {
+            val imagePath = Path.of("uploads").resolve("notes/$uploadId/$chapterId").resolve(filename).toAbsolutePath()
+            if (!Files.exists(imagePath) || !Files.isRegularFile(imagePath)) {
+                return ResponseEntity.notFound().build()
+            }
+            val bytes = Files.readAllBytes(imagePath)
+            val contentType = Files.probeContentType(imagePath) ?: "application/octet-stream"
+            ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType))
+                .body(ByteArrayResource(bytes))
+        } catch (ex: Exception) {
+            logger.error("Failed to get chapter image {} for {}/{}", filename, uploadId, chapterId, ex)
             ResponseEntity.internalServerError().build()
         }
     }
