@@ -7,7 +7,7 @@ databaseChangeLog:
             tableName: books
             columns:
               - column:
-                  name: id
+                  name: uploadId
                   type: varchar(64)
                   constraints:
                     primaryKey: true
