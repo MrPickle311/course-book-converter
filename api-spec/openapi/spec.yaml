@@ -179,6 +179,30 @@ paths:
                 type: string
         '404':
           description: Not Found
+  /api/v1/books/{uploadId}/chapters/{chapterId}/tasks:
+    get:
+      summary: Get tasks for a chapter with current user state
+      operationId: getChapterTasks
+      parameters:
+        - in: path
+          name: uploadId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: chapterId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChapterTasksResponse'
+        '404':
+          description: Not Found
   /api/v1/books/{uploadId}/chapters/{chapterId}/images/{filename}:
     get:
       summary: Get generated image asset for a chapter
@@ -215,6 +239,126 @@ paths:
           description: Not Found
 components:
   schemas:
+    TaskType:
+      type: string
+      enum: [multiple-choice, multiple-select, short-answer, upload-pdf]
+    TaskOption:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+      required: [id, label]
+    TaskState:
+      type: object
+      properties:
+        userAnswer:
+          type: string
+        userAnswers:
+          type: array
+          items:
+            type: string
+        userFileName:
+          type: string
+        evaluation:
+          $ref: '#/components/schemas/TaskEvaluation'
+        completed:
+          type: boolean
+      required: [completed]
+
+    TaskDefinitionBase:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          $ref: '#/components/schemas/TaskType'
+        question:
+          type: string
+      required: [id, type, question]
+
+    TaskDefinitionMultipleChoice:
+      allOf:
+        - $ref: '#/components/schemas/TaskDefinitionBase'
+        - type: object
+          properties:
+            options:
+              type: array
+              items:
+                $ref: '#/components/schemas/TaskOption'
+            type:
+              type: string
+              enum: [multiple-choice]
+            correctAnswerId:
+              type: string
+          required: [type, options]
+
+    TaskDefinitionMultipleSelect:
+      allOf:
+        - $ref: '#/components/schemas/TaskDefinitionBase'
+        - type: object
+          properties:
+            options:
+              type: array
+              items:
+                $ref: '#/components/schemas/TaskOption'
+            type:
+              type: string
+              enum: [multiple-select]
+            correctAnswerIds:
+              type: array
+              items:
+                type: string
+          required: [type, options]
+
+    TaskDefinitionShortAnswer:
+      allOf:
+        - $ref: '#/components/schemas/TaskDefinitionBase'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [short-answer]
+          required: [type]
+
+
+    TaskDefinitionUploadPdf:
+      allOf:
+        - $ref: '#/components/schemas/TaskDefinitionBase'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [upload-pdf]
+          required: [type]
+
+    TaskDefinition:
+      oneOf:
+        - $ref: '#/components/schemas/TaskDefinitionMultipleChoice'
+        - $ref: '#/components/schemas/TaskDefinitionMultipleSelect'
+        - $ref: '#/components/schemas/TaskDefinitionShortAnswer'
+        - $ref: '#/components/schemas/TaskDefinitionUploadPdf'
+
+    TaskWithState:
+      type: object
+      properties:
+        definition:
+          $ref: '#/components/schemas/TaskDefinition'
+        state:
+          $ref: '#/components/schemas/TaskState'
+      required: [definition, state]
+
+    ChapterTasksResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskWithState'
+      required: [success, tasks]
     Chapter:
       type: object
       required: [chapterId, title, startPage, endPage, isGenerated]
@@ -377,15 +521,15 @@ components:
       properties:
         type:
           type: string
-          enum: [multiple-choice, multiple-select, short-answer, code]
-        selectedOption:
+          enum: [multiple-choice, multiple-select, short-answer]
+        selectedOptionId:
           type: string
-          description: For multiple-choice
-        selectedOptions:
+          description: For multiple-choice (option id)
+        selectedOptionIds:
           type: array
           items:
             type: string
-          description: For multiple-select
+          description: For multiple-select (option ids)
         textAnswer:
           type: string
           description: For short-answer/code

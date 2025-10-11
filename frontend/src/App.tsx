@@ -186,7 +186,7 @@ function AppContent() {
     setBooks((prev) => prev.map((b) => b.id === book.id ? { ...b } : b));
     try {
       const detail = await DefaultService.getBookById({ uploadId: book.id });
-      const data = detail?.data;
+      const data = detail as unknown as Book;
       if (data) {
         setCurrentBook({
           id: data.id || book.id,
@@ -296,11 +296,11 @@ function AppContent() {
                 page: c.startPage ?? (idx + 1),
               })),
             } as any}
-            onChapterSelect={(legacy) => handleChapterSelect({
-              chapterId: legacy.id,
-              title: legacy.title,
-              startPage: legacy.page,
-              endPage: legacy.page,
+            onChapterSelect={(legacy: any) => handleChapterSelect({
+              chapterId: legacy.id as string,
+              title: legacy.title as string,
+              startPage: legacy.page as number,
+              endPage: legacy.page as number,
               isGenerated: false,
             } as Chapter)}
           />

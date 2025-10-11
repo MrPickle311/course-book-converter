@@ -11,18 +11,19 @@ import { CheckCircle, Circle, XCircle, BookOpen, CheckSquare, Award, Loader2 } f
 import * as runtime from 'react/jsx-runtime'
 import remarkGfm from 'remark-gfm'
 
+interface TaskOption { id: string; label: string }
+
 interface Task {
   id: string;
   question: string;
-  type: 'multiple-choice' | 'multiple-select' | 'short-answer' | 'code' | 'upload-pdf';
-  options?: string[];
-  correctAnswer?: string;
-  correctAnswers?: string[];
+  type: 'multiple-choice' | 'multiple-select' | 'short-answer' | 'upload-pdf';
+  options?: TaskOption[];
+  correctAnswerId?: string;
+  correctAnswerIds?: string[];
   userAnswer?: string;
   userAnswers?: string[];
   userFileName?: string;
   feedback?: string;
-  expectedKeywords?: string[];
   evaluation?: {
     isCorrect: boolean;
     mistakes: string[];
@@ -35,6 +36,8 @@ interface Task {
 import { MDXProvider } from '@mdx-js/react';
 import {compileSync, runSync} from '@mdx-js/mdx'
 import '../styles/mdx.css';
+import { DefaultService } from '@/openapi';
+import React from 'react';
 
 export interface Course {
   id: string;
@@ -55,13 +58,14 @@ export interface CourseContentProps {
 }
 
 export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
-  console.log(course);
   const [activeTab, setActiveTab] = useState('notes');
   const [taskAnswers, setTaskAnswers] = useState<Record<string, string | string[] | File | null>>({});
   const [submitting, setSubmitting] = useState<Record<string, boolean>>({});
   const openFilePicker = (taskId: string) => {
     const input = document.getElementById(`file-input-${taskId}`) as HTMLInputElement | null;
-    if (input) input.click();
+    if (input) {
+        input.click();
+      }
   };
 
   const completedTasks = course.tasks.filter(task => task.completed).length;
@@ -71,18 +75,22 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
     setTaskAnswers(prev => ({ ...prev, [taskId]: answer }));
   };
 
-  const toggleMultiSelectOption = (taskId: string, option: string) => {
+  const toggleMultiSelectOption = (taskId: string, optionId: string) => {
     setTaskAnswers(prev => {
       const current = (prev[taskId] as string[] | undefined) || [];
-      const exists = current.includes(option);
-      const next = exists ? current.filter(o => o !== option) : [...current, option];
+      const exists = current.includes(optionId);
+      const next = exists ? current.filter(o => o !== optionId) : [...current, optionId];
       return { ...prev, [taskId]: next };
     });
   };
 
   const isTaskCorrect = (task: Task): boolean | null => {
-    if (!task.completed) return null;
-    if (task.type === 'multiple-select') return task.evaluation?.isCorrect === true;
+    if (!task.completed) {
+        return null;
+    }
+    if (task.type === 'multiple-select') {
+        return task.evaluation?.isCorrect === true;
+    }
     if (task.type === 'multiple-choice') {
       if (Array.isArray(task.correctAnswers) && task.correctAnswers.length > 0) {
         return task.evaluation?.isCorrect === true;
@@ -96,18 +104,67 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
   };
 
   const isTaskFailed = (task: Task): boolean => {
-    if (!task.completed) return false;
-    const correct = isTaskCorrect(task);
-    return correct === false;
+    if (!task.completed) {
+        return false;
+    }
+    return !isTaskCorrect(task);
   };
 
   const computeCourseCompleted = (tasks: Task[]): boolean => {
-    if (tasks.length === 0) return false;
+    if (tasks.length === 0) {
+        return false;
+    }
     const allCompleted = tasks.every(t => t.completed);
-    if (!allCompleted) return false;
-    const hasFailed = tasks.some(t => isTaskFailed(t));
-    return !hasFailed;
+    if (!allCompleted) {
+        return false;
+    }
+    return !tasks.some(t => isTaskFailed(t));
   };
+
+  React.useEffect(() => {
+    if (activeTab !== 'tasks') {
+        return;
+    }
+    (async () => {
+      try {
+        const res = await DefaultService.getChapterTasks({ uploadId: course.bookId, chapterId: course.chapterId });
+        const items = (res as any)?.tasks || [];
+        const mapped: Task[] = items.map((tw: any) => {
+          const def = tw.definition;
+          const st = tw.state || {};
+          const type = def.type as Task['type'];
+          const opts = Array.isArray(def.options) ? def.options.map((o: any) => ({ id: o.id, label: o.label })) : undefined;
+          return {
+            id: def.id,
+            question: def.question,
+            type,
+            options: opts,
+            correctAnswerId: def.correctAnswerId,
+            correctAnswerIds: def.correctAnswerIds,
+            userAnswer: st.userAnswer,
+            userAnswers: st.userAnswers,
+            userFileName: st.userFileName,
+            feedback: st.evaluation?.explanation,
+            evaluation: st.evaluation ? {
+              isCorrect: Boolean(st.evaluation.isCorrect),
+              mistakes: st.evaluation.mistakes || [],
+              score: typeof st.evaluation.score === 'number' ? st.evaluation.score : undefined,
+              explanation: st.evaluation.explanation,
+            } : undefined,
+            completed: Boolean(st.completed),
+          } as Task;
+        });
+        const updatedCourse = {
+          ...course,
+          tasks: mapped,
+          completed: computeCourseCompleted(mapped)
+        };
+        onUpdateCourse(updatedCourse);
+      } catch (e) {
+        console.error('Failed to load tasks', e);
+      }
+    })();
+  }, [activeTab, course.bookId, course.chapterId]);
 
   const handleRetakeTask = (task: Task) => {
     const resetTask: Task = {
@@ -137,7 +194,9 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
     const answer = taskAnswers[task.id];
     if (task.type === 'multiple-select') {
       const list = (answer as string[] | undefined) || [];
-      if (list.length === 0) return;
+      if (list.length === 0) {
+          return;
+      }
       const correct = task.correctAnswers || [];
       const missing = correct.filter(o => !list.includes(o));
       const extra = list.filter(o => !correct.includes(o));
@@ -167,15 +226,21 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
 
     if (task.type === 'upload-pdf') {
       const file = answer as File | undefined;
-      if (!file) return;
+      if (!file) {
+          return;
+      }
       setSubmitting(prev => ({ ...prev, [task.id]: true }));
       setTimeout(() => {
-        const name = file.name.toLowerCase();
+        const fileName = file.name.toLowerCase();
         const goodHints = ['notes', 'summary', 'chapter', 'module'];
-        const hasHint = goodHints.some(h => name.includes(h));
+        const hasHint = goodHints.some(h => fileName.includes(h));
         const mistakes: string[] = [];
-        if (!hasHint) mistakes.push('Filename is not descriptive (expected words like notes/summary/chapter).');
-        if (!name.endsWith('.pdf')) mistakes.push('File is not a .pdf.');
+        if (!hasHint) {
+            mistakes.push('Filename is not descriptive (expected words like notes/summary/chapter).');
+        }
+        if (!fileName.endsWith('.pdf')) {
+            mistakes.push('File is not a .pdf.');
+        }
 
         const updatedTask = {
           ...task,
@@ -202,41 +267,41 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
     }
 
     const userAnswer = (answer as string | undefined) || '';
-    if (!userAnswer) return;
+    if (!userAnswer) {
+        return;
+    }
 
     if (task.type === 'short-answer') {
       setSubmitting(prev => ({ ...prev, [task.id]: true }));
-      setTimeout(() => {
-        const normalized = userAnswer.toLowerCase();
-        const expected = task.expectedKeywords || [];
-        const found = expected.filter(k => normalized.includes(k.toLowerCase()));
-        const missing = expected.filter(k => !found.includes(k));
-        const mistakes: string[] = [];
-        if (userAnswer.length < 40) mistakes.push('Answer is too short. Provide more detail.');
-        if (missing.length) mistakes.push(`Missing key concepts: ${missing.join(', ')}`);
-        const score = expected.length ? (found.length / expected.length) : (userAnswer.length >= 40 ? 1 : 0.5);
-
-        const updatedTask = {
-          ...task,
-          userAnswer,
-          feedback: 'Mock feedback: processed your answer and generated guidance.',
-          evaluation: {
-            isCorrect: mistakes.length === 0,
-            mistakes,
-            score,
-            explanation: 'Answers are checked for presence of core keywords and sufficient detail.'
-          },
-          completed: true
-        } as Task;
-        const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
-        const updatedCourse = {
-          ...course,
-          tasks: updatedTasks,
-          completed: computeCourseCompleted(updatedTasks)
-        };
-        onUpdateCourse(updatedCourse);
-        setSubmitting(prev => ({ ...prev, [task.id]: false }));
-      }, 1000);
+      (async () => {
+        try {
+          const resp = await DefaultService.submitTask({
+            taskId: task.id,
+            requestBody: {
+              type: task.type,
+              textAnswer: userAnswer,
+            } as any,
+          });
+          const updatedTask = {
+            ...task,
+            userAnswer,
+            evaluation: resp.evaluation ? {
+              isCorrect: Boolean(resp.evaluation.isCorrect),
+              mistakes: resp.evaluation.mistakes || [],
+              score: typeof resp.evaluation.score === 'number' ? resp.evaluation.score : undefined,
+              explanation: resp.evaluation.explanation,
+            } : undefined,
+            completed: true,
+          } as Task;
+          const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
+          const updatedCourse = { ...course, tasks: updatedTasks, completed: computeCourseCompleted(updatedTasks) };
+          onUpdateCourse(updatedCourse);
+        } catch (e) {
+          console.error('Submit short-answer failed', e);
+        } finally {
+          setSubmitting(prev => ({ ...prev, [task.id]: false }));
+        }
+      })();
       return;
     }
 
@@ -272,10 +337,8 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
     try {
     const code = compileSync(notes, { outputFormat: 'function-body',
       development: false, remarkPlugins: [remarkGfm] } );
-      console.log(code);
       const runned = runSync(code, runtime ) as any;
       const C = runned.default;
-      console.log(C);
     return (
       <div className="mdx-content">
         <MDXProvider>
@@ -392,8 +455,8 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                       {task.options.map((option, optionIndex) => {
                         const isCompleted = task.completed;
                         const current = isCompleted ? (task.userAnswer || '') : (((taskAnswers[task.id] as string) || ''));
-                        const isSelected = current === option;
-                        const isCorrectOption = option === task.correctAnswer;
+                        const isSelected = current === option.id;
+                        const isCorrectOption = option.id === task.correctAnswerId;
                         let labelClass = '';
                         if (isCompleted) {
                           const isOverallCorrect = task.userAnswer === task.correctAnswer;
@@ -409,12 +472,16 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                               id={`${task.id}-sc-${optionIndex}`}
                               checked={isSelected}
                               onCheckedChange={(checked: boolean | 'indeterminate') => {
-                                if (task.completed) return;
-                                if (checked === true) handleTaskAnswer(task.id, option);
+                                if (task.completed) {
+                                    return;
+                                }
+                                if (checked === true) {
+                                    handleTaskAnswer(task.id, option.id);
+                                }
                               }}
                               disabled={task.completed}
                             />
-                            <Label htmlFor={`${task.id}-sc-${optionIndex}`} className={labelClass}>{option}</Label>
+                            <Label htmlFor={`${task.id}-sc-${optionIndex}`} className={labelClass}>{option.label}</Label>
                           </div>
                         );
                       })}
@@ -442,8 +509,8 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                       {task.options.map((option, optionIndex) => {
                         const isCompleted = task.completed;
                         const current = isCompleted ? (task.userAnswers || []) : (((taskAnswers[task.id] as string[]) || []));
-                        const isSelected = current.includes(option);
-                        const isCorrectOption = task.correctAnswers?.includes(option);
+                        const isSelected = current.includes(option.id);
+                        const isCorrectOption = task.correctAnswerIds?.includes(option.id);
                         let labelClass = '';
                         if (isCompleted) {
                           const isOverallCorrect = task.correctAnswers?.every(correct => (taskAnswers[task.id] as string[])?.includes(correct));
@@ -458,10 +525,10 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                             <Checkbox
                               id={`${task.id}-ms-${optionIndex}`}
                               checked={isSelected}
-                              onCheckedChange={() => toggleMultiSelectOption(task.id, option)}
+                              onCheckedChange={() => toggleMultiSelectOption(task.id, option.id)}
                               disabled={task.completed}
                             />
-                            <Label htmlFor={`${task.id}-ms-${optionIndex}`} className={labelClass}>{option}</Label>
+                            <Label htmlFor={`${task.id}-ms-${optionIndex}`} className={labelClass}>{option.label}</Label>
                           </div>
                         );
                       })}
@@ -489,12 +556,11 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                       <div className="text-sm font-medium">Your answer</div>
                     )}
                     <Textarea
-                      placeholder={task.type === 'code' ? 'Write your code here...' : 'Enter your answer...'}
+                      placeholder={'Enter your answer...'}
                       value={(task.completed ? (task.userAnswer || '') : ((taskAnswers[task.id] as string) || ''))}
                       onChange={(e) => handleTaskAnswer(task.id, e.target.value)}
                       disabled={task.completed}
-                      className={task.type === 'code' ? 'font-mono' : ''}
-                      rows={task.type === 'code' ? 8 : 4}
+                      rows={4}
                     />
                     {submitting[task.id] && (
                       <div className="text-sm text-muted-foreground">Evaluating answer...</div>
