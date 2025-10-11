@@ -1,26 +1,17 @@
 package com.bcc.backend.persistence
 
-import com.fasterxml.jackson.annotation.JsonCreator
-import com.fasterxml.jackson.annotation.JsonProperty
 import com.vladmihalcea.hibernate.type.json.JsonType
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.GeneratedValue
-import jakarta.persistence.GenerationType
-import jakarta.persistence.Id
-import jakarta.persistence.Index
-import jakarta.persistence.Table
+import jakarta.persistence.*
 import org.hibernate.annotations.Type
 import org.springframework.data.jpa.repository.JpaRepository
 import java.time.Instant
-import java.util.Objects
-import java.util.UUID
+import java.util.*
 
 @Entity
 @Table(
-    name = "task_definitions",
+    name = "tasks",
     indexes = [
-        Index(name = "idx_taskdef_book_chapter", columnList = "book_id,chapter_id")
+        Index(name = "idx_tasks_book_chapter", columnList = "book_id,chapter_id")
     ]
 )
 data class Task(
@@ -47,10 +38,11 @@ data class Task(
 
     @Type(JsonType::class)
     @Column(name = "task_definition", columnDefinition = "jsonb")
-    var definition: Object = null,
+    var definition: Any? = null,
 
+    @Type(JsonType::class)
     @Column(name = "task_state", columnDefinition = "jsonb")
-    var state: Object = null,
+    var state: Any? = null,
 )
 
 data class Option(
@@ -94,15 +86,8 @@ data class FileUploadTaskState(
     var fileName: String? = null
 )
 
-// remove it
-data class TaskOptionData @JsonCreator constructor(
-    @param:JsonProperty("id") val id: String,
-    @param:JsonProperty("label") val label: String
-)
-
-interface TaskDefinitionRepository : JpaRepository<Task, UUID> {
+interface TaskRepository : JpaRepository<Task, UUID> {
     fun findByBookIdAndChapterId(bookId: String, chapterId: String): List<Task>
-    fun findByTaskUid(taskUid: String): Task?
 }
 
 

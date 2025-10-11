@@ -35,9 +35,7 @@ class PdfController(
     private val pdfProcessor: PdfProcessor,
     private val courseGeneratorService: CourseGeneratorService,
     private val bookRepository: BookRepository,
-    private val taskSubmissionRepository: TaskSubmissionRepository,
     private val chapterContentRepository: ChapterContentRepository,
-    private val taskDefinitionRepository: com.bcc.backend.persistence.TaskDefinitionRepository,
     private val taskService: com.bcc.backend.service.TaskService
 ) : DefaultApi {
     private val logger = LoggerFactory.getLogger(PdfController::class.java)
@@ -257,40 +255,23 @@ class PdfController(
         taskId: String,
         taskSubmissionRequest: @Valid TaskSubmissionRequest
     ): ResponseEntity<TaskSubmissionResponse> {
-        val def = taskDefinitionRepository.findByTaskUid(taskId)
-        val type = taskSubmissionRequest.type?.value ?: def?.type ?: ""
+        val type = taskSubmissionRequest.type?.value ?: ""
 
         if (type == "multiple-choice") {
             val sel = taskSubmissionRequest.selectedOptionId
-            val isCorrect = sel != null && sel == def?.correctAnswer
+            val isCorrect = sel != null
             val mistakes = if (isCorrect) emptyList() else listOf("Incorrect option selected")
-            val chatEval = taskService.evaluateChoicesWithChat(
-                def?.question ?: "",
-                (def?.options ?: emptyList()).map { it.label },
-                listOfNotNull(sel),
-                listOfNotNull(def?.correctAnswer).map { id -> (def?.options ?: emptyList()).firstOrNull { it.id == id }?.label ?: id },
-                false
-            )
+            val chatEval = taskService.evaluateChoicesWithChat("", emptyList(), listOfNotNull(sel), emptyList(), false)
             val eval = chatEval.copy(
                 isCorrect = isCorrect && (chatEval.isCorrect != false),
                 mistakes = if (!isCorrect) mistakes else chatEval.mistakes,
                 score = if (isCorrect) (chatEval.score ?: 1.0) else 0.0,
-                explanation = chatEval.explanation ?: if (isCorrect) "Correct" else "Expected ${def?.correctAnswer}"
+                explanation = chatEval.explanation ?: if (isCorrect) "Correct" else "Incorrect"
             )
-            val submission = TaskSubmission(
-                taskId = taskId,
-                userId = null,
-                type = type,
-                selectedOption = sel,
-                selectedOptions = null,
-                textAnswer = null,
-                fileName = null,
-                evaluation = eval
-            )
-            taskSubmissionRepository.save(submission)
+            // Update Task state JSON directly via TaskService helper (to be implemented)
         } else if (type == "multiple-select") {
             val sel = taskSubmissionRequest.selectedOptionIds ?: emptyList()
-            val expected = def?.correctAnswers ?: emptyList()
+            val expected = emptyList<String>()
             val missing = expected.filter { !sel.contains(it) }
             val extra = sel.filter { !expected.contains(it) }
             val isCorrect = missing.isEmpty() && extra.isEmpty()
@@ -300,44 +281,18 @@ class PdfController(
             }
             val score =
                 if (expected.isNotEmpty()) sel.count { expected.contains(it) }.toDouble() / expected.size else 0.0
-            val chatEval = taskService.evaluateChoicesWithChat(
-                def?.question ?: "",
-                (def?.options ?: emptyList()).map { it.label },
-                sel.map { id -> (def?.options ?: emptyList()).firstOrNull { it.id == id }?.label ?: id },
-                expected.map { id -> (def?.options ?: emptyList()).firstOrNull { it.id == id }?.label ?: id },
-                true
-            )
+            val chatEval = taskService.evaluateChoicesWithChat("", emptyList(), sel, expected, true)
             val eval = chatEval.copy(
                 isCorrect = isCorrect && (chatEval.isCorrect != false),
                 mistakes = if (!isCorrect) mistakes else chatEval.mistakes,
                 score = if (isCorrect) maxOf(score, chatEval.score ?: score) else score,
                 explanation = chatEval.explanation
             )
-            val submission = TaskSubmission(
-                taskId = taskId,
-                userId = null,
-                type = type,
-                selectedOption = null,
-                selectedOptions = sel,
-                textAnswer = null,
-                fileName = null,
-                evaluation = eval
-            )
-            taskSubmissionRepository.save(submission)
-        } else if (type == "short-answer" || type == "code") {
+            // Update Task state JSON directly
+        } else if (type == "short-answer") {
             val txt = taskSubmissionRequest.textAnswer?.trim() ?: ""
-            val eval = taskService.evaluateTextWithChat(def?.question ?: "", txt, type)
-            val submission = TaskSubmission(
-                taskId = taskId,
-                userId = null,
-                type = type,
-                selectedOption = null,
-                selectedOptions = null,
-                textAnswer = txt,
-                fileName = null,
-                evaluation = eval
-            )
-            taskSubmissionRepository.save(submission)
+            val eval = taskService.evaluateTextWithChat("", txt, type)
+            // Update Task state JSON directly
         } else {
             val eval = Evaluation(
                 isCorrect = false,
@@ -345,11 +300,10 @@ class PdfController(
                 score = 0.0,
                 explanation = null
             )
-            val submission = TaskSubmission(taskId = taskId, userId = null, type = type, evaluation = eval)
-            taskSubmissionRepository.save(submission)
+            // Update Task state JSON directly
         }
 
-        val saved = taskSubmissionRepository.findByTaskId(taskId).maxByOrNull { it.createdAt }!!.evaluation
+        val saved = Evaluation(isCorrect = false, mistakes = emptyList(), score = 0.0, explanation = null)
         val apiEval = TaskEvaluation()
             .isCorrect(saved?.isCorrect == true)
             .mistakes(saved?.mistakes ?: emptyList())
@@ -382,20 +336,12 @@ class PdfController(
                     stripper.getText(doc)
                 }
             }.getOrElse { "" } else ""
-            val def = taskDefinitionRepository.findByTaskUid(taskId)
             val eval = if (isPdf) taskService.evaluateTextWithChat(
-                def?.question ?: "Uploaded PDF task",
+                "Uploaded PDF task",
                 extractedText.take(8000),
                 "upload-pdf"
             ) else Evaluation(isCorrect = false, mistakes = mistakes, score = 0.0, explanation = "Invalid file")
-            val submission = TaskSubmission(
-                taskId = taskId,
-                userId = null,
-                type = "upload-pdf",
-                fileName = storedName,
-                evaluation = eval
-            )
-            taskSubmissionRepository.save(submission)
+            // Update Task state JSON via TaskService (not implemented here)
 
             val apiEval = TaskEvaluation()
                 .isCorrect(eval.isCorrect == true)

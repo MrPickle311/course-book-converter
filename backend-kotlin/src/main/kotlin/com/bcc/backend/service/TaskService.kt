@@ -3,12 +3,12 @@ package com.bcc.backend.service
 import com.bcc.api.model.ChapterTasksResponse
 import com.bcc.api.model.TaskEvaluation
 import com.bcc.backend.persistence.*
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.ai.chat.client.ChatClient
 import org.springframework.ai.chat.messages.SystemMessage
 import org.springframework.ai.chat.messages.UserMessage
 import org.springframework.stereotype.Service
-import java.math.BigDecimal
 
 @Service
 class TaskService(
@@ -16,52 +16,86 @@ class TaskService(
     private val courseGeneratorService: CourseGeneratorService,
     private val bookRepository: BookRepository,
     private val chapterContentRepository: ChapterContentRepository,
-    private val taskDefinitionRepository: TaskDefinitionRepository,
-    private val taskSubmissionRepository: TaskSubmissionRepository,
-    private val chatClient: ChatClient = chatClientBuilder.build()
+    private val taskRepository: TaskRepository,
+    private val chatClient: ChatClient = chatClientBuilder.build(),
+    private val objectMapper: ObjectMapper
 ) {
     private val logger = LoggerFactory.getLogger(TaskService::class.java)
 
     fun getOrCreateTasks(uploadId: String, chapterId: String): ChapterTasksResponse {
-        val defs = taskDefinitionRepository.findByBookIdAndChapterId(uploadId, chapterId)
+        val defs = taskRepository.findByBookIdAndChapterId(uploadId, chapterId)
         val definitions = if (defs.isNotEmpty()) defs else generateAndPersist(uploadId, chapterId)
         val items = definitions.map { def ->
-            val latest = taskSubmissionRepository.findByTaskId(def.taskUid).maxByOrNull { it.createdAt }
-            val apiEval = latest?.evaluation?.let { ev ->
-                TaskEvaluation()
-                    .isCorrect(ev.isCorrect == true)
-                    .mistakes(ev.mistakes ?: emptyList())
-                    .score(BigDecimal.valueOf(ev.score ?: 0.0))
-                    .explanation(ev.explanation)
-            }
             val definition = when (def.type) {
-                "multiple-choice" -> com.bcc.api.model.TaskDefinitionMultipleChoice()
-                    .id(def.taskUid)
-                    .type(com.bcc.api.model.TaskDefinitionMultipleChoice.TypeEnum.MULTIPLE_CHOICE)
-                    .question(def.question)
-                    .options((def.options ?: emptyList()).map { o -> com.bcc.api.model.TaskOption().id(o.id).label(o.label) })
-                    .correctAnswerId(def.correctAnswer)
-                "multiple-select" -> com.bcc.api.model.TaskDefinitionMultipleSelect()
-                    .id(def.taskUid)
-                    .type(com.bcc.api.model.TaskDefinitionMultipleSelect.TypeEnum.MULTIPLE_SELECT)
-                    .question(def.question)
-                    .options((def.options ?: emptyList()).map { o -> com.bcc.api.model.TaskOption().id(o.id).label(o.label) })
-                    .correctAnswerIds(def.correctAnswers)
+                "multiple-choice" -> {
+                    val defObj: MultipleChoiceTaskDefinition? = def.definition?.let {
+                        runCatching { objectMapper.convertValue(it, MultipleChoiceTaskDefinition::class.java) }.getOrNull()
+                    }
+                    com.bcc.api.model.TaskDefinitionMultipleChoice()
+                        .id(def.id.toString())
+                        .type(com.bcc.api.model.TaskDefinitionMultipleChoice.TypeEnum.MULTIPLE_CHOICE)
+                        .question(def.question)
+                        .options((defObj?.options ?: emptyList()).map { o -> com.bcc.api.model.TaskOption().id(o.id.toString()).label(o.label ?: "") })
+                        .correctAnswerId(defObj?.correctOption?.id?.toString())
+                }
+                "multiple-select" -> {
+                    val defObj: MultiselectTaskDefinition? = def.definition?.let {
+                        runCatching { objectMapper.convertValue(it, MultiselectTaskDefinition::class.java) }.getOrNull()
+                    }
+                    com.bcc.api.model.TaskDefinitionMultipleSelect()
+                        .id(def.id.toString())
+                        .type(com.bcc.api.model.TaskDefinitionMultipleSelect.TypeEnum.MULTIPLE_SELECT)
+                        .question(def.question)
+                        .options((defObj?.options ?: emptyList()).map { o -> com.bcc.api.model.TaskOption().id(o.id.toString()).label(o.label ?: "") })
+                        .correctAnswerIds((defObj?.correctOptions ?: emptyList()).map { it.id.toString() })
+                }
                 "upload-pdf" -> com.bcc.api.model.TaskDefinitionUploadPdf()
-                    .id(def.taskUid)
+                    .id(def.id.toString())
                     .type(com.bcc.api.model.TaskDefinitionUploadPdf.TypeEnum.UPLOAD_PDF)
                     .question(def.question)
                 else -> com.bcc.api.model.TaskDefinitionShortAnswer()
-                    .id(def.taskUid)
+                    .id(def.id.toString())
                     .type(com.bcc.api.model.TaskDefinitionShortAnswer.TypeEnum.SHORT_ANSWER)
                     .question(def.question)
             }
-            val state = com.bcc.api.model.TaskState()
-                .userAnswer(latest?.textAnswer)
-                .userAnswers(latest?.selectedOptions)
-                .userFileName(latest?.fileName)
-                .evaluation(apiEval)
-                .completed(latest != null)
+            val state = when (def.type) {
+                "multiple-choice" -> {
+                    val st: MultipleChoiceTaskState? = def.state?.let {
+                        runCatching { objectMapper.convertValue(it, MultipleChoiceTaskState::class.java) }.getOrNull()
+                    }
+                    com.bcc.api.model.TaskState()
+                        .userAnswer(st?.selectedOption?.id?.toString())
+                        .evaluation(null)
+                        .completed(st != null)
+                }
+                "multiple-select" -> {
+                    val st: MultiselectTaskState? = def.state?.let {
+                        runCatching { objectMapper.convertValue(it, MultiselectTaskState::class.java) }.getOrNull()
+                    }
+                    com.bcc.api.model.TaskState()
+                        .userAnswers((st?.selectedOptions ?: emptyList()).map { it.id.toString() })
+                        .evaluation(null)
+                        .completed(st != null)
+                }
+                "upload-pdf" -> {
+                    val st: FileUploadTaskState? = def.state?.let {
+                        runCatching { objectMapper.convertValue(it, FileUploadTaskState::class.java) }.getOrNull()
+                    }
+                    com.bcc.api.model.TaskState()
+                        .userFileName(st?.fileName)
+                        .evaluation(st?.evaluation?.let { TaskEvaluation().isCorrect(it.isCorrect) })
+                        .completed(st != null)
+                }
+                else -> {
+                    val st: ShortAnswerTaskState? = def.state?.let {
+                        runCatching { objectMapper.convertValue(it, ShortAnswerTaskState::class.java) }.getOrNull()
+                    }
+                    com.bcc.api.model.TaskState()
+                        .userAnswer(st?.textAnswer)
+                        .evaluation(st?.evaluation?.let { TaskEvaluation().isCorrect(it.isCorrect) })
+                        .completed(st != null)
+                }
+            }
             com.bcc.api.model.TaskWithState()
                 .definition(definition)
                 .state(state)
@@ -71,7 +105,7 @@ class TaskService(
             .tasks(items)
     }
 
-    private fun generateAndPersist(uploadId: String, chapterId: String): List<TaskDefinition> {
+    private fun generateAndPersist(uploadId: String, chapterId: String): List<Task> {
         val book = bookRepository.findByUploadId(uploadId)
             ?: throw IllegalArgumentException("Book not found")
         val chapter = book.chapters.firstOrNull { it.id == chapterId }
@@ -85,27 +119,30 @@ class TaskService(
             )
         )
         val definitions = gen.mapIndexed { idx, t ->
-            val optionItems = t.options?.mapIndexed { optIdx, label ->
-                TaskOptionData(id = "opt-${idx + 1}-${optIdx + 1}", label = label)
-            } ?: emptyList()
-            val correctId: String? = t.correctAnswer?.let { ans ->
-                optionItems.firstOrNull { it.label.equals(ans, ignoreCase = true) }?.id
+            val type = mapType(t.type)
+            val definitionObj: Any? = when (type) {
+                "multiple-choice" -> {
+                    val options = (t.options ?: emptyList()).map { label -> Option(label = label) }
+                    val correct = options.firstOrNull { it.label?.equals(t.correctAnswer ?: "", ignoreCase = true) == true }
+                    MultipleChoiceTaskDefinition(options = options, correctOption = correct ?: Option())
+                }
+                "multiple-select" -> {
+                    val options = (t.options ?: emptyList()).map { label -> Option(label = label) }
+                    val correct = (t.correctAnswers ?: emptyList()).mapNotNull { ans -> options.firstOrNull { it.label?.equals(ans, ignoreCase = true) == true } }
+                    MultiselectTaskDefinition(options = options, correctOptions = correct)
+                }
+                else -> null
             }
-            val correctIds: List<String>? = t.correctAnswers?.mapNotNull { ans ->
-                optionItems.firstOrNull { it.label.equals(ans, ignoreCase = true) }?.id
-            }
-            TaskDefinition(
+            Task(
                 bookId = uploadId,
                 chapterId = chapterId,
-                taskUid = "task-$uploadId-$chapterId-${idx + 1}",
                 question = t.title,
-                type = mapType(t.type),
-                options = optionItems,
-                correctAnswer = correctId,
-                correctAnswers = correctIds
+                type = type,
+                definition = definitionObj,
+                state = null
             )
         }
-        return taskDefinitionRepository.saveAll(definitions)
+        return taskRepository.saveAll(definitions)
     }
 
     private fun mapType(type: String): String = when (type.lowercase()) {
