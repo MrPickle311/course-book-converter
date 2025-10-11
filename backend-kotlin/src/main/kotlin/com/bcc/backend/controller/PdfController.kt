@@ -259,40 +259,34 @@ class PdfController(
 
         if (type == "multiple-choice") {
             val sel = taskSubmissionRequest.selectedOptionId
-            val isCorrect = sel != null
-            val mistakes = if (isCorrect) emptyList() else listOf("Incorrect option selected")
-            val chatEval = taskService.evaluateChoicesWithChat("", emptyList(), listOfNotNull(sel), emptyList(), false)
-            val eval = chatEval.copy(
-                isCorrect = isCorrect && (chatEval.isCorrect != false),
-                mistakes = if (!isCorrect) mistakes else chatEval.mistakes,
-                score = if (isCorrect) (chatEval.score ?: 1.0) else 0.0,
-                explanation = chatEval.explanation ?: if (isCorrect) "Correct" else "Incorrect"
-            )
-            // Update Task state JSON directly via TaskService helper (to be implemented)
+            val eval = taskService.updateMultipleChoice(taskId, sel)
+            val apiEval = TaskEvaluation()
+                .isCorrect(eval.isCorrect)
+                .mistakes(eval.mistakes ?: emptyList())
+                .score(java.math.BigDecimal.valueOf(eval.score ?: 0.0))
+                .explanation(eval.explanation)
+            val resp = TaskSubmissionResponse().success(true).evaluation(apiEval)
+            return ResponseEntity.ok(resp)
         } else if (type == "multiple-select") {
             val sel = taskSubmissionRequest.selectedOptionIds ?: emptyList()
-            val expected = emptyList<String>()
-            val missing = expected.filter { !sel.contains(it) }
-            val extra = sel.filter { !expected.contains(it) }
-            val isCorrect = missing.isEmpty() && extra.isEmpty()
-            val mistakes = buildList {
-                if (missing.isNotEmpty()) add("Missing: ${missing.joinToString(", ")}")
-                if (extra.isNotEmpty()) add("Extra: ${extra.joinToString(", ")}")
-            }
-            val score =
-                if (expected.isNotEmpty()) sel.count { expected.contains(it) }.toDouble() / expected.size else 0.0
-            val chatEval = taskService.evaluateChoicesWithChat("", emptyList(), sel, expected, true)
-            val eval = chatEval.copy(
-                isCorrect = isCorrect && (chatEval.isCorrect != false),
-                mistakes = if (!isCorrect) mistakes else chatEval.mistakes,
-                score = if (isCorrect) maxOf(score, chatEval.score ?: score) else score,
-                explanation = chatEval.explanation
-            )
-            // Update Task state JSON directly
+            val eval = taskService.updateMultiSelect(taskId, sel)
+            val apiEval = TaskEvaluation()
+                .isCorrect(eval.isCorrect)
+                .mistakes(eval.mistakes ?: emptyList())
+                .score(java.math.BigDecimal.valueOf(eval.score ?: 0.0))
+                .explanation(eval.explanation)
+            val resp = TaskSubmissionResponse().success(true).evaluation(apiEval)
+            return ResponseEntity.ok(resp)
         } else if (type == "short-answer") {
             val txt = taskSubmissionRequest.textAnswer?.trim() ?: ""
-            val eval = taskService.evaluateTextWithChat("", txt, type)
-            // Update Task state JSON directly
+            val eval = taskService.updateShortAnswer(taskId, txt)
+            val apiEval = TaskEvaluation()
+                .isCorrect(eval.isCorrect)
+                .mistakes(eval.mistakes ?: emptyList())
+                .score(java.math.BigDecimal.valueOf(eval.score ?: 0.0))
+                .explanation(eval.explanation)
+            val resp = TaskSubmissionResponse().success(true).evaluation(apiEval)
+            return ResponseEntity.ok(resp)
         } else {
             val eval = Evaluation(
                 isCorrect = false,
@@ -300,17 +294,14 @@ class PdfController(
                 score = 0.0,
                 explanation = null
             )
-            // Update Task state JSON directly
+            val apiEval = TaskEvaluation()
+                .isCorrect(eval.isCorrect == true)
+                .mistakes(eval.mistakes ?: emptyList())
+                .score(java.math.BigDecimal.valueOf(eval.score ?: 0.0))
+                .explanation(eval.explanation)
+            val resp = TaskSubmissionResponse().success(true).evaluation(apiEval)
+            return ResponseEntity.ok(resp)
         }
-
-        val saved = Evaluation(isCorrect = false, mistakes = emptyList(), score = 0.0, explanation = null)
-        val apiEval = TaskEvaluation()
-            .isCorrect(saved?.isCorrect == true)
-            .mistakes(saved?.mistakes ?: emptyList())
-            .score(java.math.BigDecimal.valueOf(saved?.score ?: 0.0))
-            .explanation(saved?.explanation)
-        val resp = TaskSubmissionResponse().success(true).evaluation(apiEval)
-        return ResponseEntity.ok(resp)
     }
 
     override fun submitTaskFile(
@@ -341,13 +332,13 @@ class PdfController(
                 extractedText.take(8000),
                 "upload-pdf"
             ) else Evaluation(isCorrect = false, mistakes = mistakes, score = 0.0, explanation = "Invalid file")
-            // Update Task state JSON via TaskService (not implemented here)
+            val persisted = taskService.updateFileUploadState(taskId, file.originalFilename ?: storedName, eval)
 
             val apiEval = TaskEvaluation()
-                .isCorrect(eval.isCorrect == true)
-                .mistakes(eval.mistakes ?: emptyList())
-                .score(java.math.BigDecimal.valueOf(eval.score ?: 0.0))
-                .explanation(eval.explanation)
+                .isCorrect(persisted.isCorrect)
+                .mistakes(persisted.mistakes ?: emptyList())
+                .score(java.math.BigDecimal.valueOf(persisted.score ?: 0.0))
+                .explanation(persisted.explanation)
             val resp = TaskSubmissionResponse()
                 .success(true)
                 .evaluation(apiEval)

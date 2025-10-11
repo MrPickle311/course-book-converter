@@ -22,6 +22,15 @@ class TaskService(
 ) {
     private val logger = LoggerFactory.getLogger(TaskService::class.java)
 
+    private fun toApiEvaluation(ev: Evaluation?): TaskEvaluation? {
+        if (ev == null) return null
+        return TaskEvaluation()
+            .isCorrect(ev.isCorrect)
+            .mistakes(ev.mistakes ?: emptyList())
+            .score(java.math.BigDecimal.valueOf(ev.score ?: 0.0))
+            .explanation(ev.explanation)
+    }
+
     fun getOrCreateTasks(uploadId: String, chapterId: String): ChapterTasksResponse {
         val defs = taskRepository.findByBookIdAndChapterId(uploadId, chapterId)
         val definitions = if (defs.isNotEmpty()) defs else generateAndPersist(uploadId, chapterId)
@@ -65,7 +74,7 @@ class TaskService(
                     }
                     com.bcc.api.model.TaskState()
                         .userAnswer(st?.selectedOption?.id?.toString())
-                        .evaluation(null)
+                        .evaluation(toApiEvaluation(st?.evaluation))
                         .completed(st != null)
                 }
                 "multiple-select" -> {
@@ -74,7 +83,7 @@ class TaskService(
                     }
                     com.bcc.api.model.TaskState()
                         .userAnswers((st?.selectedOptions ?: emptyList()).map { it.id.toString() })
-                        .evaluation(null)
+                        .evaluation(toApiEvaluation(st?.evaluation))
                         .completed(st != null)
                 }
                 "upload-pdf" -> {
@@ -83,7 +92,7 @@ class TaskService(
                     }
                     com.bcc.api.model.TaskState()
                         .userFileName(st?.fileName)
-                        .evaluation(st?.evaluation?.let { TaskEvaluation().isCorrect(it.isCorrect) })
+                        .evaluation(toApiEvaluation(st?.evaluation))
                         .completed(st != null)
                 }
                 else -> {
@@ -92,7 +101,7 @@ class TaskService(
                     }
                     com.bcc.api.model.TaskState()
                         .userAnswer(st?.textAnswer)
-                        .evaluation(st?.evaluation?.let { TaskEvaluation().isCorrect(it.isCorrect) })
+                        .evaluation(toApiEvaluation(st?.evaluation))
                         .completed(st != null)
                 }
             }
@@ -190,6 +199,73 @@ class TaskService(
             .messages(listOf(system, user))
             .call()
             .entity(Evaluation::class.java)
+    }
+
+    fun updateMultipleChoice(taskId: String, selectedOptionId: String?): Evaluation {
+        require(!selectedOptionId.isNullOrBlank()) { "selectedOptionId is required" }
+        val uuid = java.util.UUID.fromString(taskId)
+        val task = taskRepository.findById(uuid).orElseThrow()
+        val def = objectMapper.convertValue(task.definition, MultipleChoiceTaskDefinition::class.java)
+        val correctId = def.correctOption.id.toString()
+        val isCorrect = selectedOptionId == correctId
+        val evaluation = Evaluation(
+            isCorrect = isCorrect,
+            mistakes = if (isCorrect) emptyList() else listOf("Incorrect option selected"),
+            score = if (isCorrect) 1.0 else 0.0,
+            explanation = if (isCorrect) "Correct" else "Incorrect"
+        )
+        task.state = MultipleChoiceTaskState(
+            selectedOption = Option(id = java.util.UUID.fromString(selectedOptionId), label = def.options.firstOrNull { it.id.toString() == selectedOptionId }?.label),
+            evaluation = evaluation
+        )
+        taskRepository.save(task)
+        return evaluation
+    }
+
+    fun updateMultiSelect(taskId: String, selectedOptionIds: List<String>): Evaluation {
+        val uuid = java.util.UUID.fromString(taskId)
+        val task = taskRepository.findById(uuid).orElseThrow()
+        val def = objectMapper.convertValue(task.definition, MultiselectTaskDefinition::class.java)
+        val expected = def.correctOptions.map { it.id.toString() }
+        val missing = expected.filterNot { selectedOptionIds.contains(it) }
+        val extra = selectedOptionIds.filterNot { expected.contains(it) }
+        val isCorrect = missing.isEmpty() && extra.isEmpty()
+        val score = if (expected.isNotEmpty()) selectedOptionIds.count { expected.contains(it) }.toDouble() / expected.size else 0.0
+        val evaluation = Evaluation(
+            isCorrect = isCorrect,
+            mistakes = buildList {
+                if (missing.isNotEmpty()) add("Missing: ${missing.joinToString(", ")}")
+                if (extra.isNotEmpty()) add("Extra: ${extra.joinToString(", ")}")
+            },
+            score = score,
+            explanation = null
+        )
+        task.state = MultiselectTaskState(
+            selectedOptions = selectedOptionIds.map { id ->
+                val opt = def.options.firstOrNull { it.id.toString() == id }
+                Option(id = java.util.UUID.fromString(id), label = opt?.label)
+            },
+            evaluation = evaluation
+        )
+        taskRepository.save(task)
+        return evaluation
+    }
+
+    fun updateShortAnswer(taskId: String, textAnswer: String): Evaluation {
+        val uuid = java.util.UUID.fromString(taskId)
+        val task = taskRepository.findById(uuid).orElseThrow()
+        val evaluation = evaluateTextWithChat(task.question, textAnswer, task.type)
+        task.state = ShortAnswerTaskState(textAnswer = textAnswer, evaluation = evaluation)
+        taskRepository.save(task)
+        return evaluation
+    }
+
+    fun updateFileUploadState(taskId: String, fileName: String, evaluation: Evaluation): Evaluation {
+        val uuid = java.util.UUID.fromString(taskId)
+        val task = taskRepository.findById(uuid).orElseThrow()
+        task.state = FileUploadTaskState(fileName = fileName, evaluation = evaluation)
+        taskRepository.save(task)
+        return evaluation
     }
 }
 

@@ -57,6 +57,7 @@ data class MultiselectTaskDefinition (
 
 data class MultiselectTaskState (
     var selectedOptions: List<Option> = arrayListOf(),
+    var evaluation: Evaluation? = null,
 )
 
 
@@ -67,6 +68,7 @@ data class MultipleChoiceTaskDefinition (
 
 data class MultipleChoiceTaskState (
     var selectedOption: Option,
+    var evaluation: Evaluation? = null,
 )
 
 data class Evaluation(

@@ -92,10 +92,10 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
         return task.evaluation?.isCorrect === true;
     }
     if (task.type === 'multiple-choice') {
-      if (Array.isArray(task.correctAnswers) && task.correctAnswers.length > 0) {
+      if (Array.isArray(task.correctAnswerIds) && task.correctAnswerIds.length > 0) {
         return task.evaluation?.isCorrect === true;
       }
-      return task.userAnswer === task.correctAnswer;
+      return task.userAnswer === task.correctAnswerId;
     }
     if (task.type === 'short-answer' || task.type === 'code' || task.type === 'upload-pdf') {
       return task.evaluation?.isCorrect === true;
@@ -197,30 +197,40 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
       if (list.length === 0) {
           return;
       }
-      const correct = task.correctAnswers || [];
-      const missing = correct.filter(o => !list.includes(o));
-      const extra = list.filter(o => !correct.includes(o));
-      const updatedTask = {
-        ...task,
-        userAnswers: list,
-        evaluation: {
-          isCorrect: missing.length === 0 && extra.length === 0,
-          mistakes: [
-            ...(missing.length ? [`Missing choices: ${missing.join(', ')}`] : []),
-            ...(extra.length ? [`Extra choices selected: ${extra.join(', ')}`] : []),
-          ],
-          score: correct.length > 0 ? (list.filter(o => correct.includes(o)).length / correct.length) : undefined,
-          explanation: 'Select all correct statements. Partial credit is shown as score.'
-        },
-        completed: true,
-      } as Task;
-      const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
-      const updatedCourse = {
-        ...course,
-        tasks: updatedTasks,
-        completed: computeCourseCompleted(updatedTasks)
-      };
-      onUpdateCourse(updatedCourse);
+      setSubmitting(prev => ({ ...prev, [task.id]: true }));
+      (async () => {
+        try {
+          const resp = await DefaultService.submitTask({
+            taskId: task.id,
+            requestBody: {
+              type: task.type,
+              selectedOptionIds: list,
+            } as any,
+          });
+          const updatedTask = {
+            ...task,
+            userAnswers: list,
+            evaluation: resp.evaluation ? {
+              isCorrect: Boolean(resp.evaluation.isCorrect),
+              mistakes: resp.evaluation.mistakes || [],
+              score: typeof resp.evaluation.score === 'number' ? resp.evaluation.score : undefined,
+              explanation: resp.evaluation.explanation,
+            } : undefined,
+            completed: true,
+          } as Task;
+          const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
+          const updatedCourse = {
+            ...course,
+            tasks: updatedTasks,
+            completed: computeCourseCompleted(updatedTasks)
+          };
+          onUpdateCourse(updatedCourse);
+        } catch (e) {
+          console.error('Submit multi-select failed', e);
+        } finally {
+          setSubmitting(prev => ({ ...prev, [task.id]: false }));
+        }
+      })();
       return;
     }
 
@@ -230,39 +240,36 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
           return;
       }
       setSubmitting(prev => ({ ...prev, [task.id]: true }));
-      setTimeout(() => {
-        const fileName = file.name.toLowerCase();
-        const goodHints = ['notes', 'summary', 'chapter', 'module'];
-        const hasHint = goodHints.some(h => fileName.includes(h));
-        const mistakes: string[] = [];
-        if (!hasHint) {
-            mistakes.push('Filename is not descriptive (expected words like notes/summary/chapter).');
+      (async () => {
+        try {
+          const resp = await DefaultService.submitTaskFile({
+            taskId: task.id,
+            formData: { file }
+          });
+          const updatedTask = {
+            ...task,
+            userFileName: file.name,
+            evaluation: resp.evaluation ? {
+              isCorrect: Boolean(resp.evaluation.isCorrect),
+              mistakes: resp.evaluation.mistakes || [],
+              score: typeof resp.evaluation.score === 'number' ? resp.evaluation.score : undefined,
+              explanation: resp.evaluation.explanation,
+            } : undefined,
+            completed: true,
+          } as Task;
+          const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
+          const updatedCourse = {
+            ...course,
+            tasks: updatedTasks,
+            completed: computeCourseCompleted(updatedTasks)
+          };
+          onUpdateCourse(updatedCourse);
+        } catch (e) {
+          console.error('Submit upload-pdf failed', e);
+        } finally {
+          setSubmitting(prev => ({ ...prev, [task.id]: false }));
         }
-        if (!fileName.endsWith('.pdf')) {
-            mistakes.push('File is not a .pdf.');
-        }
-
-        const updatedTask = {
-          ...task,
-          userFileName: file.name,
-          feedback: hasHint ? `Mock review: "${file.name}" received and looks valid.` : `Mock review: "${file.name}" received.`,
-          evaluation: {
-            isCorrect: mistakes.length === 0,
-            mistakes,
-            score: mistakes.length === 0 ? 1 : 0,
-            explanation: 'Ensure the uploaded PDF relates to the chapter and is clearly named.'
-          },
-          completed: true,
-        } as Task;
-        const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
-        const updatedCourse = {
-          ...course,
-          tasks: updatedTasks,
-          completed: computeCourseCompleted(updatedTasks)
-        };
-        onUpdateCourse(updatedCourse);
-        setSubmitting(prev => ({ ...prev, [task.id]: false }));
-      }, 1200);
+      })();
       return;
     }
 
@@ -305,32 +312,45 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
       return;
     }
 
-    const baseUpdatedTask = {
-      ...task,
-      userAnswer,
-      completed: true
-    } as Task;
+    if (task.type === 'multiple-choice') {
+      setSubmitting(prev => ({ ...prev, [task.id]: true }));
+      (async () => {
+        try {
+          const resp = await DefaultService.submitTask({
+            taskId: task.id,
+            requestBody: {
+              type: task.type,
+              selectedOptionId: userAnswer,
+            } as any,
+          });
+          const updatedTask = {
+            ...task,
+            userAnswer: userAnswer,
+            evaluation: resp.evaluation ? {
+              isCorrect: Boolean(resp.evaluation.isCorrect),
+              mistakes: resp.evaluation.mistakes || [],
+              score: typeof resp.evaluation.score === 'number' ? resp.evaluation.score : undefined,
+              explanation: resp.evaluation.explanation,
+            } : undefined,
+            completed: true,
+          } as Task;
+          const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
+          const updatedCourse = {
+            ...course,
+            tasks: updatedTasks,
+            completed: computeCourseCompleted(updatedTasks)
+          };
+          onUpdateCourse(updatedCourse);
+        } catch (e) {
+          console.error('Submit multiple-choice failed', e);
+        } finally {
+          setSubmitting(prev => ({ ...prev, [task.id]: false }));
+        }
+      })();
+      return;
+    }
 
-    const updatedTask = (task.type === 'multiple-choice')
-      ? ({
-          ...baseUpdatedTask,
-          evaluation: {
-            isCorrect: userAnswer === (task.correctAnswer || ''),
-            mistakes: userAnswer === (task.correctAnswer || '') ? [] : ['Incorrect option selected.'],
-            score: userAnswer === (task.correctAnswer || '') ? 1 : 0,
-            explanation: 'Single-choice question evaluated instantly.'
-          }
-        } as Task)
-      : baseUpdatedTask;
-
-    const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
-    const updatedCourse = {
-      ...course,
-      tasks: updatedTasks,
-      completed: computeCourseCompleted(updatedTasks)
-    };
-
-    onUpdateCourse(updatedCourse);
+    // Fallback (should not hit)
   };
 
   const renderBlocks = (notes: string) => {
@@ -459,7 +479,7 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                         const isCorrectOption = option.id === task.correctAnswerId;
                         let labelClass = '';
                         if (isCompleted) {
-                          const isOverallCorrect = task.userAnswer === task.correctAnswer;
+                          const isOverallCorrect = task.userAnswer === task.correctAnswerId;
                           if (isOverallCorrect) {
                             labelClass = isCorrectOption ? 'text-green-600 font-medium' : '';
                           } else {
@@ -488,10 +508,10 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                     </div>
                     {task.completed && (
                       <div className={'p-3 border rounded'}
-                        style={task.userAnswer === task.correctAnswer ? { backgroundColor: '#ecfdf5', borderColor: '#86efac' } : { backgroundColor: '#fee2e2', borderColor: '#fca5a5' }}>
+                        style={task.userAnswer === task.correctAnswerId ? { backgroundColor: '#ecfdf5', borderColor: '#86efac' } : { backgroundColor: '#fee2e2', borderColor: '#fca5a5' }}>
                         <p className={'text-sm font-medium'}
-                          style={task.userAnswer === task.correctAnswer ? { color: '#065f46' } : { color: '#991b1b' }}>
-                          {task.userAnswer === task.correctAnswer ? 'Correct' : 'Incorrect'}
+                          style={task.userAnswer === task.correctAnswerId ? { color: '#065f46' } : { color: '#991b1b' }}>
+                          {task.userAnswer === task.correctAnswerId ? 'Correct' : 'Incorrect'}
                         </p>
                       </div>
                     )}
@@ -513,7 +533,8 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                         const isCorrectOption = task.correctAnswerIds?.includes(option.id);
                         let labelClass = '';
                         if (isCompleted) {
-                          const isOverallCorrect = task.correctAnswers?.every(correct => (taskAnswers[task.id] as string[])?.includes(correct));
+                          const expected = task.correctAnswerIds || [];
+                          const isOverallCorrect = expected.every(correct => (task.userAnswers || []).includes(correct)) && expected.length === (task.userAnswers || []).length;
                           if (isOverallCorrect) {
                             labelClass = isCorrectOption ? 'text-green-600 font-medium' : '';
                           } else {
