@@ -19,7 +19,10 @@ class CourseGeneratorService(
         @param:JsonProperty("type") val type: String,
         @param:JsonProperty("title") val title: String,
         @param:JsonProperty("description") val description: String,
-        @param:JsonProperty("successCriteria") val successCriteria: List<String>
+        @param:JsonProperty("successCriteria") val successCriteria: List<String>,
+        @param:JsonProperty("options") val options: List<String>? = null,
+        @param:JsonProperty("correctAnswer") val correctAnswer: String? = null,
+        @param:JsonProperty("correctAnswers") val correctAnswers: List<String>? = null,
     )
 
     data class NotesResult @JsonCreator constructor(
@@ -62,8 +65,9 @@ class CourseGeneratorService(
     fun generateTasksFromChapter(req: GenerateCourseRequest): List<CourseTask> {
         val system = SystemMessage(
             "You are an expert course designer. Create practice tasks for the chapter. " +
-                "Respond with STRICT JSON using: {tasks:[{type:string, title:string, description:string, successCriteria:string[]}]} . " +
-                "Rules: type must be one of ['short-answer','multiple-choice','multiple-select','code']; min 1, max 5 tasks; concise strings; no markdown."
+                "Respond with STRICT JSON using: {tasks:[{type:string, title:string, description:string, successCriteria:string[], options?:string[], correctAnswer?:string, correctAnswers?:string[]}]}. " +
+                "Rules: type must be one of ['short-answer','multiple-choice','multiple-select','code','upload-pdf']; min 1, max 5 tasks; concise strings; no markdown. " +
+                "For multiple-choice provide options and correctAnswer. For multiple-select provide options and correctAnswers."
         )
         val user = UserMessage(
             buildString {
@@ -92,7 +96,10 @@ class CourseGeneratorService(
                     type = type,
                     title = t.title.trim().ifBlank { "Practice question" },
                     description = t.description.trim(),
-                    successCriteria = t.successCriteria.take(6)
+                    successCriteria = t.successCriteria.take(6),
+                    options = t.options?.take(12),
+                    correctAnswer = t.correctAnswer,
+                    correctAnswers = t.correctAnswers?.take(12)
                 )
             }
             .take(5)

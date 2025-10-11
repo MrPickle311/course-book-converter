@@ -36,7 +36,9 @@ class PdfController(
     private val courseGeneratorService: CourseGeneratorService,
     private val bookRepository: BookRepository,
     private val taskSubmissionRepository: TaskSubmissionRepository,
-    private val chapterContentRepository: ChapterContentRepository
+    private val chapterContentRepository: ChapterContentRepository,
+    private val taskDefinitionRepository: com.bcc.backend.persistence.TaskDefinitionRepository,
+    private val taskService: com.bcc.backend.service.TaskService
 ) : DefaultApi {
     private val logger = LoggerFactory.getLogger(PdfController::class.java)
 
@@ -255,64 +257,105 @@ class PdfController(
         taskId: String,
         taskSubmissionRequest: @Valid TaskSubmissionRequest
     ): ResponseEntity<TaskSubmissionResponse> {
-        // Basic evaluation logic
-        val type = taskSubmissionRequest.type?.value ?: ""
-        val mistakes = mutableListOf<String>()
-        var score = 0.0
-        var isCorrect = false
-        when (type) {
-            "multiple-choice" -> {
-                val sel = taskSubmissionRequest.selectedOption
-                if (sel.isNullOrBlank()) mistakes.add("No option selected") else {
-                    isCorrect = true; score = 1.0
-                }
-            }
+        val def = taskDefinitionRepository.findByTaskUid(taskId)
+        val type = taskSubmissionRequest.type?.value ?: def?.type ?: ""
 
-            "multiple-select" -> {
-                val sel = taskSubmissionRequest.selectedOptions ?: emptyList()
-                if (sel.isEmpty()) mistakes.add("No options selected") else {
-                    // Without answer key, mark as completed
-                    isCorrect = true; score = 1.0
-                }
+        if (type == "multiple-choice") {
+            val sel = taskSubmissionRequest.selectedOptionId
+            val isCorrect = sel != null && sel == def?.correctAnswer
+            val mistakes = if (isCorrect) emptyList() else listOf("Incorrect option selected")
+            val chatEval = taskService.evaluateChoicesWithChat(
+                def?.question ?: "",
+                (def?.options ?: emptyList()).map { it.label },
+                listOfNotNull(sel),
+                listOfNotNull(def?.correctAnswer).map { id -> (def?.options ?: emptyList()).firstOrNull { it.id == id }?.label ?: id },
+                false
+            )
+            val eval = chatEval.copy(
+                isCorrect = isCorrect && (chatEval.isCorrect != false),
+                mistakes = if (!isCorrect) mistakes else chatEval.mistakes,
+                score = if (isCorrect) (chatEval.score ?: 1.0) else 0.0,
+                explanation = chatEval.explanation ?: if (isCorrect) "Correct" else "Expected ${def?.correctAnswer}"
+            )
+            val submission = TaskSubmission(
+                taskId = taskId,
+                userId = null,
+                type = type,
+                selectedOption = sel,
+                selectedOptions = null,
+                textAnswer = null,
+                fileName = null,
+                evaluation = eval
+            )
+            taskSubmissionRepository.save(submission)
+        } else if (type == "multiple-select") {
+            val sel = taskSubmissionRequest.selectedOptionIds ?: emptyList()
+            val expected = def?.correctAnswers ?: emptyList()
+            val missing = expected.filter { !sel.contains(it) }
+            val extra = sel.filter { !expected.contains(it) }
+            val isCorrect = missing.isEmpty() && extra.isEmpty()
+            val mistakes = buildList {
+                if (missing.isNotEmpty()) add("Missing: ${missing.joinToString(", ")}")
+                if (extra.isNotEmpty()) add("Extra: ${extra.joinToString(", ")}")
             }
-
-            "short-answer", "code" -> {
-                val txt = taskSubmissionRequest.textAnswer?.trim() ?: ""
-                if (txt.isBlank()) mistakes.add("Answer is empty")
-                if (txt.length < 40) mistakes.add("Answer is too short")
-                isCorrect = mistakes.isEmpty()
-                score = if (isCorrect) 1.0 else if (txt.isNotBlank()) 0.5 else 0.0
-            }
-
-            else -> mistakes.add("Unsupported task type: $type")
+            val score =
+                if (expected.isNotEmpty()) sel.count { expected.contains(it) }.toDouble() / expected.size else 0.0
+            val chatEval = taskService.evaluateChoicesWithChat(
+                def?.question ?: "",
+                (def?.options ?: emptyList()).map { it.label },
+                sel.map { id -> (def?.options ?: emptyList()).firstOrNull { it.id == id }?.label ?: id },
+                expected.map { id -> (def?.options ?: emptyList()).firstOrNull { it.id == id }?.label ?: id },
+                true
+            )
+            val eval = chatEval.copy(
+                isCorrect = isCorrect && (chatEval.isCorrect != false),
+                mistakes = if (!isCorrect) mistakes else chatEval.mistakes,
+                score = if (isCorrect) maxOf(score, chatEval.score ?: score) else score,
+                explanation = chatEval.explanation
+            )
+            val submission = TaskSubmission(
+                taskId = taskId,
+                userId = null,
+                type = type,
+                selectedOption = null,
+                selectedOptions = sel,
+                textAnswer = null,
+                fileName = null,
+                evaluation = eval
+            )
+            taskSubmissionRepository.save(submission)
+        } else if (type == "short-answer" || type == "code") {
+            val txt = taskSubmissionRequest.textAnswer?.trim() ?: ""
+            val eval = taskService.evaluateTextWithChat(def?.question ?: "", txt, type)
+            val submission = TaskSubmission(
+                taskId = taskId,
+                userId = null,
+                type = type,
+                selectedOption = null,
+                selectedOptions = null,
+                textAnswer = txt,
+                fileName = null,
+                evaluation = eval
+            )
+            taskSubmissionRepository.save(submission)
+        } else {
+            val eval = Evaluation(
+                isCorrect = false,
+                mistakes = listOf("Unsupported task type: $type"),
+                score = 0.0,
+                explanation = null
+            )
+            val submission = TaskSubmission(taskId = taskId, userId = null, type = type, evaluation = eval)
+            taskSubmissionRepository.save(submission)
         }
 
-        val eval = Evaluation(
-            isCorrect = isCorrect,
-            mistakes = mistakes,
-            score = score,
-            explanation = if (mistakes.isEmpty()) "Looks good" else "Please review the feedback"
-        )
-        val submission = TaskSubmission(
-            taskId = taskId,
-            userId = null,
-            type = type,
-            selectedOption = taskSubmissionRequest.selectedOption,
-            selectedOptions = taskSubmissionRequest.selectedOptions,
-            textAnswer = taskSubmissionRequest.textAnswer,
-            fileName = null,
-            evaluation = eval
-        )
-        taskSubmissionRepository.save(submission)
-
+        val saved = taskSubmissionRepository.findByTaskId(taskId).maxByOrNull { it.createdAt }!!.evaluation
         val apiEval = TaskEvaluation()
-            .isCorrect(isCorrect)
-            .mistakes(mistakes)
-            .score(java.math.BigDecimal.valueOf(score))
-            .explanation(eval.explanation)
-        val resp = TaskSubmissionResponse()
-            .success(true)
-            .evaluation(apiEval)
+            .isCorrect(saved?.isCorrect == true)
+            .mistakes(saved?.mistakes ?: emptyList())
+            .score(java.math.BigDecimal.valueOf(saved?.score ?: 0.0))
+            .explanation(saved?.explanation)
+        val resp = TaskSubmissionResponse().success(true).evaluation(apiEval)
         return ResponseEntity.ok(resp)
     }
 
@@ -332,12 +375,19 @@ class PdfController(
             file.inputStream.use { input ->
                 Files.copy(input, dest, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
             }
-            val eval = Evaluation(
-                isCorrect = mistakes.isEmpty(),
-                mistakes = mistakes,
-                score = if (mistakes.isEmpty()) 1.0 else 0.0,
-                explanation = if (mistakes.isEmpty()) "File uploaded successfully" else "Invalid file"
-            )
+            // Extract text from PDF to feed Chat for grading context
+            val extractedText = if (isPdf) runCatching {
+                org.apache.pdfbox.pdmodel.PDDocument.load(dest.toFile()).use { doc ->
+                    val stripper = org.apache.pdfbox.text.PDFTextStripper()
+                    stripper.getText(doc)
+                }
+            }.getOrElse { "" } else ""
+            val def = taskDefinitionRepository.findByTaskUid(taskId)
+            val eval = if (isPdf) taskService.evaluateTextWithChat(
+                def?.question ?: "Uploaded PDF task",
+                extractedText.take(8000),
+                "upload-pdf"
+            ) else Evaluation(isCorrect = false, mistakes = mistakes, score = 0.0, explanation = "Invalid file")
             val submission = TaskSubmission(
                 taskId = taskId,
                 userId = null,
@@ -375,6 +425,16 @@ class PdfController(
                 .body(content)
         } catch (ex: Exception) {
             logger.error("Failed to get chapter notes", ex)
+            ResponseEntity.internalServerError().build()
+        }
+    }
+
+    override fun getChapterTasks(uploadId: String, chapterId: String): ResponseEntity<ChapterTasksResponse> {
+        return try {
+            val resp = taskService.getOrCreateTasks(uploadId, chapterId)
+            ResponseEntity.ok(resp)
+        } catch (ex: Exception) {
+            logger.error("Failed to get chapter tasks for {}/{}", uploadId, chapterId, ex)
             ResponseEntity.internalServerError().build()
         }
     }
