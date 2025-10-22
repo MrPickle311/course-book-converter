@@ -10,6 +10,7 @@ import { Textarea } from './ui/textarea';
 import { CheckCircle, Circle, XCircle, BookOpen, CheckSquare, Award, Loader2 } from 'lucide-react';
 import * as runtime from 'react/jsx-runtime'
 import remarkGfm from 'remark-gfm'
+import rehypeHighlight from 'rehype-highlight'
 
 interface TaskOption { id: string; label: string }
 
@@ -356,7 +357,7 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
   const renderBlocks = (notes: string) => {
     try {
     const code = compileSync(notes, { outputFormat: 'function-body',
-      development: false, remarkPlugins: [remarkGfm] } );
+      development: false, remarkPlugins: [remarkGfm, rehypeHighlight], format: "mdx" } );
       const runned = runSync(code, runtime ) as any;
       const C = runned.default;
     return (
