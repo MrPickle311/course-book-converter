@@ -30,8 +30,6 @@ data class ChapterContent(
 	var startPage: Int,
 	@Column(name = "end_page")
 	var endPage: Int?,
-	@Column(name = "content", nullable = false, columnDefinition = "text")
-	var content: String,
 	@Column(name = "created_at", nullable = false)
 	var createdAt: Instant = Instant.now()
 )

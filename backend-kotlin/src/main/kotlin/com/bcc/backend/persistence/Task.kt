@@ -1,5 +1,7 @@
 package com.bcc.backend.persistence
 
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.vladmihalcea.hibernate.type.json.JsonType
 import jakarta.persistence.*
 import org.hibernate.annotations.Type
@@ -50,32 +52,31 @@ data class Option(
     var label: String? = null,
 )
 
-data class MultiselectTaskDefinition (
+data class MultiselectTaskDefinition(
     var options: List<Option> = arrayListOf(),
     var correctOptions: List<Option> = arrayListOf(),
 )
 
-data class MultiselectTaskState (
+data class MultiselectTaskState(
     var selectedOptions: List<Option> = arrayListOf(),
     var evaluation: Evaluation? = null,
 )
 
 
-data class MultipleChoiceTaskDefinition (
+data class MultipleChoiceTaskDefinition(
     var options: List<Option>,
     var correctOption: Option,
 )
 
-data class MultipleChoiceTaskState (
+data class MultipleChoiceTaskState(
     var selectedOption: Option,
     var evaluation: Evaluation? = null,
 )
 
-data class Evaluation(
-    var isCorrect: Boolean,
-    var mistakes: List<String>? = null,
-    var score: Double? = null,
-    var explanation: String? = null
+data class Evaluation @JsonCreator constructor(
+    @param:JsonProperty("isCorrect") var isCorrect: Boolean,
+    @param:JsonProperty("mistakes") var mistakes: List<String>? = null,
+    @param:JsonProperty("score") var score: Double? = null
 )
 
 data class ShortAnswerTaskState(

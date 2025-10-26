@@ -43,6 +43,7 @@ class AITableOfContentService(
         splitter.setStartPage(1)
         while (true) {
             splitter.setEndPage(pagesToSend)
+            stripper.resources
             pages = splitter.split(doc)
                 .map { stripper.getText(it) }
                 .toString()

@@ -3,11 +3,13 @@ package com.bcc.backend.service
 import com.bcc.api.model.ChapterTasksResponse
 import com.bcc.api.model.TaskEvaluation
 import com.bcc.backend.persistence.*
+import com.bcc.backend.service.CourseGeneratorService.CourseTask
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.ai.chat.client.ChatClient
 import org.springframework.ai.chat.messages.SystemMessage
 import org.springframework.ai.chat.messages.UserMessage
+import org.springframework.ai.model.Media
 import org.springframework.stereotype.Service
 
 @Service
@@ -23,30 +25,38 @@ class TaskService(
     private val logger = LoggerFactory.getLogger(TaskService::class.java)
 
     private fun toApiEvaluation(ev: Evaluation?): TaskEvaluation? {
-        if (ev == null) return null
+        if (ev == null) {
+            return null
+        }
         return TaskEvaluation()
             .isCorrect(ev.isCorrect)
             .mistakes(ev.mistakes ?: emptyList())
             .score(java.math.BigDecimal.valueOf(ev.score ?: 0.0))
-            .explanation(ev.explanation)
     }
 
-    fun getOrCreateTasks(uploadId: String, chapterId: String): ChapterTasksResponse {
+    fun getChapterTasks(uploadId: String, chapterId: String): ChapterTasksResponse {
         val defs = taskRepository.findByBookIdAndChapterId(uploadId, chapterId)
-        val definitions = if (defs.isNotEmpty()) defs else generateAndPersist(uploadId, chapterId)
-        val items = definitions.map { def ->
+        val items = defs.map { def ->
             val definition = when (def.type) {
                 "multiple-choice" -> {
                     val defObj: MultipleChoiceTaskDefinition? = def.definition?.let {
-                        runCatching { objectMapper.convertValue(it, MultipleChoiceTaskDefinition::class.java) }.getOrNull()
+                        runCatching {
+                            objectMapper.convertValue(
+                                it,
+                                MultipleChoiceTaskDefinition::class.java
+                            )
+                        }.getOrNull()
                     }
                     com.bcc.api.model.TaskDefinitionMultipleChoice()
                         .id(def.id.toString())
                         .type(com.bcc.api.model.TaskDefinitionMultipleChoice.TypeEnum.MULTIPLE_CHOICE)
                         .question(def.question)
-                        .options((defObj?.options ?: emptyList()).map { o -> com.bcc.api.model.TaskOption().id(o.id.toString()).label(o.label ?: "") })
+                        .options((defObj?.options ?: emptyList()).map { o ->
+                            com.bcc.api.model.TaskOption().id(o.id.toString()).label(o.label ?: "")
+                        })
                         .correctAnswerId(defObj?.correctOption?.id?.toString())
                 }
+
                 "multiple-select" -> {
                     val defObj: MultiselectTaskDefinition? = def.definition?.let {
                         runCatching { objectMapper.convertValue(it, MultiselectTaskDefinition::class.java) }.getOrNull()
@@ -55,13 +65,17 @@ class TaskService(
                         .id(def.id.toString())
                         .type(com.bcc.api.model.TaskDefinitionMultipleSelect.TypeEnum.MULTIPLE_SELECT)
                         .question(def.question)
-                        .options((defObj?.options ?: emptyList()).map { o -> com.bcc.api.model.TaskOption().id(o.id.toString()).label(o.label ?: "") })
+                        .options((defObj?.options ?: emptyList()).map { o ->
+                            com.bcc.api.model.TaskOption().id(o.id.toString()).label(o.label ?: "")
+                        })
                         .correctAnswerIds((defObj?.correctOptions ?: emptyList()).map { it.id.toString() })
                 }
+
                 "upload-pdf" -> com.bcc.api.model.TaskDefinitionUploadPdf()
                     .id(def.id.toString())
                     .type(com.bcc.api.model.TaskDefinitionUploadPdf.TypeEnum.UPLOAD_PDF)
                     .question(def.question)
+
                 else -> com.bcc.api.model.TaskDefinitionShortAnswer()
                     .id(def.id.toString())
                     .type(com.bcc.api.model.TaskDefinitionShortAnswer.TypeEnum.SHORT_ANSWER)
@@ -77,6 +91,7 @@ class TaskService(
                         .evaluation(toApiEvaluation(st?.evaluation))
                         .completed(st != null)
                 }
+
                 "multiple-select" -> {
                     val st: MultiselectTaskState? = def.state?.let {
                         runCatching { objectMapper.convertValue(it, MultiselectTaskState::class.java) }.getOrNull()
@@ -86,6 +101,7 @@ class TaskService(
                         .evaluation(toApiEvaluation(st?.evaluation))
                         .completed(st != null)
                 }
+
                 "upload-pdf" -> {
                     val st: FileUploadTaskState? = def.state?.let {
                         runCatching { objectMapper.convertValue(it, FileUploadTaskState::class.java) }.getOrNull()
@@ -95,6 +111,7 @@ class TaskService(
                         .evaluation(toApiEvaluation(st?.evaluation))
                         .completed(st != null)
                 }
+
                 else -> {
                     val st: ShortAnswerTaskState? = def.state?.let {
                         runCatching { objectMapper.convertValue(it, ShortAnswerTaskState::class.java) }.getOrNull()
@@ -114,32 +131,34 @@ class TaskService(
             .tasks(items)
     }
 
-    private fun generateAndPersist(uploadId: String, chapterId: String): List<Task> {
+    fun persistTasks(uploadId: String, chapterId: String, tasks: List<CourseTask>): List<Task> {
         val book = bookRepository.findByUploadId(uploadId)
             ?: throw IllegalArgumentException("Book not found")
         val chapter = book.chapters.firstOrNull { it.id == chapterId }
             ?: throw IllegalArgumentException("Chapter not found")
-
-        val context = chapterContentRepository.findByBookIdAndChapterId(uploadId, chapterId)?.content
-        val gen = courseGeneratorService.generateTasksFromChapter(
-            CourseGeneratorService.GenerateCourseRequest(
-                chapter.title,
-                context
-            )
-        )
-        val definitions = gen.mapIndexed { idx, t ->
+        val definitions = tasks.mapIndexed { idx, t ->
             val type = mapType(t.type)
             val definitionObj: Any? = when (type) {
                 "multiple-choice" -> {
                     val options = (t.options ?: emptyList()).map { label -> Option(label = label) }
-                    val correct = options.firstOrNull { it.label?.equals(t.correctAnswer ?: "", ignoreCase = true) == true }
+                    val correct =
+                        options.firstOrNull { it.label?.equals(t.correctAnswer ?: "", ignoreCase = true) == true }
                     MultipleChoiceTaskDefinition(options = options, correctOption = correct ?: Option())
                 }
+
                 "multiple-select" -> {
                     val options = (t.options ?: emptyList()).map { label -> Option(label = label) }
-                    val correct = (t.correctAnswers ?: emptyList()).mapNotNull { ans -> options.firstOrNull { it.label?.equals(ans, ignoreCase = true) == true } }
+                    val correct = (t.correctAnswers ?: emptyList()).mapNotNull { ans ->
+                        options.firstOrNull {
+                            it.label?.equals(
+                                ans,
+                                ignoreCase = true
+                            ) == true
+                        }
+                    }
                     MultiselectTaskDefinition(options = options, correctOptions = correct)
                 }
+
                 else -> null
             }
             Task(
@@ -161,12 +180,16 @@ class TaskService(
         else -> "short-answer"
     }
 
-    fun evaluateTextWithChat(question: String, answer: String, type: String): Evaluation {
+    fun evaluateTextAnswer(question: String, answer: String, content: String, pdfMedia: Media): Evaluation {
         val system = SystemMessage(
-            "You are a strict grader. Evaluate student's answer for correctness and provide JSON {isCorrect:boolean, mistakes:string[], score:number, explanation:string}."
+            "You are a strict grader. " +
+                    "Evaluate answer for correctness basing on given book's chapter. " +
+                    "Chapter is attached as pdf media"
         )
         val user = UserMessage(
-            "Question: \n$question\n\nStudent ${type} answer:\n$answer\n"
+            "Question: \n$question\n\n" +
+                    "Answer:\n$answer\n\n",
+            pdfMedia
         )
         return chatClient
             .prompt()
@@ -184,7 +207,7 @@ class TaskService(
     ): Evaluation {
         val system = SystemMessage(
             "You are a strict grader for ${if (multi) "multiple-select" else "multiple-choice"} tasks. " +
-                "Evaluate the student's selection and return JSON {isCorrect:boolean, mistakes:string[], score:number, explanation:string}."
+                    "Evaluate the student's selection and return JSON {isCorrect:boolean, mistakes:string[], score:number, explanation:string}."
         )
         val user = UserMessage(
             buildString {
@@ -211,11 +234,13 @@ class TaskService(
         val evaluation = Evaluation(
             isCorrect = isCorrect,
             mistakes = if (isCorrect) emptyList() else listOf("Incorrect option selected"),
-            score = if (isCorrect) 1.0 else 0.0,
-            explanation = if (isCorrect) "Correct" else "Incorrect"
+            score = if (isCorrect) 1.0 else 0.0
         )
         task.state = MultipleChoiceTaskState(
-            selectedOption = Option(id = java.util.UUID.fromString(selectedOptionId), label = def.options.firstOrNull { it.id.toString() == selectedOptionId }?.label),
+            selectedOption = Option(
+                id = java.util.UUID.fromString(selectedOptionId),
+                label = def.options.firstOrNull { it.id.toString() == selectedOptionId }?.label
+            ),
             evaluation = evaluation
         )
         taskRepository.save(task)
@@ -230,15 +255,15 @@ class TaskService(
         val missing = expected.filterNot { selectedOptionIds.contains(it) }
         val extra = selectedOptionIds.filterNot { expected.contains(it) }
         val isCorrect = missing.isEmpty() && extra.isEmpty()
-        val score = if (expected.isNotEmpty()) selectedOptionIds.count { expected.contains(it) }.toDouble() / expected.size else 0.0
+        val score = if (expected.isNotEmpty()) selectedOptionIds.count { expected.contains(it) }
+            .toDouble() / expected.size else 0.0
         val evaluation = Evaluation(
             isCorrect = isCorrect,
             mistakes = buildList {
                 if (missing.isNotEmpty()) add("Missing: ${missing.joinToString(", ")}")
                 if (extra.isNotEmpty()) add("Extra: ${extra.joinToString(", ")}")
             },
-            score = score,
-            explanation = null
+            score = score
         )
         task.state = MultiselectTaskState(
             selectedOptions = selectedOptionIds.map { id ->
@@ -251,10 +276,10 @@ class TaskService(
         return evaluation
     }
 
-    fun updateShortAnswer(taskId: String, textAnswer: String): Evaluation {
+    fun updateShortAnswer(taskId: String, textAnswer: String, pdfMedia: Media): Evaluation {
         val uuid = java.util.UUID.fromString(taskId)
         val task = taskRepository.findById(uuid).orElseThrow()
-        val evaluation = evaluateTextWithChat(task.question, textAnswer, task.type)
+        val evaluation = evaluateTextAnswer(task.question, textAnswer, task.type, pdfMedia)
         task.state = ShortAnswerTaskState(textAnswer = textAnswer, evaluation = evaluation)
         taskRepository.save(task)
         return evaluation

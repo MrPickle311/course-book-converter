@@ -5,10 +5,16 @@ import com.bcc.api.model.*
 import com.bcc.backend.persistence.*
 import com.bcc.backend.persistence.Chapter
 import com.bcc.backend.service.CourseGeneratorService
+import com.bcc.backend.service.ImageFilterService
+import com.bcc.backend.service.MarkdownFormatFixer
 import com.bcc.backend.service.PdfProcessor
+import com.bcc.backend.service.TaskService
+import com.bcc.backend.service.UnexpectedTextRemover
+import com.bcc.backend.service.updateImageSourcesInPlace
 import jakarta.validation.Valid
 import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
+import jakarta.validation.constraints.NotNull
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.PDResources
 import org.apache.pdfbox.pdmodel.graphics.form.PDFormXObject
@@ -24,10 +30,12 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.multipart.MultipartFile
 import java.awt.image.RenderedImage
+import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
 import javax.imageio.ImageIO
+import kotlin.io.path.pathString
 
 
 @RestController
@@ -36,7 +44,11 @@ class PdfController(
     private val courseGeneratorService: CourseGeneratorService,
     private val bookRepository: BookRepository,
     private val chapterContentRepository: ChapterContentRepository,
-    private val taskService: com.bcc.backend.service.TaskService
+    private val taskService: TaskService,
+    private val imageFilterService: ImageFilterService,
+    private val unexpectedTextRemover: UnexpectedTextRemover,
+    private val markdownFormatFixer: MarkdownFormatFixer,
+    private val taskRepository: TaskRepository
 ) : DefaultApi {
     private val logger = LoggerFactory.getLogger(PdfController::class.java)
 
@@ -125,78 +137,88 @@ class PdfController(
                 return ResponseEntity.badRequest().build()
             }
 
-            val pdfPath = Path.of("uploads").resolve("$uploadId.pdf").toFile()
+            val pdfPath = getPdfPath(uploadId)
+            val outDir = getChapterPath(uploadId, chapterId)
 
             // Try to reuse stored chapter content first
             val chapterContent = chapterContentRepository.findByBookIdAndChapterId(uploadId, chapterId)
-            val contextTitleStartEnd = if (chapterContent != null) {
-                Triple(
-                    chapterContent.content,
-                    chapterContent.title,
-                    Pair(chapterContent.startPage, chapterContent.endPage)
-                )
-            } else {
-                val book = bookRepository.findByUploadId(uploadId) ?: return ResponseEntity.notFound().build()
-                val chapter = book.chapters.firstOrNull { it.id == chapterId }
-                if (chapter == null) {
-                    return ResponseEntity.notFound().build()
-                }
-                val start = chapter.startPage
-                val end = chapter.endPage
-                val text = extractPagesText(pdfPath, start, end)
-
-                // Persist for future reuse
-                chapterContentRepository.save(
-                    ChapterContent(
-                        bookId = uploadId,
-                        chapterId = chapterId,
-                        title = chapter.title,
-                        startPage = start,
-                        endPage = end,
-                        content = text
-                    )
-                )
-
-                Triple(text, chapter.title, Pair(start, end))
+            if (chapterContent != null) {
+                return ResponseEntity.badRequest().body(GenerateCourseResponse())
             }
-            val context = contextTitleStartEnd.first
-            val title = contextTitleStartEnd.second
-            val pagesRange = contextTitleStartEnd.third
-            val module = courseGeneratorService.generateFromChapter(
-                CourseGeneratorService.GenerateCourseRequest(
-                    title,
-                    context
+            val book = bookRepository.findByUploadId(uploadId) ?: return ResponseEntity.notFound().build()
+            val chapter = book.chapters.firstOrNull { it.id == chapterId }
+            if (chapter == null) {
+                return ResponseEntity.notFound().build()
+            }
+            val start = chapter.startPage
+            val end = chapter.endPage
+            val text = extractPagesText(pdfPath, start, end)
+
+            // Persist for future reuse
+            chapterContentRepository.save(
+                ChapterContent(
+                    bookId = uploadId,
+                    chapterId = chapterId,
+                    title = chapter.title,
+                    startPage = start,
+                    endPage = end
                 )
             )
 
-            val outDir = Path.of("uploads").resolve("notes/${uploadId}/${chapterId}").toAbsolutePath()
+//            val context = contextTitleStartEnd.first
+            val title = chapter.title
+            val pagesRange = Pair(start, end)
+            val pdfMedia = courseGeneratorService.subsetPdfAsMedia(pdfPath, pagesRange.first, pagesRange.second ?: 0)
+            val module = courseGeneratorService.generateFromChapter(
+                CourseGeneratorService.GenerateCourseRequest(
+                    title,
+                    pdfMedia,
+                ),
+                outDir.pathString
+            )
+
             Files.createDirectories(outDir)
+
+            //Replacing src images with real links
 
             PDDocument.load(pdfPath).use { doc ->
                 val firstPage = pagesRange.first
                 val lastPage = pagesRange.second ?: (doc.numberOfPages - 1)
+                var i = 1
                 for (page in firstPage..lastPage) {
                     val pageImages = getImagesFromResources(doc.pages[page].resources)
-                    pageImages.forEachIndexed { idx, it ->
-                        val filename = "page-$page-$idx.png"
+                    pageImages.forEach {
+                        val filename = "figure-$i.png"
                         val filePath = outDir.resolve(filename)
                         ImageIO.write(it, "png", filePath.toFile())
+                        ++i
                     }
                 }
             }
 
-            val mdxPath = outDir.resolve("index.mdx")
-            Files.writeString(mdxPath, module.notes.mdx)
+            module.notes = imageFilterService.filterMarkdownImages(outDir.pathString, module.notes)
+//            module.notes = unexpectedTextRemover.removeUnexpectedText(module.notes)
+//            module.notes = markdownFormatFixer.fixMarkdownFormat(module.notes)
 
+
+            val mdxPath = outDir.resolve("index.mdx")
+            Files.writeString(mdxPath, module.notes)
+            updateImageSourcesInPlace(
+                mdxPath.pathString,
+                "http://localhost:8080/api/v1/books/${uploadId}/chapters/${chapterId}/images"
+            )
+
+            taskService.persistTasks(uploadId, chapterId, module.tasks)
+
+            println("Course is done")
             val response = GenerateCourseResponse()
-                .title(module.notes.title)
+                .title(title)
                 .content("")
                 .tasks(module.tasks.map { t ->
                     CourseTask()
                         .type(t.type)
                         .title(t.title)
                         .description(t.description)
-                        .successCriteria(t.successCriteria)
                 })
             ResponseEntity.ok(response)
         } catch (ex: Exception) {
@@ -204,6 +226,13 @@ class PdfController(
             ResponseEntity.internalServerError().build()
         }
     }
+
+    private fun getPdfPath(uploadId: @NotNull String): File = Path.of("uploads").resolve("$uploadId.pdf").toFile()
+
+    private fun getChapterPath(
+        uploadId: @NotNull String,
+        chapterId: @NotNull String
+    ): Path = Path.of("uploads").resolve("notes/${uploadId}/${chapterId}").toAbsolutePath()
 
     override fun processPdf(file: MultipartFile): ResponseEntity<ProcessPdfResponse> {
         val name = (file.originalFilename ?: "upload.pdf").lowercase()
@@ -264,7 +293,6 @@ class PdfController(
                 .isCorrect(eval.isCorrect)
                 .mistakes(eval.mistakes ?: emptyList())
                 .score(java.math.BigDecimal.valueOf(eval.score ?: 0.0))
-                .explanation(eval.explanation)
             val resp = TaskSubmissionResponse().success(true).evaluation(apiEval)
             return ResponseEntity.ok(resp)
         } else if (type == "multiple-select") {
@@ -274,31 +302,33 @@ class PdfController(
                 .isCorrect(eval.isCorrect)
                 .mistakes(eval.mistakes ?: emptyList())
                 .score(java.math.BigDecimal.valueOf(eval.score ?: 0.0))
-                .explanation(eval.explanation)
             val resp = TaskSubmissionResponse().success(true).evaluation(apiEval)
             return ResponseEntity.ok(resp)
         } else if (type == "short-answer") {
             val txt = taskSubmissionRequest.textAnswer?.trim() ?: ""
-            val eval = taskService.updateShortAnswer(taskId, txt)
-            val apiEval = TaskEvaluation()
-                .isCorrect(eval.isCorrect)
-                .mistakes(eval.mistakes ?: emptyList())
-                .score(java.math.BigDecimal.valueOf(eval.score ?: 0.0))
-                .explanation(eval.explanation)
-            val resp = TaskSubmissionResponse().success(true).evaluation(apiEval)
+            val task = taskRepository.findById(UUID.fromString(taskId)).get()
+            val chapter = chapterContentRepository.findByBookIdAndChapterId(bookId = task.bookId, chapterId = task.chapterId) ?: return ResponseEntity.badRequest().build()
+            val pdfPath = getPdfPath(task.bookId)
+            val pdfMedia = courseGeneratorService.subsetPdfAsMedia(pdfPath, chapter.startPage, chapter.endPage ?: 0)
+            val evaluation = taskService.updateShortAnswer(taskId, txt, pdfMedia)
+            val taskEvaluation = TaskEvaluation()
+                .isCorrect(evaluation.isCorrect)
+                .mistakes(evaluation.mistakes ?: emptyList())
+                .score(java.math.BigDecimal.valueOf(evaluation.score ?: 0.0))
+            val resp = TaskSubmissionResponse()
+                .success(true)
+                .evaluation(taskEvaluation)
             return ResponseEntity.ok(resp)
         } else {
             val eval = Evaluation(
                 isCorrect = false,
                 mistakes = listOf("Unsupported task type: $type"),
-                score = 0.0,
-                explanation = null
+                score = 0.0
             )
             val apiEval = TaskEvaluation()
                 .isCorrect(eval.isCorrect == true)
                 .mistakes(eval.mistakes ?: emptyList())
                 .score(java.math.BigDecimal.valueOf(eval.score ?: 0.0))
-                .explanation(eval.explanation)
             val resp = TaskSubmissionResponse().success(true).evaluation(apiEval)
             return ResponseEntity.ok(resp)
         }
@@ -308,10 +338,12 @@ class PdfController(
         taskId: String,
         file: MultipartFile
     ): ResponseEntity<TaskSubmissionResponse> {
-        val original = (file.originalFilename ?: "upload.bin").lowercase()
+        val original = (file.originalFilename ?: "upload.pdf").lowercase()
         val isPdf = original.endsWith(".pdf")
         val mistakes = mutableListOf<String>()
-        if (!isPdf) mistakes.add("Only PDF files are supported")
+        if (!isPdf) {
+            mistakes.add("Only PDF files are supported")
+        }
         val uploadDir = Path.of("uploads", "tasks", taskId).toAbsolutePath()
         Files.createDirectories(uploadDir)
         val storedName = UUID.randomUUID().toString() + "-" + original
@@ -327,18 +359,22 @@ class PdfController(
                     stripper.getText(doc)
                 }
             }.getOrElse { "" } else ""
-            val eval = if (isPdf) taskService.evaluateTextWithChat(
+            val task = taskRepository.findById(UUID.fromString(taskId)).get()
+            val chapter = chapterContentRepository.findByBookIdAndChapterId(bookId = task.bookId, chapterId = task.chapterId) ?: return ResponseEntity.badRequest().build()
+            val pdfPath = getPdfPath(task.bookId)
+            val pdfMedia = courseGeneratorService.subsetPdfAsMedia(pdfPath, chapter.startPage, chapter.endPage ?: 0)
+            val eval = if (isPdf) taskService.evaluateTextAnswer(
                 "Uploaded PDF task",
                 extractedText.take(8000),
-                "upload-pdf"
-            ) else Evaluation(isCorrect = false, mistakes = mistakes, score = 0.0, explanation = "Invalid file")
+                "upload-pdf",
+                pdfMedia
+            ) else Evaluation(isCorrect = false, mistakes = mistakes, score = 0.0)
             val persisted = taskService.updateFileUploadState(taskId, file.originalFilename ?: storedName, eval)
 
             val apiEval = TaskEvaluation()
                 .isCorrect(persisted.isCorrect)
                 .mistakes(persisted.mistakes ?: emptyList())
                 .score(java.math.BigDecimal.valueOf(persisted.score ?: 0.0))
-                .explanation(persisted.explanation)
             val resp = TaskSubmissionResponse()
                 .success(true)
                 .evaluation(apiEval)
@@ -368,7 +404,7 @@ class PdfController(
 
     override fun getChapterTasks(uploadId: String, chapterId: String): ResponseEntity<ChapterTasksResponse> {
         return try {
-            val resp = taskService.getOrCreateTasks(uploadId, chapterId)
+            val resp = taskService.getChapterTasks(uploadId, chapterId)
             ResponseEntity.ok(resp)
         } catch (ex: Exception) {
             logger.error("Failed to get chapter tasks for {}/{}", uploadId, chapterId, ex)
