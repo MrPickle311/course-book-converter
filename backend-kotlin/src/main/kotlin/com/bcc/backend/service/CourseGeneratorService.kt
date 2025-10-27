@@ -2,7 +2,6 @@ package com.bcc.backend.service
 
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.pdfbox.multipdf.PageExtractor
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.slf4j.LoggerFactory
@@ -10,19 +9,24 @@ import org.springframework.ai.chat.client.ChatClient
 import org.springframework.ai.chat.client.ChatClient.PromptUserSpec
 import org.springframework.ai.chat.messages.SystemMessage
 import org.springframework.ai.chat.messages.UserMessage
+import org.springframework.ai.chat.prompt.ChatOptions
 import org.springframework.ai.model.Media
+import org.springframework.ai.vertexai.gemini.VertexAiGeminiChatOptions
 import org.springframework.core.io.ByteArrayResource
 import org.springframework.core.io.FileSystemResource
-import org.springframework.core.io.UrlResource
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.util.MimeTypeUtils
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.file.Files
+import java.nio.file.Path
 import java.util.*
 import java.util.function.Consumer
-import java.util.regex.Pattern
+import kotlin.io.path.Path
+import kotlin.io.path.deleteIfExists
+import kotlin.io.path.moveTo
+import kotlin.io.path.name
 import kotlin.text.Charsets.UTF_8
 
 fun addBasePathToImages(content: String, basePath: String): String {
@@ -138,21 +142,32 @@ class ImageFilterService(builder: ChatClient.Builder) {
         this.chatClient = builder.build()
     }
 
-    fun filterMarkdownImages(basePath: String, markdownContent: String): String {
-        val regex = """!\[([^\]]*)\]\(([^)]+)\)""".toRegex()
-        var result = markdownContent
+    fun filterMarkdownImages(basePath: String, markdownContent: String){
+        Files.walk(Path(basePath))
+            .filter { it.name.contains("figure") }
+            .filter { !isRelevantImage(it, basePath, markdownContent) }
+            .forEach { it.deleteIfExists() }
+        var i = 1
+        Files.walk(Path(basePath))
+            .filter { it.name.contains("figure") }
+            .sorted(Comparator.comparingInt { it.name.split("/").last().replace("figure-", "").replace(".png", "").toInt() })
+            .forEach {
+                it.moveTo(Path(basePath + "/" + "figure-$i.png"), true)
+                ++i
+            }
+//        val regex = """!\[([^\]]*)\]\(([^)]+)\)""".toRegex()
+//        var result = markdownContent
 
-        regex.findAll(markdownContent)
-            .map { it.groupValues }
-            .filter { !isRelevantImage(it[2], basePath, markdownContent) }
-            .forEach { result = result.replace(Regex.escape(it[0]), "") }
-
-        return result
+//        regex.findAll(markdownContent)
+//            .map { it.groupValues }
+//            .filter { !isRelevantImage(it[2], basePath, markdownContent) }
+//            .forEach { result = result.replace(Regex.escape(it[0]), "") }
+//
+//        return result
     }
 
-    private fun isRelevantImage(imageUrl: String, basePath: String, content: String): Boolean {
-        val img = imageUrl.split("/").last()
-        println("Checking filtering image: $img")
+    private fun isRelevantImage(imagePath: Path, basePath: String, content: String): Boolean {
+        println("Checking filtering image: ${imagePath.name}")
         val prompt = """
             Analyze this image. Is it substantive content (diagram, photo, illustration) 
             or is it just a non related or trash element (icon, button, tip marker, decoration)?
@@ -166,12 +181,12 @@ class ImageFilterService(builder: ChatClient.Builder) {
             .user(Consumer { userSpec: PromptUserSpec? ->
                 userSpec!!
                     .text(prompt)
-                    .media(MimeTypeUtils.IMAGE_PNG, FileSystemResource(basePath + "/" + img))
+                    .media(MimeTypeUtils.IMAGE_PNG, FileSystemResource(imagePath))
             })
             .call()
             .content()
 
-        println("Response for $img: $response")
+        println("Response for ${imagePath.name}: $response")
         return response.uppercase(Locale.getDefault()).equals("RELEVANT")
     }
 }

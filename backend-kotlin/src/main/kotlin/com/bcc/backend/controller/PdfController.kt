@@ -196,7 +196,8 @@ class PdfController(
                 }
             }
 
-            module.notes = imageFilterService.filterMarkdownImages(outDir.pathString, module.notes)
+            imageFilterService.filterMarkdownImages(outDir.pathString, module.notes)
+//            valdate images paths
 //            module.notes = unexpectedTextRemover.removeUnexpectedText(module.notes)
 //            module.notes = markdownFormatFixer.fixMarkdownFormat(module.notes)
 
@@ -364,8 +365,8 @@ class PdfController(
             val pdfPath = getPdfPath(task.bookId)
             val pdfMedia = courseGeneratorService.subsetPdfAsMedia(pdfPath, chapter.startPage, chapter.endPage ?: 0)
             val eval = if (isPdf) taskService.evaluateTextAnswer(
-                "Uploaded PDF task",
-                extractedText.take(8000),
+                task.question,
+                extractedText,
                 "upload-pdf",
                 pdfMedia
             ) else Evaluation(isCorrect = false, mistakes = mistakes, score = 0.0)
