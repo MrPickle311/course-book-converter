@@ -8,9 +8,9 @@ import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { CheckCircle, Circle, XCircle, BookOpen, CheckSquare, Award, Loader2 } from 'lucide-react';
-import * as runtime from 'react/jsx-runtime'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
+import ReactMarkdown from 'react-markdown'
 
 interface TaskOption { id: string; label: string }
 
@@ -34,8 +34,6 @@ interface Task {
   completed: boolean;
 }
 
-import { MDXProvider } from '@mdx-js/react';
-import {compileSync, runSync} from '@mdx-js/mdx'
 import '../styles/mdx.css';
 import { DefaultService } from '@/openapi';
 import React from 'react';
@@ -355,23 +353,13 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
   };
 
   const renderBlocks = (notes: string) => {
-    try {
-    const code = compileSync(notes, { outputFormat: 'function-body',
-      development: false, remarkPlugins: [remarkGfm, rehypeHighlight], format: "mdx" } );
-      const runned = runSync(code, runtime ) as any;
-      const C = runned.default;
     return (
       <div className="mdx-content">
-        <MDXProvider>
-          <C />
-        </MDXProvider>
+        <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+          {notes}
+        </ReactMarkdown>
       </div>
     );
-    } catch (e) {
-      console.error(e);
-      return <div>Error rendering notes</div>;
-    }
-    
   };
 
   return (

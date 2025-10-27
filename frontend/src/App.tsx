@@ -29,7 +29,6 @@ interface Task {
   userAnswers?: string[];
   userFileName?: string;
   feedback?: string;
-  expectedKeywords?: string[];
   evaluation?: {
     isCorrect: boolean;
     mistakes: string[];
@@ -132,7 +131,6 @@ function AppContent() {
       id: `task-${currentBook.id}-${chapter.chapterId}-gen-${idx + 1}`,
       question: t.title || `Task ${idx + 1}`,
       type: 'short-answer',
-      expectedKeywords: t.successCriteria,
       completed: false,
     }));
     // Fetch generated MDX notes bundle for this chapter
