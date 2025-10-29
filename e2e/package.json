@@ -1,0 +1,29 @@
+{
+  "name": "bcc-e2e",
+  "private": true,
+  "version": "0.1.0",
+  "devDependencies": {
+    "@playwright/test": "1.48.2",
+    "concurrently": "9.1.2",
+    "express": "4.21.1",
+    "multer": "1.4.5-lts.1"
+  },
+  "scripts": {
+    "install:browsers": "playwright install --with-deps",
+    "start:backend": "bash -lc 'cd ../backend-kotlin && mvn -q -DskipTests spring-boot:run -Dspring-boot.run.arguments=--spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration'",
+    "start:frontend": "bash -lc 'cd ../frontend && npm run dev'",
+    "be": "npm run start:backend",
+    "fe": "npm run start:frontend",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:serial": "PW_TEST_HTML_REPORT_OPEN=never playwright test --workers=1",
+    "test:e2e:debug": "PWDEBUG=1 PW_TEST_HTML_REPORT_OPEN=never playwright test",
+    "test:e2e:nopwdebug": "PW_TEST_HTML_REPORT_OPEN=never playwright test",
+    "logs:tail": "bash -lc 'mkdir -p .logs; tail -n +1 -f .logs/backend.log .logs/frontend.log'",
+    "ports:free": "bash -lc 'kill -9 $(lsof -ti:8080,3000) 2>/dev/null || true'",
+    "report": "playwright show-report",
+    "clean": "rm -rf .logs playwright-report test-results"
+  }
+}
+
+
