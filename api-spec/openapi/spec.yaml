@@ -427,10 +427,6 @@ components:
           type: string
         description:
           type: string
-        successCriteria:
-          type: array
-          items:
-            type: string
     CourseSection:
       type: object
       properties:
@@ -545,8 +541,6 @@ components:
             type: string
         score:
           type: number
-        explanation:
-          type: string
     TaskSubmissionResponse:
       type: object
       properties:

@@ -114,11 +114,16 @@ class PdfController(
 
     override fun deleteBook(uploadId: String): ResponseEntity<Void> {
         return try {
+            val tasksIds = taskRepository.findAllByBookId(uploadId).map { it.id }
+            taskRepository.deleteByBookId(uploadId)
+            chapterContentRepository.deleteByBookId(uploadId)
             bookRepository.deleteById(uploadId)
             // best-effort remove uploaded file
             runCatching {
                 val path = Path.of("uploads").resolve("$uploadId.pdf")
                 Files.deleteIfExists(path)
+                Files.deleteIfExists(Path.of("uploads/notes").resolve(uploadId))
+                tasksIds.forEach { Files.deleteIfExists(Path.of("uploads/tasks").resolve(it.toString())) }
             }
             ResponseEntity.noContent().build()
         } catch (ex: Exception) {
