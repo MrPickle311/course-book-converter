@@ -121,9 +121,6 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
   };
 
   React.useEffect(() => {
-    if (activeTab !== 'tasks') {
-        return;
-    }
     (async () => {
       try {
         const res = await DefaultService.getChapterTasks({ uploadId: course.bookId, chapterId: course.chapterId });

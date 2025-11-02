@@ -1,5 +1,5 @@
 import {expect, test} from '@playwright/test';
-import {generateAndOpenFirstCourse, login, timeout} from './common';
+import {backAndDeleteBook, generateAndOpenFirstCourse, login, timeout} from './common';
 
 test.describe('Notes markdown rendering', () => {
     test.describe.configure({mode: 'serial'});
@@ -60,6 +60,7 @@ test.describe('Notes markdown rendering', () => {
         const link = page.getByRole('link', {name: 'OpenAI'});
         await expect(link).toBeVisible(timeout);
         await expect(await link.getAttribute('href')).toContain('openai.com');
+        await backAndDeleteBook(page);
     });
 });
 

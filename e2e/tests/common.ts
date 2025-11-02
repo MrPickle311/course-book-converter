@@ -1,8 +1,8 @@
-import {expect, test} from "@playwright/test";
+import {expect, Page, test} from "@playwright/test";
 import fs from 'fs';
 
 const uploadId = '2ea81edd-bd2b-45f5-89d6-c18526275a47';
-const pdf = `/home/damian/business/book-course-converter/uploads/${uploadId}.pdf`;
+const pdf = `/home/damian/business/book-course-converter/e2e/course_book.pdf`;
 export const timeout = {timeout: 10000};
 
 export async function login(page: import('@playwright/test').Page) {
@@ -32,9 +32,6 @@ export async function generateAndOpenFirstCourse(page: import('@playwright/test'
     await chapterCard.getByRole('button', {name: /Generate course/i}).click();
 
     // Go back to library and reopen book for generated state
-    await page.getByRole('button', {name: 'My books'}).click();
-    await page.getByRole('heading', {name: 'My Books'}).waitFor({state: 'visible'});
-    await page.getByRole('heading', {name: bookTitle}).first().click();
 
     // Wait for the selected chapter to transition to generated state via UI only
     // Find any generated chapter row by its status badge and open it
@@ -43,10 +40,17 @@ export async function generateAndOpenFirstCourse(page: import('@playwright/test'
     await firstGenerated.click();
 
     // Switch to Tasks tab and assert tasks UI state
+    await expect(page.getByText('Progress Overview0 of 4 tasks')).toBeVisible(timeout);
+    await expect(page.getByRole('tab', { name: 'Practice Tasks (0/4)' })).toBeVisible(timeout);
     await page.getByRole('tab', {name: /Practice Tasks/}).click();
     await expect(page.getByRole('progressbar')).toBeVisible(timeout)
     await expect(page.getByRole('heading', { name: 'Progress Overview' })).toBeVisible(timeout)
     await expect(page.getByRole('tab', { name: 'Study Notes' })).toBeVisible(timeout)
-    await expect(page.getByText('of 4 tasks completed')).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Practice Tasks (0/4)' })).toBeVisible();
+}
+
+export async function backAndDeleteBook(page: Page) {
+    await page.getByRole('button', {name: 'Back'}).click();
+    await expect(page.getByRole('button', {name: 'Delete book'})).toBeVisible(timeout);
+    await page.getByRole('button', {name: 'Delete book'}).click();
+    await expect(page.getByRole('heading', {name: 'Turn a PDF book into a course with notes and tasks'})).toBeVisible();
 }

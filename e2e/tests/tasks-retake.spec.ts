@@ -1,18 +1,12 @@
 import {test, expect, Page} from '@playwright/test';
 import fs from 'fs';
-import {generateAndOpenFirstCourse, login, timeout} from "./common";
+import {backAndDeleteBook, generateAndOpenFirstCourse, login, timeout} from "./common";
 
 const uploadId = '2ea81edd-bd2b-45f5-89d6-c18526275a47';
 const pdf = `/home/damian/business/book-course-converter/uploads/${uploadId}.pdf`;
 const sampleTaskPdf = `/home/damian/Documents/task.pdf`;
 
 
-async function backAndDeleteBook(page: Page) {
-    await page.getByRole('button', {name: 'Back'}).click();
-    await expect(page.getByRole('button', {name: 'Delete book'})).toBeVisible(timeout);
-    await page.getByRole('button', {name: 'Delete book'}).click();
-    await expect(page.getByRole('heading', {name: 'Turn a PDF book into a course with notes and tasks'})).toBeVisible();
-}
 
 test.describe('Task retaking', () => {
     test.describe.configure({mode: 'serial'});
