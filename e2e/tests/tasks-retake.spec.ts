@@ -1,6 +1,6 @@
 import {test, expect, Page} from '@playwright/test';
 import fs from 'fs';
-import {generateAndOpenFirstCourse, login} from "./common";
+import {generateAndOpenFirstCourse, login, timeout} from "./common";
 
 const uploadId = '2ea81edd-bd2b-45f5-89d6-c18526275a47';
 const pdf = `/home/damian/business/book-course-converter/uploads/${uploadId}.pdf`;
@@ -9,7 +9,7 @@ const sampleTaskPdf = `/home/damian/Documents/task.pdf`;
 
 async function backAndDeleteBook(page: Page) {
     await page.getByRole('button', {name: 'Back'}).click();
-    await expect(page.getByRole('button', {name: 'Delete book'})).toBeVisible({timeout: 20000});
+    await expect(page.getByRole('button', {name: 'Delete book'})).toBeVisible(timeout);
     await page.getByRole('button', {name: 'Delete book'}).click();
     await expect(page.getByRole('heading', {name: 'Turn a PDF book into a course with notes and tasks'})).toBeVisible();
 }
@@ -23,7 +23,7 @@ test.describe('Task retaking', () => {
 
         // MCQ card is deterministic in e2e: title "Choose the correct option"
         const mcqCard = page.getByRole('heading', {name: 'Choose the correct option'}).first().locator('xpath=ancestor::div[contains(@class, "card")]');
-        await expect(mcqCard.first()).toBeVisible({timeout: 20000});
+        await expect(mcqCard.first()).toBeVisible(timeout);
 
         // Submit wrong answer: choose B (correct is A)
         const radioB = mcqCard.locator('label:has-text("B")');
@@ -31,11 +31,11 @@ test.describe('Task retaking', () => {
         await mcqCard.getByRole('button', {name: 'Submit Answer'}).click();
 
         // Retake should appear for incorrect submission
-        await expect(mcqCard.getByRole('button', {name: 'Retake'})).toBeVisible({timeout: 10000});
+        await expect(mcqCard.getByRole('button', {name: 'Retake'})).toBeVisible(timeout);
 
         // Retake, then choose correct A and resubmit
         await mcqCard.getByRole('button', {name: 'Retake'}).click();
-        await expect(mcqCard.getByRole('button', {name: 'Submit Answer'})).toBeVisible({timeout: 10000});
+        await expect(mcqCard.getByRole('button', {name: 'Submit Answer'})).toBeVisible(timeout);
 
         const radioA = mcqCard.locator('label:has-text("A")');
         await radioA.click();
@@ -57,26 +57,26 @@ test.describe('Task retaking', () => {
             .getByRole('heading', {name: 'Select valid items'})
             .first()
             .locator('xpath=ancestor::div[contains(@class, "card")]');
-        await expect(msCard.first()).toBeVisible({timeout: 20000});
+        await expect(msCard.first()).toBeVisible(timeout);
 
         // Submit a wrong combination: choose only Y (correct is X and Z)
         await msCard.getByRole('checkbox', {name: 'Y'}).click();
         await msCard.getByRole('button', {name: 'Submit Answer'}).click();
 
         // Expect incorrect state and Retake button visible
-        await expect(msCard.getByText('Incorrect')).toBeVisible({timeout: 10000});
-        await expect(msCard.getByRole('button', {name: 'Retake'})).toBeVisible({timeout: 10000});
+        await expect(msCard.getByText('Incorrect')).toBeVisible(timeout);
+        await expect(msCard.getByRole('button', {name: 'Retake'})).toBeVisible(timeout);
 
         // Retake, then choose the correct set (X and Z) and resubmit
         await msCard.getByRole('button', {name: 'Retake'}).click();
-        await expect(msCard.getByRole('button', {name: 'Submit Answer'})).toBeVisible({timeout: 10000});
+        await expect(msCard.getByRole('button', {name: 'Submit Answer'})).toBeVisible(timeout);
 
         await msCard.getByRole('checkbox', {name: 'X'}).click();
         await msCard.getByRole('checkbox', {name: 'Z'}).click();
         await msCard.getByRole('button', {name: 'Submit Answer'}).click();
 
         // Should now be correct and Retake should disappear
-        await expect(msCard.getByText('Correct')).toBeVisible({timeout: 10000});
+        await expect(msCard.getByText('Correct')).toBeVisible(timeout);
         await expect(msCard.getByRole('button', {name: 'Retake'})).toHaveCount(0);
 
         // Cleanup
@@ -91,23 +91,25 @@ test.describe('Task retaking', () => {
             .getByRole('heading', {name: 'Summarize the chapter'})
             .first()
             .locator('xpath=ancestor::div[contains(@class, "card")]');
-        await expect(saCard.first()).toBeVisible({timeout: 20000});
+        await expect(saCard.first()).toBeVisible(timeout);
 
         // Force incorrect using backend mock keyword that the mock recognizes
         const textarea = saCard.getByPlaceholder('Enter your answer...');
         await textarea.fill('wrong answer');
         await saCard.getByRole('button', {name: 'Submit Answer'}).click();
 
-        await expect(saCard.getByText('Score: 0%')).toBeVisible({timeout: 10000});
-        await expect(saCard.getByRole('button', {name: 'Retake'})).toBeVisible({timeout: 10000});
+        await expect(saCard.getByText('Score: 0%')).toBeVisible(timeout);
+        await expect(saCard.getByRole('button', {name: 'Retake'})).toBeVisible(timeout);
+        await expect(saCard.getByText('Feedback:')).toBeVisible(timeout);
+        await expect(saCard.getByText('Forced incorrect')).toBeVisible(timeout);
 
         // Retake and submit a normal answer -> should be correct
         await saCard.getByRole('button', {name: 'Retake'}).click();
-        await expect(saCard.getByRole('button', {name: 'Submit Answer'})).toBeVisible({timeout: 10000});
+        await expect(saCard.getByRole('button', {name: 'Submit Answer'})).toBeVisible(timeout);
         await textarea.fill('A clear summary of the chapter.');
         await saCard.getByRole('button', {name: 'Submit Answer'}).click();
 
-        await expect(saCard.getByText('Score: 100%')).toBeVisible({timeout: 10000});
+        await expect(saCard.getByText('Score: 100%')).toBeVisible(timeout);
         await expect(saCard.getByRole('button', {name: 'Retake'})).toHaveCount(0);
 
         await backAndDeleteBook(page);
@@ -121,7 +123,7 @@ test.describe('Task retaking', () => {
             .getByRole('heading', {name: 'Provide a pdf file with solution.'})
             .first()
             .locator('xpath=ancestor::div[contains(@class, "card")]');
-        await expect(uploadCard.first()).toBeVisible({timeout: 20000});
+        await expect(uploadCard.first()).toBeVisible(timeout);
 
         // Upload a non-PDF to trigger incorrect
         const fileChooserPromise = page.waitForEvent('filechooser');
@@ -135,12 +137,14 @@ test.describe('Task retaking', () => {
         });
         await uploadCard.getByRole('button', {name: 'Submit Answer'}).click();
 
-        await expect(uploadCard.getByText('Score: 0%')).toBeVisible({timeout: 10000});
-        await expect(uploadCard.getByRole('button', {name: 'Retake'})).toBeVisible({timeout: 10000});
+        await expect(uploadCard.getByText('Score: 0%')).toBeVisible(timeout);
+        await expect(uploadCard.getByRole('button', {name: 'Retake'})).toBeVisible(timeout);
+        await expect(uploadCard.getByText('Feedback:')).toBeVisible(timeout);
+        await expect(uploadCard.getByText('Only PDF files are supported')).toBeVisible(timeout);
 
         // Retake, then upload a valid PDF and submit
         await uploadCard.getByRole('button', {name: 'Retake'}).click();
-        await expect(uploadCard.getByRole('button', {name: 'Submit Answer'})).toBeVisible({timeout: 10000});
+        await expect(uploadCard.getByRole('button', {name: 'Submit Answer'})).toBeVisible(timeout);
 
         const fileChooserPromise2 = page.waitForEvent('filechooser');
         await uploadCard.getByRole('button', {name: 'Upload PDF'}).click();
@@ -152,7 +156,7 @@ test.describe('Task retaking', () => {
         });
         await uploadCard.getByRole('button', {name: 'Submit Answer'}).click();
 
-        await expect(uploadCard.getByText('Score: 100%')).toBeVisible({timeout: 10000});
+        await expect(uploadCard.getByText('Score: 100%')).toBeVisible(timeout);
         await expect(uploadCard.getByRole('button', {name: 'Retake'})).toHaveCount(0);
 
         await backAndDeleteBook(page);
