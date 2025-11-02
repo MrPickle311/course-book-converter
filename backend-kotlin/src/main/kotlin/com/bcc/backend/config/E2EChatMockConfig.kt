@@ -76,10 +76,10 @@ class E2EChatMockConfig {
         }
 
         // Table of contents extraction
-        if (allText.contains("Extract ONLY top-level Table of Contents", ignoreCase = true)) {
+        if (allText.contains("Extract ONLY top-level (root) Table of Contents", ignoreCase = true)) {
             return """
             {"complete":true,"items":[
-              {"title":"Introduction","firstPage":0,"endPage":2},
+              {"title":"Introduction","firstPage":1,"endPage":2},
               {"title":"Basics","firstPage":3,"endPage":6}
             ]}
             """.trimIndent()
@@ -88,7 +88,7 @@ class E2EChatMockConfig {
         // First relevant page detection
         if (allText.contains("first relevant page", ignoreCase = true)) {
             return """
-            {"complete":true,"page":0}
+            {"complete":true,"page":1}
             """.trimIndent()
         }
 
