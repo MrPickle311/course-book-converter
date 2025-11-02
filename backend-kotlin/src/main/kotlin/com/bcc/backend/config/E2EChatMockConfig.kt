@@ -114,7 +114,7 @@ class E2EChatMockConfig {
                     || allText.contains("wrong", ignoreCase = true)
             return if (forceIncorrect) {
                 """
-                {"isCorrect":false,"mistakes":["Forced incorrect"],"score":0.0}
+                {"isCorrect":false,"mistakes":["Forced incorrect","Please re-read the chapter","Answer lacks key points"],"score":0.0}
                 """.trimIndent()
             } else {
                 """
