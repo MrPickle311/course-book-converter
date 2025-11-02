@@ -1,15 +1,11 @@
 import { test, expect } from '@playwright/test';
+import {login} from "./common";
 
 const id1 = '2ea81edd-bd2b-45f5-89d6-c18526275a47';
 const id2 = 'e389a702-529c-4acf-921b-d3b60887b21e';
 const pdf1 = `/home/damian/business/book-course-converter/uploads/${id1}.pdf`;
 const pdf2 = `/home/damian/business/book-course-converter/uploads/${id2}.pdf`;
 
-async function login(page: import('@playwright/test').Page) {
-  await page.goto('/');
-  await page.getByRole('button', { name: /Sign in with Google \(Demo\)/i }).click();
-  await expect(page.getByRole('button', { name: 'My books' })).toBeVisible();
-}
 
 test.describe('Library search filters books by title', () => {
   test.describe.configure({ mode: 'serial' });
