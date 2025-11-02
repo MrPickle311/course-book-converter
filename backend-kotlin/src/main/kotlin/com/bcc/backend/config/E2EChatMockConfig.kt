@@ -59,19 +59,46 @@ class E2EChatMockConfig {
             return "RELEVANT"
         }
 
-        // Notes generation
+        // Notes generation (rich markdown for e2e assertions)
         if (allText.contains("expert notes writer", ignoreCase = true) ||
             allText.contains("create detailed mardkown notes", ignoreCase = true)) {
             val title = extractTitle(allText)
             return """
             # ${title.ifBlank { "Chapter" }}
 
-            - Key concepts overview
-            - Important definitions
-            - Practical tips
+            This paragraph contains **bold**, _italic_, and `inlineCode()` text.
 
-            ## Summary
-            This is a deterministic e2e mock of generated notes for "$title".
+            > Blockquote line for emphasis
+
+            ## Key Points
+
+            - Item A
+            - Item B
+            - Item C
+
+            ## Steps
+
+            1. Step one
+            2. Step two
+
+            ## Code
+
+            ```ts
+            function add(a: number, b: number) {
+              return a + b;
+            }
+            console.log(add(2, 3));
+            ```
+
+            ## Table
+
+            | Feature | Value |
+            | --- | --- |
+            | Speed | Fast |
+            | Size | Small |
+
+            ---
+            Reference: [OpenAI](https://openai.com)
             """.trimIndent()
         }
 
