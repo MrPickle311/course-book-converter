@@ -97,6 +97,9 @@ class E2EChatMockConfig {
             | Speed | Fast |
             | Size | Small |
 
+            ## Image
+            ![Figure 1](figure-1.png)
+
             ---
             Reference: [OpenAI](https://openai.com)
             """.trimIndent()

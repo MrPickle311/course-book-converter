@@ -48,6 +48,13 @@ test.describe('Notes markdown rendering', () => {
         await expect(page.getByRole('cell', { name: 'Size' })).toBeVisible();
         await expect(page.getByRole('cell', { name: 'Small' })).toBeVisible();
 
+        // Image extracted from chapter and linked via images endpoint
+        await expect(page.getByRole('heading', { name: 'Image' })).toBeVisible();
+        const img = page.locator('img[src*="/api/v1/books/"]').first();
+        await expect(img).toBeVisible({ timeout: 20000 });
+        await expect.poll(async () => await img.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
+        await expect(await img.getAttribute('alt')).toContain('Figure');
+
         // Link
         await expect(page.getByText('Reference: OpenAI')).toBeVisible();
         const link = page.getByRole('link', {name: 'OpenAI'});
