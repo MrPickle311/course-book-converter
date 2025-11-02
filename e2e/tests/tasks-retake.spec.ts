@@ -102,6 +102,8 @@ test.describe('Task retaking', () => {
         await expect(saCard.getByRole('button', {name: 'Retake'})).toBeVisible(timeout);
         await expect(saCard.getByText('Feedback:')).toBeVisible(timeout);
         await expect(saCard.getByText('Forced incorrect')).toBeVisible(timeout);
+        await expect(saCard.getByText('Please re-read the chapter')).toBeVisible(timeout);
+        await expect(saCard.getByText('Answer lacks key points')).toBeVisible(timeout);
 
         // Retake and submit a normal answer -> should be correct
         await saCard.getByRole('button', {name: 'Retake'}).click();
