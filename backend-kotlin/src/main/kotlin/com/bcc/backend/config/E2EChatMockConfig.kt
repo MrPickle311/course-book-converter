@@ -106,9 +106,21 @@ class E2EChatMockConfig {
 
         // Evaluation (JSON)
         if (allText.contains("strict grader", ignoreCase = true) || allText.contains("Evaluate answer", ignoreCase = true)) {
-            return """
-            {"isCorrect":true,"mistakes":[],"score":1.0,"explanation":"Mock evaluation"}
-            """.trimIndent()
+            // Allow forcing incorrect outcome during E2E to exercise Retake flows.
+            // Trigger by including one of the markers in the user's answer or context.
+            val forceIncorrect = allText.contains("[FORCE_INCORRECT]", ignoreCase = true)
+                    || allText.contains("__INCORRECT__", ignoreCase = true)
+                    || allText.contains("force incorrect", ignoreCase = true)
+                    || allText.contains("wrong", ignoreCase = true)
+            return if (forceIncorrect) {
+                """
+                {"isCorrect":false,"mistakes":["Forced incorrect"],"score":0.0}
+                """.trimIndent()
+            } else {
+                """
+                {"isCorrect":true,"mistakes":[],"score":1.0,"explanation":"Mock evaluation"}
+                """.trimIndent()
+            }
         }
 
         return "OK"

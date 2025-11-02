@@ -82,4 +82,79 @@ test.describe('Task retaking', () => {
         // Cleanup
         await backAndDeleteBook(page);
     });
+
+    test('retake Short-answer: forced incorrect -> Retake -> correct', async ({page}) => {
+        await login(page);
+        await generateAndOpenFirstCourse(page, 'Introduction');
+
+        const saCard = page
+            .getByRole('heading', {name: 'Summarize the chapter'})
+            .first()
+            .locator('xpath=ancestor::div[contains(@class, "card")]');
+        await expect(saCard.first()).toBeVisible({timeout: 20000});
+
+        // Force incorrect using backend mock keyword that the mock recognizes
+        const textarea = saCard.getByPlaceholder('Enter your answer...');
+        await textarea.fill('wrong answer');
+        await saCard.getByRole('button', {name: 'Submit Answer'}).click();
+
+        await expect(saCard.getByText('Score: 0%')).toBeVisible({timeout: 10000});
+        await expect(saCard.getByRole('button', {name: 'Retake'})).toBeVisible({timeout: 10000});
+
+        // Retake and submit a normal answer -> should be correct
+        await saCard.getByRole('button', {name: 'Retake'}).click();
+        await expect(saCard.getByRole('button', {name: 'Submit Answer'})).toBeVisible({timeout: 10000});
+        await textarea.fill('A clear summary of the chapter.');
+        await saCard.getByRole('button', {name: 'Submit Answer'}).click();
+
+        await expect(saCard.getByText('Score: 100%')).toBeVisible({timeout: 10000});
+        await expect(saCard.getByRole('button', {name: 'Retake'})).toHaveCount(0);
+
+        await backAndDeleteBook(page);
+    });
+
+    test('retake PDF upload: non-PDF -> Retake -> correct PDF', async ({page}) => {
+        await login(page);
+        await generateAndOpenFirstCourse(page, 'Introduction');
+
+        const uploadCard = page
+            .getByRole('heading', {name: 'Provide a pdf file with solution.'})
+            .first()
+            .locator('xpath=ancestor::div[contains(@class, "card")]');
+        await expect(uploadCard.first()).toBeVisible({timeout: 20000});
+
+        // Upload a non-PDF to trigger incorrect
+        const fileChooserPromise = page.waitForEvent('filechooser');
+        await uploadCard.getByRole('button', {name: 'Upload PDF'}).click();
+        const chooser1 = await fileChooserPromise;
+        await chooser1.setFiles({
+            name: 'notpdf.txt',
+            mimeType: 'text/plain',
+            // any bytes are fine; backend uses file name extension to validate
+            buffer: fs.readFileSync(sampleTaskPdf)
+        });
+        await uploadCard.getByRole('button', {name: 'Submit Answer'}).click();
+
+        await expect(uploadCard.getByText('Score: 0%')).toBeVisible({timeout: 10000});
+        await expect(uploadCard.getByRole('button', {name: 'Retake'})).toBeVisible({timeout: 10000});
+
+        // Retake, then upload a valid PDF and submit
+        await uploadCard.getByRole('button', {name: 'Retake'}).click();
+        await expect(uploadCard.getByRole('button', {name: 'Submit Answer'})).toBeVisible({timeout: 10000});
+
+        const fileChooserPromise2 = page.waitForEvent('filechooser');
+        await uploadCard.getByRole('button', {name: 'Upload PDF'}).click();
+        const chooser2 = await fileChooserPromise2;
+        await chooser2.setFiles({
+            name: 'task.pdf',
+            mimeType: 'application/pdf',
+            buffer: fs.readFileSync(sampleTaskPdf)
+        });
+        await uploadCard.getByRole('button', {name: 'Submit Answer'}).click();
+
+        await expect(uploadCard.getByText('Score: 100%')).toBeVisible({timeout: 10000});
+        await expect(uploadCard.getByRole('button', {name: 'Retake'})).toHaveCount(0);
+
+        await backAndDeleteBook(page);
+    });
 });
