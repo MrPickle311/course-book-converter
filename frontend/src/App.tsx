@@ -126,7 +126,7 @@ function AppContent() {
       chapterId: chapter.chapterId,
       uploadId: currentBook.id
     };
-    DefaultService.generateCourse({ requestBody: req });
+    await DefaultService.generateCourse({ requestBody: req });
     try {
       const fresh = await DefaultService.getBookById({ uploadId: currentBook.id });
       const freshBook = fresh as unknown as Book;
