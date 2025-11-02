@@ -90,18 +90,13 @@ class PdfController(
         val book = found.get()
         fun mapToc(item: Chapter): com.bcc.api.model.Chapter {
             val isGenerated = chapterContentRepository.findByBookIdAndChapterId(book.uploadId, item.id) != null
+            val progress = if (isGenerated) taskService.getChapterProgress(book.uploadId, item.id) else null
             return com.bcc.api.model.Chapter()
                 .chapterId(item.id)
                 .title(item.title)
                 .startPage(item.startPage)
                 .endPage(item.endPage)
-                .progressData(
-                    if (isGenerated) ChapterProgressData()
-                        .tasksCount(5)
-                        .tasksFailed(1)
-                        .tasksCompleted(2)
-                    else null
-                )
+                .progressData(progress)
                 .isGenerated(isGenerated)
         }
 

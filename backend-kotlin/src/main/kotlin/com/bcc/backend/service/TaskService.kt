@@ -6,6 +6,7 @@ import com.bcc.backend.persistence.*
 import com.bcc.backend.service.CourseGeneratorService.CourseTask
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
+import com.bcc.api.model.ChapterProgressData
 import org.springframework.ai.chat.client.ChatClient
 import org.springframework.ai.chat.messages.SystemMessage
 import org.springframework.ai.chat.messages.UserMessage
@@ -129,6 +130,56 @@ class TaskService(
         return ChapterTasksResponse()
             .success(true)
             .tasks(items)
+    }
+
+    fun getChapterProgress(uploadId: String, chapterId: String): ChapterProgressData {
+        val defs = taskRepository.findByBookIdAndChapterId(uploadId, chapterId)
+        var completed = 0
+        var failed = 0
+        defs.forEach { def ->
+            when (def.type) {
+                "multiple-choice" -> {
+                    val st: MultipleChoiceTaskState? = def.state?.let {
+                        runCatching { objectMapper.convertValue(it, MultipleChoiceTaskState::class.java) }.getOrNull()
+                    }
+                    if (st != null) {
+                        completed += 1
+                        if (st.evaluation?.isCorrect == false) failed += 1
+                    }
+                }
+                "multiple-select" -> {
+                    val st: MultiselectTaskState? = def.state?.let {
+                        runCatching { objectMapper.convertValue(it, MultiselectTaskState::class.java) }.getOrNull()
+                    }
+                    if (st != null) {
+                        completed += 1
+                        if (st.evaluation?.isCorrect == false) failed += 1
+                    }
+                }
+                "upload-pdf" -> {
+                    val st: FileUploadTaskState? = def.state?.let {
+                        runCatching { objectMapper.convertValue(it, FileUploadTaskState::class.java) }.getOrNull()
+                    }
+                    if (st != null) {
+                        completed += 1
+                        if (st.evaluation?.isCorrect == false) failed += 1
+                    }
+                }
+                else -> {
+                    val st: ShortAnswerTaskState? = def.state?.let {
+                        runCatching { objectMapper.convertValue(it, ShortAnswerTaskState::class.java) }.getOrNull()
+                    }
+                    if (st != null) {
+                        completed += 1
+                        if (st.evaluation.isCorrect == false) failed += 1
+                    }
+                }
+            }
+        }
+        return ChapterProgressData()
+            .tasksCount(defs.size)
+            .tasksCompleted(completed)
+            .tasksFailed(failed)
     }
 
     fun persistTasks(uploadId: String, chapterId: String, tasks: List<CourseTask>): List<Task> {

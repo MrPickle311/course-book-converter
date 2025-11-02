@@ -110,7 +110,7 @@ class E2EChatMockConfig {
             return """
             {"complete":true,"items":[
               {"title":"Introduction","firstPage":1,"endPage":2},
-              {"title":"Basics","firstPage":3,"endPage":6}
+              {"title":"Basics","firstPage":3,"endPage":5}
             ]}
             """.trimIndent()
         }
