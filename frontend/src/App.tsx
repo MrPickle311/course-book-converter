@@ -126,36 +126,27 @@ function AppContent() {
       chapterId: chapter.chapterId,
       uploadId: currentBook.id
     };
-    const gen: GenerateCourseResponse = await DefaultService.generateCourse({ requestBody: req });
-    const tasks: Task[] = (gen?.tasks || []).map((t, idx) => ({
-      id: `task-${currentBook.id}-${chapter.chapterId}-gen-${idx + 1}`,
-      question: t.title || `Task ${idx + 1}`,
-      type: 'short-answer',
-      completed: false,
-    }));
-    // Fetch generated MDX notes bundle for this chapter
-    let notes: any = [];
+    DefaultService.generateCourse({ requestBody: req });
     try {
-      const mdxText = await DefaultService.getChapterNotes({ uploadId: currentBook.id, chapterId: chapter.chapterId });
-      if (typeof mdxText === 'string' && mdxText.trim().length > 0) {
-        notes = [{ type: 'richText', title: gen?.title || chapter.title, markdown: mdxText } as any];
+      const fresh = await DefaultService.getBookById({ uploadId: currentBook.id });
+      const freshBook = fresh as unknown as Book;
+      if (freshBook) {
+        setCurrentBook({
+          id: freshBook.id || currentBook.id,
+          title: freshBook.title || currentBook.title,
+          uploadDate: freshBook.uploadDate || currentBook.uploadDate,
+          chapters: (freshBook.chapters as Chapter[]) || currentBook.chapters,
+        } as Book);
+        setBooks(prev => prev.map(b => b.id === currentBook.id ? {
+          ...b,
+          title: freshBook.title || b.title,
+          uploadDate: freshBook.uploadDate || b.uploadDate,
+          // keep summary fields; details are fetched when opening the book
+        } : b));
       }
     } catch {
+      // Non-fatal; UI will still have added course, and chapter will flip on next open
     }
-    const newCourse: Course = {
-      id: `canonical-${currentBook.id}-${chapter.chapterId}`,
-      bookId: currentBook.id,
-      bookTitle: currentBook.title,
-      chapterId: chapter.chapterId,
-      chapterTitle: gen?.title || chapter.title,
-      notes,
-      tasks,
-      createdDate: new Date().toISOString().split('T')[0],
-      completed: false,
-      userId: user.id
-    };
-    setCourses(prev => [...prev, newCourse]);
-    setBooks(prev => prev.map(b => b.id === currentBook.id ? { ...b } : b));
   };
 
   const handleBackToTOC = () => {
