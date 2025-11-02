@@ -27,6 +27,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.multipart.MultipartFile
 import java.awt.image.RenderedImage
@@ -112,6 +113,7 @@ class PdfController(
         return ResponseEntity.ok(detail)
     }
 
+    @Transactional
     override fun deleteBook(uploadId: String): ResponseEntity<Void> {
         return try {
             val tasksIds = taskRepository.findAllByBookId(uploadId).map { it.id }
@@ -224,7 +226,6 @@ class PdfController(
                     CourseTask()
                         .type(t.type)
                         .title(t.title)
-                        .description(t.description)
                 })
             ResponseEntity.ok(response)
         } catch (ex: Exception) {
@@ -274,9 +275,11 @@ class PdfController(
                 .uploadId(uploadId)
                 .chapters(book.chapters.map { ch ->
                     com.bcc.api.model.Chapter()
+                        .chapterId(ch.id)
                         .title(ch.title)
                         .startPage(ch.startPage)
                         .endPage(ch.endPage)
+                        .isGenerated(false)
                 })
             val body = ProcessPdfResponse(true, data).message("PDF processed successfully")
             ResponseEntity.ok(body)

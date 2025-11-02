@@ -202,7 +202,6 @@ class CourseGeneratorService(
     data class CourseTask @JsonCreator constructor(
         @param:JsonProperty("type") val type: String,
         @param:JsonProperty("title") val title: String,
-        @param:JsonProperty("description") val description: String,
         @param:JsonProperty("options") val options: List<String>? = null,
         @param:JsonProperty("correctAnswer") val correctAnswer: String? = null,
         @param:JsonProperty("correctAnswers") val correctAnswers: List<String>? = null,
@@ -283,13 +282,12 @@ class CourseGeneratorService(
                 val type = when (t.type.lowercase()) {
                     "multiple-select" -> "multiple-select"
                     "multiple-choice" -> "multiple-choice"
-                    "code" -> "code"
-                    else -> "short-answer"
+                    "short-answer" -> "short-answer"
+                    else -> "upload-pdf"
                 }
                 CourseTask(
                     type = type,
                     title = t.title.trim().ifBlank { "Practice question" },
-                    description = t.description.trim(),
                     options = t.options?.take(12),
                     correctAnswer = t.correctAnswer,
                     correctAnswers = t.correctAnswers?.take(12)
@@ -299,8 +297,7 @@ class CourseGeneratorService(
             listOf(
                 CourseTask(
                     type = "short-answer",
-                    title = "Summarize the chapter",
-                    description = "Write a concise summary."
+                    title = "Summarize the chapter"
                 )
             )
         }

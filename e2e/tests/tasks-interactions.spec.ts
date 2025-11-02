@@ -3,7 +3,7 @@ import fs from 'fs';
 
 const uploadId = '2ea81edd-bd2b-45f5-89d6-c18526275a47';
 const pdf = `/home/damian/business/book-course-converter/uploads/${uploadId}.pdf`;
-const sampleTaskPdf = `/home/damian/business/book-course-converter/uploads/${uploadId}.pdf`;
+const sampleTaskPdf = `/home/damian/Documents/task.pdf`;
 
 const timeout = {timeout: 10000};
 
@@ -49,15 +49,9 @@ async function generateAndOpenFirstCourse(page: import('@playwright/test').Page,
     await expect(page.getByRole('progressbar')).toBeVisible(timeout)
     await expect(page.getByRole('heading', { name: 'Progress Overview' })).toBeVisible(timeout)
     await expect(page.getByRole('tab', { name: 'Study Notes' })).toBeVisible(timeout)
-    await expect(page.getByText('of 3 tasks completed')).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Practice Tasks (0/3)' })).toBeVisible();
-
-    // await page.waitForTimeout(5000000)
+    await expect(page.getByText('of 4 tasks completed')).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Practice Tasks (0/4)' })).toBeVisible();
 }
-
-
-// getByText('2Choose the correct optionABCSubmit Answer')
-// getByText('3Select valid itemsXYZSubmit')
 
 
 test.describe('Tasks interactions', () => {
@@ -91,9 +85,9 @@ test.describe('Tasks interactions', () => {
             .getByRole('img');
         await expect(updatedCircle).toBeVisible(timeout)
 
-        let practiceTasksUpdated = page.getByRole('tab', { name: 'Practice Tasks (1/3)' });
+        let practiceTasksUpdated = page.getByRole('tab', { name: 'Practice Tasks (1/4)' });
         await expect(practiceTasksUpdated).toBeVisible(timeout)
-        await expect(page.getByText('Progress Overview1 of 3 tasks')).toBeVisible();
+        await expect(page.getByText('Progress Overview1 of 4 tasks')).toBeVisible();
 
 
         // single select
@@ -109,10 +103,8 @@ test.describe('Tasks interactions', () => {
         await page.getByRole('checkbox', { name: 'A' }).click();
         await page.locator('div').filter({ hasText: /^ABCSubmit Answer$/ }).getByRole('button').click();
 
-        await expect(page.getByRole('tab', { name: 'Practice Tasks (2/3)' })).toBeVisible();
-        await expect(page.getByText('Progress Overview2 of 3 tasks')).toBeVisible();
-        // await expect(page.getByRole('tabpanel', { name: 'Practice Tasks (2/3)' }).locator('path').nth(2)).toBeVisible();
-        // await expect(page.locator('div').filter({ hasText: /^Correct$/ })).toBeVisible();
+        await expect(page.getByRole('tab', { name: 'Practice Tasks (2/4)' })).toBeVisible();
+        await expect(page.getByText('Progress Overview2 of 4 tasks')).toBeVisible();
 
         // multiple select
 
@@ -127,17 +119,36 @@ test.describe('Tasks interactions', () => {
         await page.getByRole('checkbox', { name: 'Z' }).click();
         await page.locator('div').filter({ hasText: /^XYZSubmit Answer$/ }).getByRole('button').click();
 
-
         await expect(page.locator('div').filter({ hasText: /^Correct$/ }).nth(1)).toBeVisible();
         await expect(page.locator('div').filter({ hasText: /^3Select valid itemsXYZCorrect$/ }).getByRole('img').first()).toBeVisible();
-        await expect(page.locator('div').filter({ hasText: /^Progress Overview3 of 3 tasks completed$/ }).nth(1)).toBeVisible();
-        await expect(page.getByRole('tab', { name: 'Practice Tasks (3/3)' })).toBeVisible();
+        await expect(page.locator('div').filter({ hasText: /^Progress Overview3 of 4 tasks completed$/ }).nth(1)).toBeVisible();
+        await expect(page.getByRole('tab', { name: 'Practice Tasks (3/4)' })).toBeVisible();
+
+
+        // file upload
+        await expect(page.getByText('4', { exact: true })).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'Provide a pdf file with' })).toBeVisible();
+        await expect(page.getByText('4Provide a pdf file with solution.Upload PDFNo file selectedSubmit Answer')).toBeVisible();
+        await expect(page.locator('div').filter({ hasText: /^4Provide a pdf file with solution\.Upload PDFNo file selectedSubmit Answer$/ }).locator('circle')).toBeVisible();
+
+        const fileChooserPromise = page.waitForEvent('filechooser');
+        await page.getByRole('button', { name: 'Upload PDF' }).click();
+        const fileChooser = await fileChooserPromise;
+        await fileChooser.setFiles({name: "task.pdf", mimeType: 'application/pdf', buffer: fs.readFileSync(sampleTaskPdf)});
+        await page.getByRole('button', { name: 'Submit Answer' }).click();
+
+        await expect(page.locator('div').filter({ hasText: /^Uploaded file: task\.pdf$/ })).toBeVisible();
+        await expect(page.locator('div').filter({ hasText: /^Score: 100%$/ }).nth(1)).toBeVisible();
+        await expect(page.locator('div').filter({ hasText: /^4Provide a pdf file with solution\.Upload PDFUploaded file: task\.pdfScore: 100%$/ }).locator('path').first()).toBeVisible();
+
+        // all course finished
         await expect(page.locator('div').filter({ hasText: /^Course Completed!$/ }).getByRole('img')).toBeVisible();
         await expect(page.getByText('Course Completed!')).toBeVisible();
 
+
         // Cleanup: back then delete book
         await page.getByRole('button', {name: 'Back'}).click();
-        await expect(page.getByRole('button', {name: 'Delete book'})).toBeVisible({timeout: 20000});
+        await expect(page.getByRole('button', {name: 'Delete book'})).toBeVisible(timeout);
         await page.getByRole('button', {name: 'Delete book'}).click();
     });
 });

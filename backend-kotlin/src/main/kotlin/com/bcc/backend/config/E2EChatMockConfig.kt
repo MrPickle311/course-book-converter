@@ -96,9 +96,10 @@ class E2EChatMockConfig {
         if (allText.contains("expert course designer", ignoreCase = true)) {
             return """
             {"tasks":[
-              {"type":"short-answer","title":"Summarize the chapter","description":"Write a concise summary."},
-              {"type":"multiple-choice","title":"Choose the correct option","description":"Pick one","options":["A","B","C"],"correctAnswer":"A"},
-              {"type":"multiple-select","title":"Select valid items","description":"Pick all that apply","options":["X","Y","Z"],"correctAnswers":["X","Z"]}
+              {"type":"short-answer","title":"Summarize the chapter"},
+              {"type":"multiple-choice","title":"Choose the correct option","options":["A","B","C"],"correctAnswer":"A"},
+              {"type":"multiple-select","title":"Select valid items","options":["X","Y","Z"],"correctAnswers":["X","Z"]},
+              {"type": "upload-pdf", "title":"Provide a pdf file with solution."}
             ]}
             """.trimIndent()
         }
