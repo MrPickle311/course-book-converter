@@ -1,13 +1,8 @@
 import {test, expect} from '@playwright/test';
+import {login} from "./common";
 
 const id = '2ea81edd-bd2b-45f5-89d6-c18526275a47';
 const pdf = `/home/damian/business/book-course-converter/uploads/${id}.pdf`;
-
-async function login(page: import('@playwright/test').Page) {
-    await page.goto('/');
-    await page.getByRole('button', {name: /Sign in with Google \(Demo\)/i}).click();
-    await expect(page.getByRole('button', {name: 'My books'})).toBeVisible();
-}
 
 test.describe('Generate course for a chapter and open it', () => {
     test.describe.configure({mode: 'serial'});
@@ -31,11 +26,11 @@ test.describe('Generate course for a chapter and open it', () => {
         await page.getByRole('button', {name: 'Generate course'}).first().click();
 
         let generatedChapterCard = page.locator('div')
-            .filter({hasText: /^IntroductionIn ProgressCreated \d{1,2}\/\d{1,2}\/\d{4}\d{1,2}\/\d{1,2} tasks40%$/})
+            .filter({hasText: /^IntroductionIn ProgressCreated \d{1,2}\/\d{1,2}\/\d{4}\d{1,2}\/\d{1,2} tasks0%$/})
             .first()
         await expect(generatedChapterCard).toBeVisible({timeout: 20000});
         await generatedChapterCard.click()
-        await expect(page.getByText('Key concepts overview')).toBeVisible({timeout: 20000})
+        await expect(page.getByText('This paragraph contains')).toBeVisible({timeout: 20000})
 
         await page.getByRole('button', {name: 'Back'}).click()
         await expect(page.getByRole('button', {name: 'Delete book'})).toBeVisible({timeout: 20000});

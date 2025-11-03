@@ -425,8 +425,6 @@ components:
           type: string
         title:
           type: string
-        description:
-          type: string
     CourseSection:
       type: object
       properties:
