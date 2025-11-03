@@ -104,26 +104,26 @@ export function UserMenu() {
               <div className="space-y-3">
                 <h3 className="text-sm font-medium">Pagination</h3>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">Courses per page</span>
+                  <span className="text-sm">Books per page</span>
                   <div className="flex items-center gap-2">
                     <Button
-                      variant={pageSize === 50 ? 'default' : 'outline'}
+                      variant={pageSize === 10 ? 'default' : 'outline'}
                       size="sm"
-                      onClick={() => setPageSize(50)}
+                      onClick={() => setPageSize(10)}
                     >
-                      50
+                      10
                     </Button>
                     <Button
-                      variant={pageSize === 100 ? 'default' : 'outline'}
+                      variant={pageSize === 20 ? 'default' : 'outline'}
                       size="sm"
-                      onClick={() => setPageSize(100)}
+                      onClick={() => setPageSize(20)}
                     >
-                      100
+                      20
                     </Button>
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Choose how many courses to display per page in the library
+                  Choose how many books to display per page in the library
                 </p>
               </div>
 
