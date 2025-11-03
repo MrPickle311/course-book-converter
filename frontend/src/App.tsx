@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { DefaultService, OpenAPI, type ProcessPdfResponse, type GenerateCourseRequest, type GenerateCourseResponse, type BookDetail as ApiBookDetail, type Chapter as ApiChapter } from '@/openapi';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import { ThemeProvider } from './components/ThemeContext';
@@ -56,31 +56,73 @@ function AppContent() {
   const [currentCourse, setCurrentCourse] = useState<Course | null>(null);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [lastContentOrigin, setLastContentOrigin] = useState<'toc' | 'book' | null>(null);
+  const pollingIntervalRef = useRef<number | null>(null);
+  const pollingStopTimeoutRef = useRef<number | null>(null);
 
   const headerRef = useCallback((node: HTMLDivElement) => {
     setHeaderHeight(node.getBoundingClientRect().height ?? 0);
   }, []);
 
+  const refreshBooks = useCallback(async () => {
+    try {
+      const res = await DefaultService.getBooksList({ page: 1, pageSize: 20 });
+      const apiBooks = res.data?.items || [];
+      const mapped: Book[] = apiBooks.map((b) => ({
+        id: b.id || '',
+        title: b.title || '',
+        uploadDate: b.uploadDate || new Date().toISOString().split('T')[0],
+        chapters: [],
+      } as Book));
+      setBooks(mapped);
+    } catch (e) {
+      console.error('Failed to load books', e);
+    }
+  }, []);
+
+  const startLibraryPolling = useCallback(() => {
+    if (pollingIntervalRef.current) {
+      window.clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+    if (pollingStopTimeoutRef.current) {
+      window.clearTimeout(pollingStopTimeoutRef.current);
+      pollingStopTimeoutRef.current = null;
+    }
+    // Poll every 2s for a short window to catch new books
+    pollingIntervalRef.current = window.setInterval(() => {
+      refreshBooks();
+    }, 2000);
+    // Stop polling after 10s
+    pollingStopTimeoutRef.current = window.setTimeout(() => {
+      if (pollingIntervalRef.current) {
+        window.clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    }, 10000);
+  }, [refreshBooks]);
+
   // Load books from API on first login
   useEffect(() => {
     if (!user) return;
     (async () => {
-      try {
-        const res = await DefaultService.getBooksList({ page: 1, pageSize: 20 });
-        const apiBooks = res.data?.items || [];
-        const mapped: Book[] = apiBooks.map((b) => ({
-          id: b.id || '',
-          title: b.title || '',
-          uploadDate: b.uploadDate || new Date().toISOString().split('T')[0],
-          chapters: [],
-        } as Book));
-        setBooks(mapped);
-        // courses are created when generating a chapter
-      } catch (e) {
-        console.error('Failed to load books', e);
-      }
+      await refreshBooks();
     })();
   }, [user?.id]);
+
+  // Stop polling when leaving the library (must be before any early returns)
+  useEffect(() => {
+    if (appState !== 'library') {
+      if (pollingIntervalRef.current) {
+        window.clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+      if (pollingStopTimeoutRef.current) {
+        window.clearTimeout(pollingStopTimeoutRef.current);
+        pollingStopTimeoutRef.current = null;
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appState]);
 
   // Show loading spinner while checking authentication
   if (isLoading) {
@@ -160,8 +202,11 @@ function AppContent() {
     setCurrentBook(null);
   };
 
-  const handleOpenLibrary = () => {
+  const handleOpenLibrary = async () => {
     setAppState('library');
+    // Refresh immediately and start a short polling window to catch newly uploaded books
+    await refreshBooks();
+    startLibraryPolling();
   };
 
   // removed legacy select course handler in favor of chapter-driven flows
