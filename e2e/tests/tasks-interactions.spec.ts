@@ -1,6 +1,6 @@
 import {expect, test} from '@playwright/test';
 import fs from 'fs';
-import {generateAndOpenFirstCourse, login, timeout} from "./common";
+import {backAndDeleteBook, generateAndOpenFirstCourse, login, timeout} from "./common";
 
 const sampleTaskPdf = `/home/damian/Documents/task.pdf`;
 
@@ -99,10 +99,6 @@ test.describe('Tasks interactions', () => {
         await expect(page.locator('div').filter({hasText: /^Course Completed!$/}).getByRole('img')).toBeVisible();
         await expect(page.getByText('Course Completed!')).toBeVisible();
 
-
-        // Cleanup: back then delete book
-        await page.getByRole('button', {name: 'Back'}).click();
-        await expect(page.getByRole('button', {name: 'Delete book'})).toBeVisible(timeout);
-        await page.getByRole('button', {name: 'Delete book'}).click();
+        await backAndDeleteBook(page)
     });
 });

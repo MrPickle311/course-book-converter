@@ -5,6 +5,8 @@ const uploadId = '2ea81edd-bd2b-45f5-89d6-c18526275a47';
 const pdf = `/home/damian/business/book-course-converter/e2e/course_book.pdf`;
 export const timeout = {timeout: 10000};
 
+export const dateRegex = /^\d{1,2}\/\d{1,2}\/\d{4}$/
+
 export async function login(page: import('@playwright/test').Page) {
     await page.goto('/');
     await page.getByRole('button', {name: /Sign in with Google \(Demo\)/i}).click();
