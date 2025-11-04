@@ -13,13 +13,18 @@ export async function login(page: import('@playwright/test').Page) {
     await expect(page.getByRole('button', {name: 'My books'})).toBeVisible();
 }
 
-export async function generateAndOpenFirstCourse(page: import('@playwright/test').Page, chapterName: string) {
-    // Upload and open book
-    await expect(page.getByRole('heading', {name: 'Turn a PDF book into a course with notes and tasks'})).toBeVisible();
+export async function loadSampleBook(page: Page) {
     const buffer = fs.readFileSync(pdf);
     const uniqueName = `${uploadId}-${Date.now()}.pdf`;
     const bookTitle = uniqueName.replace('.pdf', '');
     await page.setInputFiles('#file-upload', {name: uniqueName, mimeType: 'application/pdf', buffer});
+    return bookTitle;
+}
+
+export async function generateAndOpenFirstCourse(page: import('@playwright/test').Page, chapterName: string) {
+    // Upload and open book
+    await expect(page.getByRole('heading', {name: 'Turn a PDF book into a course with notes and tasks'})).toBeVisible();
+    const bookTitle = await loadSampleBook(page);
     await page.getByRole('button', {name: 'Process PDF'}).click();
     await expect(page.getByText('All books')).toBeVisible({timeout: 20000});
     await page.getByRole('heading', {name: bookTitle}).first().click();
