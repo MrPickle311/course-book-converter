@@ -78,12 +78,19 @@ function AppContent() {
       // openapi typing may lag behind spec; use any to safely access metrics
       const dataAny: any = (res as any)?.data ?? (res as any)?.data;
       const apiBooks = (dataAny?.items || []) as Array<any>;
-      const mapped: Book[] = apiBooks.map((b: any) => ({
-          id: b.id || '',
-          title: b.title || '',
-          uploadDate: b.uploadDate || new Date().toISOString().split('T')[0],
-          chapters: [],
-        } as Book));
+      const mapped: Book[] = apiBooks.map((raw: any) => ({
+        id: raw.id || '',
+        title: raw.title || '',
+        uploadDate: raw.uploadDate || new Date().toISOString().split('T')[0],
+        // Keep optional fields from summary so UI can sort and show per-book progress
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        lastUsedAt: (raw as any).lastUsedAt,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        progressData: (raw as any).progressData,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        generatedCoursesCount: (raw as any).generatedCoursesCount,
+        chapters: [],
+      } as unknown as Book));
         setBooks(mapped);
       const m = dataAny?.metrics;
       if (m) {

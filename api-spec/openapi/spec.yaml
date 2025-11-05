@@ -376,14 +376,7 @@ components:
         isGenerated:
           type: boolean
         progressData:
-          type: object
-          properties:
-            tasksCount:
-              type: integer
-            tasksCompleted:
-              type: integer
-            tasksFailed:
-              type: integer
+          $ref: '#/components/schemas/ProgressData'
     ProcessPdfData:
       type: object
       properties:
@@ -466,6 +459,18 @@ components:
           type: string
           nullable: true
           description: ISO datetime string
+        progressData:
+          $ref: '#/components/schemas/ProgressData'
+    ProgressData:
+      type: object
+      required: [tasksCompleted, tasksCount, tasksFailed]
+      properties:
+        tasksCount:
+          type: integer
+        tasksCompleted:
+          type: integer
+        tasksFailed:
+          type: integer
     BookDetail:
       type: object
       required: [id, title, uploadDate, chapters]

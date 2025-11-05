@@ -43,8 +43,21 @@ export function BooksLibrary({ books, courses, onOpenBook, metrics }: BooksLibra
       isInProgress: boolean;
     }>();
     books.forEach((book) => {
+      // Prefer backend-provided summary progress if present on the item
+      const pd = (book as any)?.progressData as { tasksCount?: number; tasksCompleted?: number; tasksFailed?: number } | undefined;
+      if (pd && typeof pd.tasksCount === 'number') {
+        const totalCoursesFromBackend = Number(((book as any)?.generatedCoursesCount) || 0);
+        const totalTasks = Number(pd.tasksCount || 0);
+        const completedTasks = Number(pd.tasksCompleted || 0);
+        const failedTasks = Number(pd.tasksFailed || 0);
+        const isCompleted = totalTasks > 0 && completedTasks === totalTasks && failedTasks === 0;
+        const isInProgress = totalTasks > 0 && !isCompleted && (completedTasks > 0 || failedTasks > 0);
+        map.set(book.id, { totalCourses: totalCoursesFromBackend, completedCourses: 0, totalTasks, completedTasks, failedTasks, isCompleted, isInProgress });
+        return;
+      }
+
+      // Fallback: approximate from in-memory courses
       const bookCourses = courses.filter((c) => c.bookId === book.id);
-      // Group by base chapter id (strip replication suffix like -pN)
       const groups = new Map<string, typeof bookCourses>();
       bookCourses.forEach((c) => {
         const baseId = c.chapterId.split('-p')[0];

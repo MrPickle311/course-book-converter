@@ -67,11 +67,17 @@ class PdfController(
             bookRepository.findAll(pageable)
         }
         val items = pageData.content.map { b ->
+            val bm = taskService.computeBookMetrics(b.uploadId)
+            val progress = ProgressData()
+                .tasksCount(bm.totalTasks)
+                .tasksCompleted(bm.completedTasks)
+                .tasksFailed(bm.failedTasks)
             BookSummary()
                 .id(b.uploadId)
                 .title(b.title)
                 .uploadDate(b.uploadDate.toString())
                 .lastUsedAt(b.lastUsedAt.toString())
+                .progressData(progress)
         }
         val meta = PaginationMeta()
             .page(p)

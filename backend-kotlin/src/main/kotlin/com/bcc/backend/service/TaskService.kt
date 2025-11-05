@@ -6,7 +6,7 @@ import com.bcc.backend.persistence.*
 import com.bcc.backend.service.CourseGeneratorService.CourseTask
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
-import com.bcc.api.model.ChapterProgressData
+import com.bcc.api.model.ProgressData
 import org.springframework.ai.chat.client.ChatClient
 import org.springframework.ai.chat.messages.SystemMessage
 import org.springframework.ai.chat.messages.UserMessage
@@ -132,7 +132,7 @@ class TaskService(
             .tasks(items)
     }
 
-    fun getChapterProgress(uploadId: String, chapterId: String): ChapterProgressData {
+    fun getChapterProgress(uploadId: String, chapterId: String): ProgressData {
         val defs = taskRepository.findByBookIdAndChapterId(uploadId, chapterId)
         var completed = 0
         var failed = 0
@@ -176,7 +176,7 @@ class TaskService(
                 }
             }
         }
-        return ChapterProgressData()
+        return ProgressData()
             .tasksCount(defs.size)
             .tasksCompleted(completed)
             .tasksFailed(failed)
