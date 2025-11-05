@@ -442,6 +442,13 @@ function AppContent() {
               setAppState('course');
               setLastContentOrigin('book');
             }}
+            onDeleteBook={async (bookId: string) => {
+              try {
+                await DefaultService.deleteBook({ uploadId: bookId });
+              } finally {
+                await handleOpenLibrary();
+              }
+            }}
           />
         )}
       </div>

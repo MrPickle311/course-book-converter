@@ -10,9 +10,10 @@ export interface BookDetailProps {
   book: BookDetail;
   onGenerateCourse?: (chapterId: string) => Promise<void> | void;
   onOpenGeneratedCourse?: (chapterId: string) => Promise<void> | void;
+  onDeleteBook?: (bookId: string) => Promise<void> | void;
 }
 
-export function BookDetail({ book, onGenerateCourse, onOpenGeneratedCourse }: BookDetailProps) {
+export function BookDetail({ book, onGenerateCourse, onOpenGeneratedCourse, onDeleteBook }: BookDetailProps) {
   const stats = useMemo(() => {
     const chapters: Chapter[] = book.chapters || [];
     const generated = chapters.filter((ch) => ch.isGenerated);
@@ -42,8 +43,12 @@ export function BookDetail({ book, onGenerateCourse, onOpenGeneratedCourse }: Bo
             <div className="ml-auto">
               <Button variant="destructive" size="sm" onClick={async () => {
                 try {
-                  await DefaultService.deleteBook({ uploadId: book.id });
-                  window.location.href = '/';
+                  if (onDeleteBook) {
+                    await onDeleteBook(book.id);
+                  } else {
+                    await DefaultService.deleteBook({ uploadId: book.id });
+                    window.location.href = '/';
+                  }
                 } catch (e) {
                   console.error('Failed to delete book', e);
                 }
