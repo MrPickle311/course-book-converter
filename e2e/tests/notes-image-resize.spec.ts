@@ -1,12 +1,12 @@
 import {expect, test} from '@playwright/test';
-import {backAndDeleteBook, generateAndOpenFirstCourse, login, timeout} from './common';
+import {backAndDeleteBook, generateAndOpenCourse, login, timeout} from './common';
 
 test.describe('Notes image resizing', () => {
     test.describe.configure({mode: 'serial'});
 
     test('generate course and validate image width changes with settings', async ({page}) => {
         await login(page);
-        await generateAndOpenFirstCourse(page, 'Introduction');
+        await generateAndOpenCourse(page, 'Introduction');
         await page.getByRole('tab', {name: 'Study Notes'}).click();
 
         // Locate the first image from notes (served via images endpoint)

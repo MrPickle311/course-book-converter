@@ -3,6 +3,7 @@ import fs from 'fs';
 
 const uploadId = '2ea81edd-bd2b-45f5-89d6-c18526275a47';
 const pdf = `/home/damian/business/book-course-converter/e2e/course_book.pdf`;
+const sampleTaskPdf = `/home/damian/Documents/task.pdf`;
 export const timeout = {timeout: 10000};
 
 export const dateRegex = /^\d{1,2}\/\d{1,2}\/\d{4}$/
@@ -21,12 +22,24 @@ export async function loadSampleBook(page: Page) {
     return bookTitle;
 }
 
-export async function generateAndOpenFirstCourse(page: import('@playwright/test').Page, chapterName: string) {
+export async function uploadPdfTask(page: Page) {
+    const fileChooserPromise = page.waitForEvent('filechooser');
+    await page.getByRole('button', {name: 'Upload PDF'}).click();
+    const fileChooser = await fileChooserPromise;
+    await fileChooser.setFiles({
+        name: "task.pdf",
+        mimeType: 'application/pdf',
+        buffer: fs.readFileSync(sampleTaskPdf)
+    });
+    await page.getByRole('button', {name: 'Submit Answer'}).click();
+}
+
+export async function generateAndOpenCourse(page: import('@playwright/test').Page, chapterName: string) {
     // Upload and open book
     await expect(page.getByRole('heading', {name: 'Turn a PDF book into a course with notes and tasks'})).toBeVisible();
     const bookTitle = await loadSampleBook(page);
     await page.getByRole('button', {name: 'Process PDF'}).click();
-    await expect(page.getByText('All books')).toBeVisible({timeout: 20000});
+    await expect(page.getByText('All books')).toBeVisible(timeout);
     await page.getByRole('heading', {name: bookTitle}).first().click();
 
     // Generate for the specified chapter (or fallback to first card if not found)
@@ -34,8 +47,8 @@ export async function generateAndOpenFirstCourse(page: import('@playwright/test'
     if (!(await chapterCard.isVisible().catch(() => false))) {
         chapterCard = page.locator('div.p-4').filter({has: page.getByRole('button', {name: /Generate course/i})}).first();
     }
-    await expect(chapterCard).toBeVisible({timeout: 20000});
-    const uiChosenTitle = (await chapterCard.getByRole('heading').first().innerText()).trim();
+    await expect(chapterCard).toBeVisible(timeout);
+    (await chapterCard.getByRole('heading').first().innerText()).trim();
     await chapterCard.getByRole('button', {name: /Generate course/i}).click();
 
     // Go back to library and reopen book for generated state
@@ -48,16 +61,16 @@ export async function generateAndOpenFirstCourse(page: import('@playwright/test'
 
     // Switch to Tasks tab and assert tasks UI state
     await expect(page.getByText('Progress Overview0 of 4 tasks')).toBeVisible(timeout);
-    await expect(page.getByRole('tab', { name: 'Practice Tasks (0/4)' })).toBeVisible(timeout);
+    await expect(page.getByRole('tab', {name: 'Practice Tasks (0/4)'})).toBeVisible(timeout);
     await page.getByRole('tab', {name: /Practice Tasks/}).click();
     await expect(page.getByRole('progressbar')).toBeVisible(timeout)
-    await expect(page.getByRole('heading', { name: 'Progress Overview' })).toBeVisible(timeout)
-    await expect(page.getByRole('tab', { name: 'Study Notes' })).toBeVisible(timeout)
+    await expect(page.getByRole('heading', {name: 'Progress Overview'})).toBeVisible(timeout)
+    await expect(page.getByRole('tab', {name: 'Study Notes'})).toBeVisible(timeout)
 }
 
 export async function backAndDeleteBook(page: Page) {
     await page.getByRole('button', {name: 'Back'}).click();
     await expect(page.getByRole('button', {name: 'Delete book'})).toBeVisible(timeout);
     await page.getByRole('button', {name: 'Delete book'}).click();
-    await expect(page.getByRole('heading', {name: 'Turn a PDF book into a course with notes and tasks'})).toBeVisible();
+    await expect(page.getByText('All books')).toBeVisible(timeout);
 }

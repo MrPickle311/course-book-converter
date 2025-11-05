@@ -1,6 +1,6 @@
 import {test, expect, Page} from '@playwright/test';
 import fs from 'fs';
-import {backAndDeleteBook, generateAndOpenFirstCourse, login, timeout} from "./common";
+import {backAndDeleteBook, generateAndOpenCourse, login, timeout} from "./common";
 
 const uploadId = '2ea81edd-bd2b-45f5-89d6-c18526275a47';
 const pdf = `/home/damian/business/book-course-converter/uploads/${uploadId}.pdf`;
@@ -13,7 +13,7 @@ test.describe('Task retaking', () => {
 
     test('retake MCQ: wrong answer -> Retake -> correct answer', async ({page}) => {
         await login(page);
-        await generateAndOpenFirstCourse(page, 'Introduction');
+        await generateAndOpenCourse(page, 'Introduction');
 
         // MCQ card is deterministic in e2e: title "Choose the correct option"
         const mcqCard = page.getByRole('heading', {name: 'Choose the correct option'}).first().locator('xpath=ancestor::div[contains(@class, "card")]');
@@ -44,7 +44,7 @@ test.describe('Task retaking', () => {
 
     test('retake Multi-select: wrong set -> Retake -> correct set', async ({page}) => {
         await login(page);
-        await generateAndOpenFirstCourse(page, 'Introduction');
+        await generateAndOpenCourse(page, 'Introduction');
 
         // Multi-select card: deterministic e2e title "Select valid items"
         const msCard = page
@@ -79,7 +79,7 @@ test.describe('Task retaking', () => {
 
     test('retake Short-answer: forced incorrect -> Retake -> correct', async ({page}) => {
         await login(page);
-        await generateAndOpenFirstCourse(page, 'Introduction');
+        await generateAndOpenCourse(page, 'Introduction');
 
         const saCard = page
             .getByRole('heading', {name: 'Summarize the chapter'})
@@ -113,7 +113,7 @@ test.describe('Task retaking', () => {
 
     test('retake PDF upload: non-PDF -> Retake -> correct PDF', async ({page}) => {
         await login(page);
-        await generateAndOpenFirstCourse(page, 'Introduction');
+        await generateAndOpenCourse(page, 'Introduction');
 
         const uploadCard = page
             .getByRole('heading', {name: 'Provide a pdf file with solution.'})

@@ -1,15 +1,15 @@
-import {expect, test} from '@playwright/test';
+import {expect, Page, test} from '@playwright/test';
 import fs from 'fs';
-import {backAndDeleteBook, generateAndOpenFirstCourse, login, timeout} from "./common";
+import {backAndDeleteBook, generateAndOpenCourse, login, timeout, uploadPdfTask} from "./common";
 
-const sampleTaskPdf = `/home/damian/Documents/task.pdf`;
+
 
 test.describe('Tasks interactions', () => {
     test.describe.configure({mode: 'serial'});
 
     test('submit all task types until course completes', async ({page}) => {
         await login(page);
-        await generateAndOpenFirstCourse(page, 'Introduction');
+        await generateAndOpenCourse(page, 'Introduction');
 
 
         await expect(page.getByRole('textbox', {name: 'Enter your answer...'})).toBeEmpty();
@@ -81,15 +81,7 @@ test.describe('Tasks interactions', () => {
         await expect(page.getByText('4Provide a pdf file with solution.Upload PDFNo file selectedSubmit Answer')).toBeVisible();
         await expect(page.locator('div').filter({hasText: /^4Provide a pdf file with solution\.Upload PDFNo file selectedSubmit Answer$/}).locator('circle')).toBeVisible();
 
-        const fileChooserPromise = page.waitForEvent('filechooser');
-        await page.getByRole('button', {name: 'Upload PDF'}).click();
-        const fileChooser = await fileChooserPromise;
-        await fileChooser.setFiles({
-            name: "task.pdf",
-            mimeType: 'application/pdf',
-            buffer: fs.readFileSync(sampleTaskPdf)
-        });
-        await page.getByRole('button', {name: 'Submit Answer'}).click();
+        await uploadPdfTask(page);
 
         await expect(page.locator('div').filter({hasText: /^Uploaded file: task\.pdf$/})).toBeVisible();
         await expect(page.locator('div').filter({hasText: /^Score: 100%$/}).nth(1)).toBeVisible();
