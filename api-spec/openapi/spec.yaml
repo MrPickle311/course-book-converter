@@ -461,6 +461,9 @@ components:
           description: ISO datetime string
         progressData:
           $ref: '#/components/schemas/ProgressData'
+        generatedCoursesCount:
+          type: integer
+          description: Number of generated chapters/courses for this book
     ProgressData:
       type: object
       required: [tasksCompleted, tasksCount, tasksFailed]
