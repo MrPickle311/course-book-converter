@@ -154,6 +154,25 @@ function AppContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appState]);
 
+  // Fetch latest details for the currently opened book (chapters + per-chapter progress)
+  const refreshCurrentBook = useCallback(async () => {
+    try {
+      if (!currentBook) return;
+      const detail = await DefaultService.getBookById({ uploadId: currentBook.id });
+      const data = detail as unknown as Book;
+      if (data) {
+        setCurrentBook({
+          id: data.id || currentBook.id,
+          title: data.title || currentBook.title,
+          uploadDate: data.uploadDate || currentBook.uploadDate,
+          chapters: (data.chapters as Chapter[]) || currentBook.chapters,
+        } as Book);
+      }
+    } catch (e) {
+      console.error('Failed to refresh book details', e);
+    }
+  }, [currentBook]);
+
   // Show loading spinner while checking authentication
   if (isLoading) {
     return (
@@ -239,6 +258,7 @@ function AppContent() {
     startLibraryPolling();
   };
 
+
   // removed legacy select course handler in favor of chapter-driven flows
 
   const handleOpenBook = async (book: Book) => {
@@ -277,16 +297,17 @@ function AppContent() {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             {appState !== 'upload' && (
-              <Button
+            <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
+                onClick={async () => {
                   if (appState === 'toc') {
                       handleBackToUpload();
                   }
                   else if (appState === 'course') {
                     if (lastContentOrigin === 'book') {
                         console.log("book")
+                        await refreshCurrentBook();
                         setAppState('book');
                     }
                     else {
@@ -299,7 +320,7 @@ function AppContent() {
                   }
                   else if (appState === 'book') {
                       console.log("library")
-                      setAppState('library');
+                      await handleOpenLibrary();
                   }
                 }}
               >
