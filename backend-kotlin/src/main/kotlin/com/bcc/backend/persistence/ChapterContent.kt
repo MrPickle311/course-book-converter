@@ -36,6 +36,7 @@ data class ChapterContent(
 
 interface ChapterContentRepository : JpaRepository<ChapterContent, UUID> {
     fun findByBookIdAndChapterId(bookId: String, chapterId: String): ChapterContent?
+    fun countByBookId(bookId: String): Long
     fun deleteByBookId(bookId: String)
 }
 
