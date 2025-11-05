@@ -78,7 +78,43 @@ class PdfController(
             .pageSize(ps)
             .total(pageData.totalElements.toInt())
             .totalPages(pageData.totalPages)
-        val payload = PaginatedBooks().items(items).pagination(meta)
+        // Compute library metrics across ALL matching books (not just current page)
+        val allMatching: List<Book> = if (!search.isNullOrBlank()) {
+            // fetch a sufficiently large first page to cover typical datasets
+            val all = bookRepository.findByTitleContainingIgnoreCase(search.trim(), PageRequest.of(0, Int.MAX_VALUE, Sort.by(Sort.Direction.DESC, "lastUsedAt", "uploadDate")))
+            all.content
+        } else {
+            bookRepository.findAll()
+        }
+
+        var totalTasks = 0
+        var completedTasks = 0
+        var failedTasks = 0
+        var completedBooks = 0
+        var inProgressBooks = 0
+        allMatching.forEach { b ->
+            val m = taskService.computeBookMetrics(b.uploadId)
+            totalTasks += m.totalTasks
+            completedTasks += m.completedTasks
+            failedTasks += m.failedTasks
+            if (m.totalTasks > 0) {
+                if (m.completedTasks == m.totalTasks && m.failedTasks == 0) {
+                    completedBooks += 1
+                } else {
+                    inProgressBooks += 1
+                }
+            }
+        }
+        val libMetrics = LibraryMetrics()
+            .totalBooks(allMatching.size)
+            .completedBooks(completedBooks)
+            .inProgressBooks(inProgressBooks)
+            .failedTasks(failedTasks)
+            .totalTasks(totalTasks)
+            .completedTasks(completedTasks)
+            .overallProgress((if (totalTasks > 0) completedTasks.toDouble() / totalTasks.toDouble() else 0.0).toFloat())
+
+        val payload = PaginatedBooks().items(items).pagination(meta).metrics(libMetrics)
         return ResponseEntity.ok(PaginatedBooksResponse(true, payload))
     }
 

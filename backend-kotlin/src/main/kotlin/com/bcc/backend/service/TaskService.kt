@@ -182,6 +182,59 @@ class TaskService(
             .tasksFailed(failed)
     }
 
+    data class BookMetrics(
+        val totalTasks: Int,
+        val completedTasks: Int,
+        val failedTasks: Int
+    )
+
+    fun computeBookMetrics(uploadId: String): BookMetrics {
+        val tasks = taskRepository.findAllByBookId(uploadId)
+        var completed = 0
+        var failed = 0
+        tasks.forEach { def ->
+            when (def.type) {
+                "multiple-choice" -> {
+                    val st: MultipleChoiceTaskState? = def.state?.let {
+                        runCatching { objectMapper.convertValue(it, MultipleChoiceTaskState::class.java) }.getOrNull()
+                    }
+                    if (st != null) {
+                        completed += 1
+                        if (st.evaluation?.isCorrect == false) failed += 1
+                    }
+                }
+                "multiple-select" -> {
+                    val st: MultiselectTaskState? = def.state?.let {
+                        runCatching { objectMapper.convertValue(it, MultiselectTaskState::class.java) }.getOrNull()
+                    }
+                    if (st != null) {
+                        completed += 1
+                        if (st.evaluation?.isCorrect == false) failed += 1
+                    }
+                }
+                "upload-pdf" -> {
+                    val st: FileUploadTaskState? = def.state?.let {
+                        runCatching { objectMapper.convertValue(it, FileUploadTaskState::class.java) }.getOrNull()
+                    }
+                    if (st != null) {
+                        completed += 1
+                        if (st.evaluation?.isCorrect == false) failed += 1
+                    }
+                }
+                else -> {
+                    val st: ShortAnswerTaskState? = def.state?.let {
+                        runCatching { objectMapper.convertValue(it, ShortAnswerTaskState::class.java) }.getOrNull()
+                    }
+                    if (st != null) {
+                        completed += 1
+                        if (st.evaluation.isCorrect == false) failed += 1
+                    }
+                }
+            }
+        }
+        return BookMetrics(totalTasks = tasks.size, completedTasks = completed, failedTasks = failed)
+    }
+
     fun persistTasks(uploadId: String, chapterId: String, tasks: List<CourseTask>): List<Task> {
         val book = bookRepository.findByUploadId(uploadId)
             ?: throw IllegalArgumentException("Book not found")

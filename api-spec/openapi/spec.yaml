@@ -501,7 +501,9 @@ components:
             $ref: '#/components/schemas/BookSummary'
         pagination:
           $ref: '#/components/schemas/PaginationMeta'
-      required: [items, pagination]
+        metrics:
+          $ref: '#/components/schemas/LibraryMetrics'
+      required: [items, pagination, metrics]
     PaginatedBooksResponse:
       type: object
       properties:
@@ -510,6 +512,34 @@ components:
         data:
           $ref: '#/components/schemas/PaginatedBooks'
       required: [success, data]
+    
+    # Aggregated library metrics for the current page and overall dataset
+    LibraryMetrics:
+      type: object
+      properties:
+        totalBooks:
+          type: integer
+          description: Total number of books matching the query (not only current page)
+        completedBooks:
+          type: integer
+          description: Number of books fully completed (all tasks completed and no failures)
+        inProgressBooks:
+          type: integer
+          description: Number of books that have at least one generated course with tasks started or any failures
+        failedTasks:
+          type: integer
+          description: Total count of failed tasks across all matching books
+        totalTasks:
+          type: integer
+          description: Total number of tasks across all matching books
+        completedTasks:
+          type: integer
+          description: Total number of completed tasks across all matching books
+        overallProgress:
+          type: number
+          format: float
+          description: Overall progress ratio in range 0..1 across all matching books
+      required: [totalBooks, completedBooks, inProgressBooks, failedTasks, totalTasks, completedTasks, overallProgress]
     TaskSubmissionRequest:
       type: object
       properties:

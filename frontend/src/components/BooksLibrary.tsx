@@ -10,13 +10,24 @@ import { useSettings } from './SettingsContext';
 import type {Course} from "@/components/CourseContent.tsx";
 import type {BookDetail} from "@/openapi";
 
+interface LibraryMetricsUI {
+  totalBooks: number;
+  completedBooks: number;
+  inProgressBooks: number;
+  failedTasks: number;
+  totalTasks: number;
+  completedTasks: number;
+  overallProgress: number; // 0..1
+}
+
 interface BooksLibraryProps {
   books: BookDetail[];
   courses: Course[];
   onOpenBook: (book: BookDetail) => void;
+  metrics?: LibraryMetricsUI;
 }
 
-export function BooksLibrary({ books, courses, onOpenBook }: BooksLibraryProps) {
+export function BooksLibrary({ books, courses, onOpenBook, metrics }: BooksLibraryProps) {
   const { pageSize } = useSettings();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeView, setActiveView] = useState<'all' | 'in-progress' | 'completed'>('all');
@@ -83,16 +94,29 @@ export function BooksLibrary({ books, courses, onOpenBook }: BooksLibraryProps) 
     if (page > totalPages) setPage(1);
   }, [totalPages, page]);
 
-  const stats = {
-    total: filteredBooks.length,
-    completed: filteredBooks.filter((b) => bookStats.get(b.id)?.isCompleted).length,
-    inProgress: filteredBooks.filter((b) => bookStats.get(b.id)?.isInProgress).length,
-    totalTasks: courses.reduce((acc, c) => acc + c.tasks.length, 0),
-    completedTasks: courses.reduce((acc, c) => acc + c.tasks.filter((t: any) => t.completed).length, 0),
-    failedTasks: courses.reduce((acc, c) => acc + c.tasks.filter((t: any) => t.completed && t.evaluation?.isCorrect === false).length, 0)
-  };
+  const stats = useMemo(() => {
+    if (metrics) {
+      return {
+        total: metrics.totalBooks,
+        completed: metrics.completedBooks,
+        inProgress: metrics.inProgressBooks,
+        totalTasks: metrics.totalTasks,
+        completedTasks: metrics.completedTasks,
+        failedTasks: metrics.failedTasks,
+        overallProgressPct: Math.round((metrics.overallProgress || 0) * 100),
+      };
+    }
+    const total = filteredBooks.length;
+    const completed = filteredBooks.filter((b) => bookStats.get(b.id)?.isCompleted).length;
+    const inProgress = filteredBooks.filter((b) => bookStats.get(b.id)?.isInProgress).length;
+    const totalTasks = courses.reduce((acc, c) => acc + c.tasks.length, 0);
+    const completedTasks = courses.reduce((acc, c) => acc + c.tasks.filter((t: any) => t.completed).length, 0);
+    const failedTasks = courses.reduce((acc, c) => acc + c.tasks.filter((t: any) => t.completed && t.evaluation?.isCorrect === false).length, 0);
+    const overall = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    return { total, completed, inProgress, totalTasks, completedTasks, failedTasks, overallProgressPct: overall };
+  }, [metrics, filteredBooks, bookStats, courses]);
 
-  const overallProgress = stats.totalTasks > 0 ? (stats.completedTasks / stats.totalTasks) * 100 : 0;
+  const overallProgress = stats.overallProgressPct;
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">

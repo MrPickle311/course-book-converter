@@ -51,6 +51,15 @@ function AppContent() {
   const { user, isLoading, logout } = useAuth();
   const [appState, setAppState] = useState<AppState>('upload');
   const [books, setBooks] = useState<Book[]>([]);
+  const [libraryMetrics, setLibraryMetrics] = useState<{
+    totalBooks: number;
+    completedBooks: number;
+    inProgressBooks: number;
+    failedTasks: number;
+    totalTasks: number;
+    completedTasks: number;
+    overallProgress: number; // 0..1
+  } | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [currentBook, setCurrentBook] = useState<Book | null>(null);
   const [currentCourse, setCurrentCourse] = useState<Course | null>(null);
@@ -64,19 +73,33 @@ function AppContent() {
   }, []);
 
   const refreshBooks = useCallback(async () => {
-    try {
-      const res = await DefaultService.getBooksList({ page: 1, pageSize: 20 });
-      const apiBooks = res.data?.items || [];
-      const mapped: Book[] = apiBooks.map((b) => ({
-        id: b.id || '',
-        title: b.title || '',
-        uploadDate: b.uploadDate || new Date().toISOString().split('T')[0],
-        chapters: [],
-      } as Book));
-      setBooks(mapped);
-    } catch (e) {
-      console.error('Failed to load books', e);
-    }
+      try {
+        const res = await DefaultService.getBooksList({ page: 1, pageSize: 20 });
+      // openapi typing may lag behind spec; use any to safely access metrics
+      const dataAny: any = (res as any)?.data ?? (res as any)?.data;
+      const apiBooks = (dataAny?.items || []) as Array<any>;
+      const mapped: Book[] = apiBooks.map((b: any) => ({
+          id: b.id || '',
+          title: b.title || '',
+          uploadDate: b.uploadDate || new Date().toISOString().split('T')[0],
+          chapters: [],
+        } as Book));
+        setBooks(mapped);
+      const m = dataAny?.metrics;
+      if (m) {
+        setLibraryMetrics({
+          totalBooks: Number(m.totalBooks || 0),
+          completedBooks: Number(m.completedBooks || 0),
+          inProgressBooks: Number(m.inProgressBooks || 0),
+          failedTasks: Number(m.failedTasks || 0),
+          totalTasks: Number(m.totalTasks || 0),
+          completedTasks: Number(m.completedTasks || 0),
+          overallProgress: typeof m.overallProgress === 'number' ? m.overallProgress : 0,
+        });
+      }
+      } catch (e) {
+        console.error('Failed to load books', e);
+      }
   }, []);
 
   const startLibraryPolling = useCallback(() => {
@@ -352,6 +375,7 @@ function AppContent() {
             books={books}
             courses={courses.filter(course => course.userId === user.id)}
             onOpenBook={handleOpenBook}
+            metrics={libraryMetrics || undefined}
           />
         )}
 
