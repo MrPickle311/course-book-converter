@@ -68,8 +68,10 @@ function AppContent() {
   const pollingIntervalRef = useRef<number | null>(null);
   const pollingStopTimeoutRef = useRef<number | null>(null);
 
-  const headerRef = useCallback((node: HTMLDivElement) => {
-    setHeaderHeight(node.getBoundingClientRect().height ?? 0);
+  const headerRef = useCallback((node: HTMLDivElement | null) => {
+    if (node) {
+      setHeaderHeight(node.getBoundingClientRect().height ?? 0);
+    }
   }, []);
 
   const refreshBooks = useCallback(async () => {

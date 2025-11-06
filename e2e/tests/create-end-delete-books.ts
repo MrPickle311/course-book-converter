@@ -1,4 +1,5 @@
 import {test, expect} from '@playwright/test';
+import {login} from "./common";
 
 const id1 = '2ea81edd-bd2b-45f5-89d6-c18526275a47';
 const dirPath = '/home/damian/business/book-course-converter/uploads/';
@@ -8,12 +9,6 @@ const pdf2 = dirPath + id2 + '.pdf';
 
 test.describe('Books list', () => {
     test.describe.configure({mode: 'serial'});
-
-    async function login(page: import('@playwright/test').Page) {
-        await page.goto('/');
-        await page.getByRole('button', {name: /Sign in with Google \(Demo\)/i}).click();
-        await expect(page.getByRole('button', {name: 'My books'})).toBeVisible();
-    }
 
     test('frontend displays books created via upload flow', async ({page}) => {
         await login(page);

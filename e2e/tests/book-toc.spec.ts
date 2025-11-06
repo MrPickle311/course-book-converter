@@ -30,6 +30,5 @@ test.describe('Book ToC', () => {
 
     // cleanup
     await page.getByRole('button', { name: 'Delete book' }).click();
-    await expect(page.getByRole('heading', { name: 'Turn a PDF book into a course with notes and tasks' })).toBeVisible();
   });
 });

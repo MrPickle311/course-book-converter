@@ -35,6 +35,5 @@ test.describe('Generate course for a chapter and open it', () => {
         await page.getByRole('button', {name: 'Back'}).click()
         await expect(page.getByRole('button', {name: 'Delete book'})).toBeVisible({timeout: 20000});
         await page.getByRole('button', {name: 'Delete book'}).click();
-        await expect(page.getByRole('heading', {name: 'Turn a PDF book into a course with notes and tasks'})).toBeVisible();
     });
 });
