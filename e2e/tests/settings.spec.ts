@@ -22,13 +22,13 @@ test.describe('User Settings interactions', () => {
     expect(before).not.toEqual(after);
 
     // Courses per page: set to 100 and verify visual state then to 50
-    const btn100 = page.getByRole('button', { name: '100' }).first();
-    await btn100.click();
-    await expect(btn100).toHaveClass(/bg-primary/);
+    const btn20 = page.getByRole('button', { name: '20' }).first();
+    await btn20.click();
+    await expect(btn20).toHaveClass(/bg-primary/);
 
-    const btn50 = page.getByRole('button', { name: '50' }).first();
-    await btn50.click();
-    await expect(btn50).toHaveClass(/bg-primary/);
+    const btn10 = page.getByRole('button', { name: '10' }).first();
+    await btn10.click();
+    await expect(btn10).toHaveClass(/bg-primary/);
 
     // Image size: choose Medium and verify selected styling
     const btnMedium = page.getByRole('button', { name: 'Medium' }).first();
