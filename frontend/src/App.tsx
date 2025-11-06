@@ -200,8 +200,8 @@ function AppContent() {
     } as Book;
     setBooks(prev => [newBook, ...prev]);
     setCurrentBook(newBook);
-    console.log("library")
-    setAppState('library');
+    // After processing finishes, refresh the library list immediately
+    await handleOpenLibrary();
   };
 
   const handleChapterSelect = (chapter: Chapter) => {
