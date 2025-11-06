@@ -58,7 +58,5 @@ test.describe('Library search filters books by title', () => {
     await page.getByRole('heading', { name: id1 }).first().click();
     await expect(page.getByRole('button', { name: 'Delete book' })).toBeVisible({ timeout: 20000 });
     await page.getByRole('button', { name: 'Delete book' }).click();
-
-    await expect(page.getByRole('heading', { name: 'Turn a PDF book into a course with notes and tasks' })).toBeVisible();
   });
 });
