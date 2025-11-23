@@ -1,31 +1,27 @@
-"use client";
-
-import * as React from "react";
-import * as ProgressPrimitive from "@radix-ui/react-progress@1.1.2";
+import { Progress as AntProgress, type ProgressProps } from "antd";
 
 import { cn } from "./utils";
 
-function Progress({
-  className,
-  value,
-  ...props
-}: React.ComponentProps<typeof ProgressPrimitive.Root>) {
+type Props = {
+  value?: number;
+} & Omit<ProgressProps, "percent">;
+
+function Progress({ className, value = 0, ...props }: Props) {
+  const percent = Math.min(100, Math.max(0, value));
   return (
-    <ProgressPrimitive.Root
-      data-slot="progress"
-      className={cn(
-        "bg-primary/20 relative h-2 w-full overflow-hidden rounded-full",
-        className,
-      )}
+    <AntProgress
       {...props}
-    >
-      <ProgressPrimitive.Indicator
-        data-slot="progress-indicator"
-        className="bg-primary h-full w-full flex-1 transition-all"
-        style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
-      />
-    </ProgressPrimitive.Root>
+      type="line"
+      percent={percent}
+      showInfo={false}
+      strokeWidth={6}
+      strokeLinecap="round"
+      className={cn("m-0 [&_.ant-progress-bg]:rounded-full", className)}
+      strokeColor="var(--primary)"
+      trailColor="rgba(3,2,19,0.08)"
+    />
   );
 }
 
 export { Progress };
+

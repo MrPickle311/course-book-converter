@@ -1,0 +1,43 @@
+.dark .ant-btn {
+  color: var(--foreground);
+}
+
+.dark .ant-btn-default {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--foreground);
+}
+
+.dark .ant-btn-default:hover,
+.dark .ant-btn-default:focus {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--foreground);
+}
+
+.dark .ant-btn-primary {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.dark .ant-btn-primary:hover,
+.dark .ant-btn-primary:focus {
+  background-color: color-mix(in srgb, var(--primary) 90%, white);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.bcc-btn-destructive {
+  background-color: #dc2626 !important;
+  border-color: #dc2626 !important;
+  color: #fff !important;
+}
+
+.bcc-btn-destructive:hover,
+.bcc-btn-destructive:focus {
+  background-color: #b91c1c !important;
+  border-color: #b91c1c !important;
+  color: #fff !important;
+}
+

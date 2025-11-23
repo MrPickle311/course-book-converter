@@ -4,8 +4,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Alert } from './ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Separator } from './ui/separator';
+import { Tabs, Divider } from 'antd';
 import { GoogleSignIn } from './GoogleSignIn';
 import { useAuth } from './AuthContext';
 import { BookOpen, Mail, Lock, User, AlertCircle, Loader2 } from 'lucide-react';
@@ -114,32 +113,29 @@ export function AuthForm() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs value={activeTab} onValueChange={handleTabChange}>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Sign In</TabsTrigger>
-                <TabsTrigger value="register">Sign Up</TabsTrigger>
-              </TabsList>
+            <Tabs
+              className="bcc-tabs bcc-tabs--underline"
+              activeKey={activeTab}
+              onChange={handleTabChange}
+              items={[
+                { key: "login", label: "Sign In" },
+                { key: "register", label: "Sign Up" },
+              ]}
+            />
 
               <div className="space-y-6 mt-6">
                 {/* Google Sign-In Section */}
                 <div className="space-y-4">
                   <GoogleSignIn mode={activeTab as 'login' | 'register'} />
-                  
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <Separator className="w-full" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-background px-2 text-muted-foreground">
+                  <Divider plain className="text-xs uppercase text-muted-foreground">
                         Or continue with email
-                      </span>
-                    </div>
-                  </div>
+                  </Divider>
                 </div>
 
                 {/* Email/Password Form */}
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <TabsContent value="login" className="space-y-4 m-0">
+                  {activeTab === 'login' && (
+                  <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="email">Email</Label>
                       <div className="relative">
@@ -177,9 +173,11 @@ export function AuthForm() {
                         <p className="text-sm text-destructive">{errors.password}</p>
                       )}
                     </div>
-                  </TabsContent>
+                  </div>
+                  )}
 
-                  <TabsContent value="register" className="space-y-4 m-0">
+                  {activeTab === 'register' && (
+                  <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="name">Full Name</Label>
                       <div className="relative">
@@ -255,7 +253,8 @@ export function AuthForm() {
                         <p className="text-sm text-destructive">{errors.confirmPassword}</p>
                       )}
                     </div>
-                  </TabsContent>
+                  </div>
+                  )}
 
                   {submitError && (
                     <Alert variant="destructive">
@@ -264,7 +263,7 @@ export function AuthForm() {
                     </Alert>
                   )}
 
-                  <Button type="submit" className="w-full" disabled={isLoading}>
+                  <Button htmlType="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -276,7 +275,6 @@ export function AuthForm() {
                   </Button>
                 </form>
               </div>
-            </Tabs>
           </CardContent>
         </Card>
 

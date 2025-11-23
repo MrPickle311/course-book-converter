@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Button } from './ui/button';
 import { useAuth } from './AuthContext';
 import { Loader2 } from 'lucide-react';
+import { Button } from './ui/button';
 
 // Google Identity Services types
 declare global {
@@ -25,13 +25,11 @@ interface GoogleSignInProps {
 export function GoogleSignIn({ mode }: GoogleSignInProps) {
   const { loginWithGoogle, isLoading } = useAuth();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [googleScriptLoaded, setGoogleScriptLoaded] = useState(false);
 
   useEffect(() => {
     // Load Google Identity Services script
     const loadGoogleScript = () => {
       if (window.google) {
-        setGoogleScriptLoaded(true);
         return;
       }
 
@@ -40,7 +38,6 @@ export function GoogleSignIn({ mode }: GoogleSignInProps) {
       script.async = true;
       script.defer = true;
       script.onload = () => {
-        setGoogleScriptLoaded(true);
         initializeGoogleSignIn();
       };
       document.head.appendChild(script);
@@ -113,20 +110,20 @@ export function GoogleSignIn({ mode }: GoogleSignInProps) {
       
       {/* Demo Google Sign-In Button */}
       <Button
-        type="button"
+        htmlType="button"
         variant="outline"
-        className="w-full"
         onClick={handleDemoGoogleSignIn}
         disabled={isLoading || isGoogleLoading}
+        className="w-full rounded-full px-4 py-2 text-sm font-medium shadow-sm flex items-center justify-center gap-3"
       >
         {isGoogleLoading ? (
-          <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          <span className="flex items-center justify-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin" />
             Signing in...
-          </>
+          </span>
         ) : (
-          <>
-            <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+          <span className="flex items-center justify-center gap-3">
+            <svg className="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
               <path
                 fill="#4285F4"
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -144,8 +141,8 @@ export function GoogleSignIn({ mode }: GoogleSignInProps) {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            {buttonText} (Demo)
-          </>
+            <span>{buttonText} (Demo)</span>
+          </span>
         )}
       </Button>
 

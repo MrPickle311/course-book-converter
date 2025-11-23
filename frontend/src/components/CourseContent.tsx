@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Progress } from './ui/progress';
 import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
@@ -17,7 +16,7 @@ interface TaskOption { id: string; label: string }
 interface Task {
   id: string;
   question: string;
-  type: 'multiple-choice' | 'multiple-select' | 'short-answer' | 'upload-pdf';
+  type: 'multiple-choice' | 'multiple-select' | 'short-answer' | 'upload-pdf' | 'code';
   options?: TaskOption[];
   correctAnswerId?: string;
   correctAnswerIds?: string[];
@@ -37,6 +36,7 @@ interface Task {
 import '../styles/mdx.css';
 import { DefaultService } from '@/openapi';
 import React from 'react';
+import { Alert, Flex, Space, Tabs, Typography } from 'antd';
 
 export interface Course {
   id: string;
@@ -55,6 +55,14 @@ export interface CourseContentProps {
   course: Course;
   onUpdateCourse: (course: Course) => void;
 }
+
+const infoToneStyles: React.CSSProperties = {
+  padding: 12,
+  borderRadius: 8,
+  border: '1px solid var(--border)',
+  backgroundColor: 'var(--accent)',
+  color: 'var(--accent-foreground)',
+};
 
 export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
   const [activeTab, setActiveTab] = useState('notes');
@@ -81,6 +89,16 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
       const next = exists ? current.filter(o => o !== optionId) : [...current, optionId];
       return { ...prev, [taskId]: next };
     });
+  };
+
+  const mapEvaluation = (raw: any): Task["evaluation"] | undefined => {
+    if (!raw) return undefined;
+    return {
+      isCorrect: Boolean(raw.isCorrect),
+      mistakes: raw.mistakes || [],
+      score: typeof raw.score === 'number' ? raw.score : undefined,
+      explanation: raw.explanation,
+    };
   };
 
   const isTaskCorrect = (task: Task): boolean | null => {
@@ -140,12 +158,12 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
             userAnswer: st.userAnswer,
             userAnswers: st.userAnswers,
             userFileName: st.userFileName,
-            feedback: st.evaluation?.explanation,
+            feedback: (st.evaluation as any)?.explanation,
             evaluation: st.evaluation ? {
               isCorrect: Boolean(st.evaluation.isCorrect),
               mistakes: st.evaluation.mistakes || [],
               score: typeof st.evaluation.score === 'number' ? st.evaluation.score : undefined,
-              explanation: st.evaluation.explanation,
+              explanation: (st.evaluation as any)?.explanation,
             } : undefined,
             completed: Boolean(st.completed),
           } as Task;
@@ -206,12 +224,7 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
           const updatedTask = {
             ...task,
             userAnswers: list,
-            evaluation: resp.evaluation ? {
-              isCorrect: Boolean(resp.evaluation.isCorrect),
-              mistakes: resp.evaluation.mistakes || [],
-              score: typeof resp.evaluation.score === 'number' ? resp.evaluation.score : undefined,
-              explanation: resp.evaluation.explanation,
-            } : undefined,
+            evaluation: mapEvaluation(resp.evaluation),
             completed: true,
           } as Task;
           const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
@@ -245,12 +258,7 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
           const updatedTask = {
             ...task,
             userFileName: file.name,
-            evaluation: resp.evaluation ? {
-              isCorrect: Boolean(resp.evaluation.isCorrect),
-              mistakes: resp.evaluation.mistakes || [],
-              score: typeof resp.evaluation.score === 'number' ? resp.evaluation.score : undefined,
-              explanation: resp.evaluation.explanation,
-            } : undefined,
+            evaluation: mapEvaluation(resp.evaluation),
             completed: true,
           } as Task;
           const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
@@ -288,12 +296,7 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
           const updatedTask = {
             ...task,
             userAnswer,
-            evaluation: resp.evaluation ? {
-              isCorrect: Boolean(resp.evaluation.isCorrect),
-              mistakes: resp.evaluation.mistakes || [],
-              score: typeof resp.evaluation.score === 'number' ? resp.evaluation.score : undefined,
-              explanation: resp.evaluation.explanation,
-            } : undefined,
+            evaluation: mapEvaluation(resp.evaluation),
             completed: true,
           } as Task;
           const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
@@ -321,13 +324,8 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
           });
           const updatedTask = {
             ...task,
-            userAnswer: userAnswer,
-            evaluation: resp.evaluation ? {
-              isCorrect: Boolean(resp.evaluation.isCorrect),
-              mistakes: resp.evaluation.mistakes || [],
-              score: typeof resp.evaluation.score === 'number' ? resp.evaluation.score : undefined,
-              explanation: resp.evaluation.explanation,
-            } : undefined,
+            userAnswer,
+            evaluation: mapEvaluation(resp.evaluation),
             completed: true,
           } as Task;
           const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
@@ -360,104 +358,136 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <Flex vertical gap={24} style={{ maxWidth: '72rem', margin: '0 auto' }}>
       {/* Course Header */}
       <Card>
         <CardHeader>
-          <div className="flex items-start justify-between">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <BookOpen className="w-4 h-4" />
+          <Flex justify="space-between" align="flex-start">
+            <Flex vertical gap={8}>
+              <Flex
+                align="center"
+                gap={8}
+                style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}
+              >
+                <BookOpen style={{ width: 16, height: 16 }} />
                 <span>{course.bookTitle}</span>
-              </div>
+              </Flex>
               <CardTitle>{course.chapterTitle}</CardTitle>
-              <div className="flex items-center gap-4">
+              <Flex align="center" gap={16}>
                 <Badge variant={course.completed ? "default" : "secondary"}>
                   {course.completed ? "Completed" : "In Progress"}
                 </Badge>
-                <span className="text-sm text-muted-foreground">
+                <span style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
                   Created: {new Date(course.createdDate).toLocaleDateString()}
                 </span>
-              </div>
-            </div>
+              </Flex>
+            </Flex>
             {course.completed && (
-              <div className="flex items-center gap-2 text-green-600">
-                <Award className="w-5 h-5" />
-                <span className="text-sm">Course Completed!</span>
-              </div>
+              <Flex align="center" gap={8} style={{ color: '#16a34a' }}>
+                <Award style={{ width: 20, height: 20 }} />
+                <span style={{ fontSize: '0.875rem' }}>Course Completed!</span>
+              </Flex>
             )}
-          </div>
+          </Flex>
         </CardHeader>
       </Card>
 
       {/* Progress Overview */}
       <Card>
-        <CardContent className="p-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+        <CardContent style={{ padding: 24 }}>
+          <Flex vertical gap={16}>
+            <Flex align="center" justify="space-between">
               <h3>Progress Overview</h3>
-              <span className="text-sm text-muted-foreground">
+              <span style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
                 {completedTasks} of {course.tasks.length} tasks completed
               </span>
-            </div>
+            </Flex>
             <Progress value={progressPercentage} />
-          </div>
+          </Flex>
         </CardContent>
       </Card>
 
       {/* Main Content */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="notes" className="flex items-center gap-2">
-            <BookOpen className="w-4 h-4" />
+      <Tabs
+        className="bcc-tabs bcc-tabs--grid"
+        activeKey={activeTab}
+        onChange={(key) => setActiveTab(key)}
+        items={[
+          {
+            key: "notes",
+            label: (
+              <Flex align="center" gap={8}>
+            <BookOpen style={{ width: 16, height: 16 }} />
             Study Notes
-          </TabsTrigger>
-          <TabsTrigger value="tasks" className="flex items-center gap-2">
-            <CheckSquare className="w-4 h-4" />
-            Practice Tasks ({completedTasks}/{course.tasks.length})
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="notes" className="mt-6">
+              </Flex>
+            ),
+            children: (
+              <Flex vertical style={{ marginTop: 24 }}>
           <Card>
             <CardContent className="prose prose-slate max-w-none">
-              <div className="space-y-6">
-                {renderBlocks(course.notes)}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="tasks" className="mt-6 space-y-6">
+                    <Flex vertical gap={24}>{renderBlocks(course.notes)}</Flex>
+                  </CardContent>
+                </Card>
+              </Flex>
+            ),
+          },
+          {
+            key: "tasks",
+            label: (
+              <Flex align="center" gap={8}>
+                <CheckSquare style={{ width: 16, height: 16 }} />
+                Practice Tasks ({completedTasks}/{course.tasks.length})
+              </Flex>
+            ),
+            children: (
+              <Flex vertical gap={24} style={{ marginTop: 24 }}>
           {course.tasks.map((task, index) => (
             <Card key={task.id}>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-sm">
-                      {index + 1}
-                    </div>
-                    <div className="space-y-1">
-                      <CardTitle className="text-base">{task.question}</CardTitle>
-                    </div>
-                  </div>
+                <Flex align="center" justify="space-between">
+                  <Flex align="stretch" gap={12}>
+                    <Flex vertical justify="center">
+                      <Flex
+                        align="center"
+                        justify="center"
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 9999,
+                          fontSize: '0.875rem',
+                          fontWeight: 500,
+                          backgroundColor: '#e5e7eb',
+                          color: '#4b5563',
+                        }}
+                      >
+                        {index + 1}
+                      </Flex>
+                    </Flex>
+                    <Flex vertical gap={4} justify="center">
+                      <CardTitle style={{ fontSize: '1rem', fontWeight: 500 }}>{task.question}</CardTitle>
+                    </Flex>
+                  </Flex>
                   {submitting[task.id] ? (
-                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                    <Loader2
+                      className="animate-spin"
+                      style={{ width: 20, height: 20, color: 'var(--muted-foreground)' }}
+                    />
                   ) : task.completed ? (
                     isTaskCorrect(task) ? (
-                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <CheckCircle style={{ width: 20, height: 20, color: '#16a34a' }} />
                     ) : (
-                      <XCircle className="w-5 h-5 text-red-600" />
+                      <XCircle style={{ width: 20, height: 20, color: '#dc2626' }} />
                     )
                   ) : (
-                    <Circle className="w-5 h-5 text-muted-foreground" />
+                    <Circle style={{ width: 20, height: 20, color: 'var(--muted-foreground)' }} />
                   )}
-                </div>
+                </Flex>
               </CardHeader>
               <CardContent>
+                <Flex vertical gap={24} >
                 {task.type === 'multiple-choice' && task.options && (
-                  <div className="space-y-4">
-                    <div className="space-y-2">
+                  <Flex vertical gap={16}>
+                    <Flex vertical gap={8}>
                       {task.options.map((option, optionIndex) => {
                         const isCompleted = task.completed;
                         const current = isCompleted ? (task.userAnswer || '') : (((taskAnswers[task.id] as string) || ''));
@@ -473,7 +503,7 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                           }
                         }
                         return (
-                          <div key={optionIndex} className="flex items-center space-x-2">
+                          <Space key={optionIndex} align="center">
                             <Checkbox
                               id={`${task.id}-sc-${optionIndex}`}
                               checked={isSelected}
@@ -487,31 +517,32 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                               }}
                               disabled={task.completed}
                             />
-                            <Label htmlFor={`${task.id}-sc-${optionIndex}`} className={labelClass}>{option.label}</Label>
-                          </div>
+                            <Label htmlFor={`${task.id}-sc-${optionIndex}`} className={labelClass}>
+                              {option.label}
+                            </Label>
+                          </Space>
                         );
                       })}
-                    </div>
+                    </Flex>
                     {task.completed && (
-                      <div className={'p-3 border rounded'}
-                        style={task.userAnswer === task.correctAnswerId ? { backgroundColor: '#ecfdf5', borderColor: '#86efac' } : { backgroundColor: '#fee2e2', borderColor: '#fca5a5' }}>
-                        <p className={'text-sm font-medium'}
-                          style={task.userAnswer === task.correctAnswerId ? { color: '#065f46' } : { color: '#991b1b' }}>
-                          {task.userAnswer === task.correctAnswerId ? 'Correct' : 'Incorrect'}
-                        </p>
-                      </div>
+                      <Alert
+                        type={task.userAnswer === task.correctAnswerId ? 'success' : 'error'}
+                        message={task.userAnswer === task.correctAnswerId ? 'Correct' : 'Incorrect'}
+                        showIcon
+                        style={{ borderRadius: 8 }}
+                      />
                     )}
                     {!isTaskCorrect(task) && task.completed && (
-                      <div className="flex gap-2 mt-2">
+                      <Flex gap={8} style={{ marginTop: 8 }}>
                         <Button variant="outline" size="sm" onClick={() => handleRetakeTask(task)}>Retake</Button>
-                      </div>
+                      </Flex>
                     )}
-                  </div>
+                  </Flex>
                 )}
 
                 {task.type === 'multiple-select' && task.options && (
-                  <div className="space-y-4">
-                    <div className="space-y-2">
+                  <Flex vertical gap={16}>
+                    <Flex vertical gap={8}>
                       {task.options.map((option, optionIndex) => {
                         const isCompleted = task.completed;
                         const current = isCompleted ? (task.userAnswers || []) : (((taskAnswers[task.id] as string[]) || []));
@@ -528,39 +559,42 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                           }
                         }
                         return (
-                          <div key={optionIndex} className="flex items-center space-x-2">
+                          <Space key={optionIndex} align="center">
                             <Checkbox
                               id={`${task.id}-ms-${optionIndex}`}
                               checked={isSelected}
                               onCheckedChange={() => toggleMultiSelectOption(task.id, option.id)}
                               disabled={task.completed}
                             />
-                            <Label htmlFor={`${task.id}-ms-${optionIndex}`} className={labelClass}>{option.label}</Label>
-                          </div>
+                            <Label htmlFor={`${task.id}-ms-${optionIndex}`} className={labelClass}>
+                              {option.label}
+                            </Label>
+                          </Space>
                         );
                       })}
-                    </div>
+                    </Flex>
                     {task.completed && (
-                      <div className={'p-3 border rounded'}
-                        style={task.evaluation?.isCorrect ? { backgroundColor: '#ecfdf5', borderColor: '#86efac' } : { backgroundColor: '#fee2e2', borderColor: '#fca5a5' }}>
-                        <p className={'text-sm font-medium'}
-                          style={task.evaluation?.isCorrect ? { color: '#065f46' } : { color: '#991b1b' }}>
-                          {task.evaluation?.isCorrect ? 'Correct' : 'Incorrect'}
-                        </p>
-                      </div>
+                      <Alert
+                        type={task.evaluation?.isCorrect ? 'success' : 'error'}
+                        message={task.evaluation?.isCorrect ? 'Correct' : 'Incorrect'}
+                        showIcon
+                        style={{ borderRadius: 8 }}
+                      />
                     )}
                     {!isTaskCorrect(task) && task.completed && (
-                      <div className="flex gap-2 mt-2">
+                      <Flex gap={8} style={{ marginTop: 8 }}>
                         <Button variant="outline" size="sm" onClick={() => handleRetakeTask(task)}>Retake</Button>
-                      </div>
+                      </Flex>
                     )}
-                  </div>
+                  </Flex>
                 )}
 
                 {(task.type === 'short-answer' || task.type === 'code') && (
-                  <div className="space-y-4">
+                  <Flex vertical gap={16}>
                     {task.completed && (
-                      <div className="text-sm font-medium">Your answer</div>
+                      <Typography.Text style={{ fontSize: '0.875rem', fontWeight: 500 }}>
+                        Your answer
+                      </Typography.Text>
                     )}
                     <Textarea
                       placeholder={'Enter your answer...'}
@@ -570,115 +604,132 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                       rows={4}
                     />
                     {submitting[task.id] && (
-                      <div className="text-sm text-muted-foreground">Evaluating answer...</div>
+                      <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
+                        Evaluating answer...
+                      </Typography.Text>
                     )}
                     {task.evaluation && (
                       <>
-                        <div className={'p-3 border rounded'}
-                          style={task.evaluation.isCorrect ? { backgroundColor: '#ecfdf5', borderColor: '#86efac' } : { backgroundColor: '#fee2e2', borderColor: '#fca5a5' }}>
-                          {typeof task.evaluation.score === 'number' && (
-                            <p className={'text-sm font-medium'}
-                              style={task.evaluation.isCorrect ? { color: '#065f46' } : { color: '#991b1b' }}>
-                              Score: {Math.round(task.evaluation.score * 100)}%
-                            </p>
+                        {typeof task.evaluation.score === 'number' && (
+                          <Alert
+                            type={task.evaluation.isCorrect ? 'success' : 'error'}
+                            message={`Score: ${Math.round(task.evaluation.score * 100)}%`}
+                            showIcon
+                            style={{ borderRadius: 8 }}
+                          />
                           )}
-                        </div>
                         {!task.evaluation.isCorrect && (
-                          <div className="p-3 border rounded">
-                            <div className="text-sm font-medium">Feedback:</div>
-                            <div className="mt-2 space-y-1 text-sm">
+                          <Flex
+                            vertical
+                            gap={8}
+                            style={{ padding: 12, border: '1px solid var(--border)', borderRadius: 8 }}
+                          >
+                            <Typography.Text style={{ fontSize: '0.875rem', fontWeight: 500 }}>
+                              Feedback:
+                            </Typography.Text>
+                            <Flex vertical gap={4} style={{ fontSize: '0.875rem', marginTop: 8 }}>
                               {task.evaluation.mistakes.map((m, idx) => (
-                                <div key={idx} className="flex items-start gap-2">
+                                <Flex key={idx} align="flex-start" gap={8}>
                                   <span>•</span>
                                   <span>{m}</span>
-                                </div>
+                                </Flex>
                               ))}
-                            </div>
-                          </div>
+                            </Flex>
+                          </Flex>
                         )}
                         {!task.evaluation.isCorrect && (
-                          <div className="flex gap-2 mt-2">
+                          <Flex gap={8} style={{ marginTop: 8 }}>
                             <Button variant="outline" size="sm" onClick={() => handleRetakeTask(task)}>Retake</Button>
-                          </div>
+                          </Flex>
                         )}
                       </>
                     )}
-                  </div>
+                  </Flex>
                 )}
 
                 {task.type === 'upload-pdf' && (
-                  <div className="space-y-4">
+                  <Flex vertical gap={16}>
                     <Button
-                      type="button"
-                      variant="secondary"
+                      variant="outline"
+                      size="sm"
                       onClick={() => openFilePicker(task.id)}
                       disabled={task.completed}
+                      style={{ alignSelf: 'flex-start' }}
                     >
                       Upload PDF
                     </Button>
                     <input
                       id={`file-input-${task.id}`}
-                      className="hidden"
+                      style={{ display: 'none' }}
                       type="file"
                       accept="application/pdf"
                       onChange={(e) => handleTaskAnswer(task.id, e.target.files?.[0] || null)}
                       disabled={task.completed}
                     />
                     {!task.completed && (
-                      <div className="text-sm text-muted-foreground">
+                      <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
                         {((taskAnswers[task.id] as File | undefined)?.name
                           ? <>Selected: {(taskAnswers[task.id] as File).name}</>
                           : <>No file selected</>)}
-                      </div>
+                      </Typography.Text>
                     )}
                     {submitting[task.id] && (
-                      <div className="text-sm text-muted-foreground">Validating PDF...</div>
+                      <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
+                        Validating PDF...
+                      </Typography.Text>
                     )}
                     {task.completed && task.userFileName && (
-                      <div className="p-3 bg-purple-50 border border-purple-200 rounded">
-                        <p className="text-sm">
+                      <Flex style={infoToneStyles}>
+                        <p style={{ fontSize: '0.875rem', fontWeight: 500, margin: 0 }}>
                           <strong>Uploaded file:</strong> {task.userFileName}
                         </p>
-                      </div>
+                      </Flex>
                     )}
                     {task.evaluation && (
                       <>
-                        <div className={'p-3 border rounded'}
-                          style={task.evaluation.isCorrect ? { backgroundColor: '#ecfdf5', borderColor: '#86efac' } : { backgroundColor: '#fee2e2', borderColor: '#fca5a5' }}>
-                          {typeof task.evaluation.score === 'number' && (
-                            <p className={'text-sm font-medium'}
-                              style={task.evaluation.isCorrect ? { color: '#065f46' } : { color: '#991b1b' }}>
-                              Score: {Math.round(task.evaluation.score * 100)}%
-                            </p>
+                        {typeof task.evaluation.score === 'number' && (
+                          <Alert
+                            type={task.evaluation.isCorrect ? 'success' : 'error'}
+                            message={`Score: ${Math.round(task.evaluation.score * 100)}%`}
+                            showIcon
+                            style={{ borderRadius: 8 }}
+                          />
                           )}
-                        </div>
                         {!task.evaluation.isCorrect && (
-                          <div className="p-3 border rounded">
-                            <div className="text-sm font-medium">Feedback:</div>
-                            <div className="mt-2 space-y-1 text-sm">
+                          <Flex
+                            vertical
+                            gap={8}
+                            style={{ padding: 12, border: '1px solid var(--border)', borderRadius: 8 }}
+                          >
+                            <Typography.Text style={{ fontSize: '0.875rem', fontWeight: 500 }}>
+                              Feedback:
+                            </Typography.Text>
+                            <Flex vertical gap={4} style={{ fontSize: '0.875rem', marginTop: 8 }}>
                               {task.evaluation.mistakes.map((m, idx) => (
-                                <div key={idx} className="flex items-start gap-2">
+                                <Flex key={idx} align="flex-start" gap={8}>
                                   <span>•</span>
                                   <span>{m}</span>
-                                </div>
+                                </Flex>
                               ))}
-                            </div>
-                          </div>
+                            </Flex>
+                          </Flex>
                         )}
                         {!task.evaluation.isCorrect && (
-                          <div className="flex gap-2 mt-2">
+                          <Flex gap={8} style={{ marginTop: 8 }}>
                             <Button variant="outline" size="sm" onClick={() => handleRetakeTask(task)}>Retake</Button>
-                          </div>
+                          </Flex>
                         )}
                       </>
                     )}
-                  </div>
+                  </Flex>
                 )}
 
                 {!task.completed && (
                   <Button
                     onClick={() => handleSubmitTask(task)}
-                    className="mt-4"
+                    variant="outline"
+                    size="sm"
+                    style={{ alignSelf: 'flex-start' }}
                     disabled={
                       (task.type === 'multiple-choice' || task.type === 'short-answer' || task.type === 'code')
                         ? !taskAnswers[task.id]
@@ -692,23 +743,34 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                     {submitting[task.id] ? 'Submitting...' : 'Submit Answer'}
                   </Button>
                 )}
+                </Flex>
               </CardContent>
             </Card>
           ))}
 
           {course.tasks.length === 0 && (
             <Card>
-              <CardContent className="p-8 text-center">
-                <CheckSquare className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <CardContent style={{ padding: 32, textAlign: 'center' }}>
+                <CheckSquare
+                  style={{
+                    width: 48,
+                    height: 48,
+                    margin: '0 auto 16px',
+                    color: 'var(--muted-foreground)',
+                  }}
+                />
                 <h3>No Tasks Available</h3>
-                <p className="text-muted-foreground">
+                <p style={{ color: 'var(--muted-foreground)' }}>
                   Tasks are being generated for this chapter. Please check back later.
                 </p>
               </CardContent>
             </Card>
           )}
-        </TabsContent>
-      </Tabs>
-    </div>
+              </Flex>
+            ),
+          },
+        ]}
+      />
+    </Flex>
   );
 }

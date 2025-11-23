@@ -1,10 +1,5 @@
 import { useState } from 'react';
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-} from './ui/dropdown-menu';
 import { Button } from './ui/button';
-import { Avatar, AvatarFallback } from './ui/avatar';
 import { Switch } from './ui/switch';
 import { useAuth } from './AuthContext';
 import { useTheme } from './ThemeContext';
@@ -40,24 +35,17 @@ export function UserMenu() {
   return (
     <>
       <div className="flex items-center gap-3">
-        
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
             <Button 
               variant="outline"
               size="sm" 
               onClick={handleOpenSettings}
-              className="relative"
+          className="flex items-center gap-2 px-3"
             >
-              <Avatar className="h-6 w-6 mr-2">
-                <AvatarFallback className="bg-primary text-primary-foreground text-xs font-medium">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">
                   {getInitials(user.name)}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-sm">{user.name.split(' ')[0]}</span>
+          </span>
+          <span className="text-sm font-medium">{user.name.split(' ')[0]}</span>
             </Button>
-          </DropdownMenuTrigger>
-        </DropdownMenu>
       </div>
 
       {/* User Settings Panel */}

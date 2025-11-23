@@ -1,8 +1,10 @@
 
   import { createRoot } from "react-dom/client";
-  import App from "./App.tsx";
-  import "./index.css";
-  import 'highlight.js/styles/github.css';
+import App from "./App.tsx";
+import "antd/dist/reset.css";
+import "./index.css";
+import "./styles/button.css";
+import "highlight.js/styles/github.css";
 
   createRoot(document.getElementById("root")!).render(<App />);
   

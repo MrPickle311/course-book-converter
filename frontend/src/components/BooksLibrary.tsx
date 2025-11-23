@@ -2,13 +2,13 @@ import { useMemo, useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Input } from './ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Progress } from './ui/progress';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from './ui/pagination';
 import { BookOpen, CheckCircle, ChevronRight, Search, Trophy, Clock } from 'lucide-react';
 import { useSettings } from './SettingsContext';
 import type {Course} from "@/components/CourseContent.tsx";
 import type {BookDetail} from "@/openapi";
+import { Tabs } from 'antd';
 
 interface LibraryMetricsUI {
   totalBooks: number;
@@ -92,9 +92,13 @@ export function BooksLibrary({ books, courses, onOpenBook, metrics }: BooksLibra
       return matches;
     });
     // sort by lastUsedAt desc, fallback to uploadDate desc
+    const getLastUsed = (book: BookDetail) => {
+      const lastUsed = (book as any)?.lastUsedAt;
+      return typeof lastUsed === 'string' ? lastUsed : book.uploadDate;
+    };
     return base.slice().sort((a, b) => {
-      const aTime = Date.parse(a.lastUsedAt || a.uploadDate);
-      const bTime = Date.parse(b.lastUsedAt || b.uploadDate);
+      const aTime = Date.parse(getLastUsed(a));
+      const bTime = Date.parse(getLastUsed(b));
       return bTime - aTime;
     });
   }, [books, bookStats, searchQuery, activeView]);
@@ -211,14 +215,19 @@ export function BooksLibrary({ books, courses, onOpenBook, metrics }: BooksLibra
         </Card>
       </div>
 
-      <Tabs value={activeView} onValueChange={(v: 'all' | 'in-progress' | 'completed') => setActiveView(v)}>
-        <TabsList>
-          <TabsTrigger value="all">All Books ({stats.total})</TabsTrigger>
-          <TabsTrigger value="in-progress">In Progress ({stats.inProgress})</TabsTrigger>
-          <TabsTrigger value="completed">Completed ({stats.completed})</TabsTrigger>
-        </TabsList>
+      <Tabs
+        className="bcc-tabs bcc-tabs--pill"
+        itemColor="white"
+        activeKey={activeView}
+        onChange={(key) => setActiveView(key as 'all' | 'in-progress' | 'completed')}
+        items={[
+          { key: 'all', label: `All Books (${stats.total})` },
+          { key: 'in-progress', label: `In Progress (${stats.inProgress})` },
+          { key: 'completed', label: `Completed (${stats.completed})` },
+        ]}
+      />
 
-        <TabsContent value={activeView} className="mt-6">
+      <div className="mt-6">
           {filteredBooks.length === 0 ? (
             <Card>
               <CardContent className="p-12 text-center">
@@ -271,10 +280,7 @@ export function BooksLibrary({ books, courses, onOpenBook, metrics }: BooksLibra
                             </div>
                           )}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Progress value={progress} className="flex-1 h-2" />
-                          <span className="text-xs text-muted-foreground min-w-0">{Math.round(progress)}%</span>
-                        </div>
+                        <Progress value={progress} className="flex-1 h-2" showInfo />
                       </CardContent>
                     </Card>
                   );
@@ -301,8 +307,7 @@ export function BooksLibrary({ books, courses, onOpenBook, metrics }: BooksLibra
               )}
             </div>
           )}
-        </TabsContent>
-      </Tabs>
+      </div>
     </div>
   );
 }

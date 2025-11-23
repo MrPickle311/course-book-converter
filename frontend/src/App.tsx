@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { DefaultService, OpenAPI, type ProcessPdfResponse, type GenerateCourseRequest, type GenerateCourseResponse, type BookDetail as ApiBookDetail, type Chapter as ApiChapter } from '@/openapi';
+import { DefaultService, OpenAPI, type ProcessPdfResponse, type GenerateCourseRequest, type BookDetail as ApiBookDetail, type Chapter as ApiChapter } from '@/openapi';
 import { AuthProvider, useAuth } from './components/AuthContext';
-import { ThemeProvider } from './components/ThemeContext';
+import { ThemeProvider, useTheme } from './components/ThemeContext';
 import { SettingsProvider } from './components/SettingsContext';
 import { AuthForm } from './components/AuthForm';
 import { UserMenu } from './components/UserMenu';
@@ -12,32 +12,12 @@ import { BooksLibrary } from './components/BooksLibrary';
 import { BookDetail } from './components/BookDetail.tsx';
 import { Button } from './components/ui/button';
 import { ArrowLeft, Library, LogOut } from 'lucide-react';
+import { ConfigProvider, Flex, theme as antdTheme } from 'antd';
 
 type AppState = 'upload' | 'toc' | 'course' | 'library' | 'book';
 
 type Book = ApiBookDetail;
 type Chapter = ApiChapter;
-
-interface Task {
-  id: string;
-  question: string;
-  type: 'multiple-choice' | 'multiple-select' | 'short-answer' | 'code' | 'upload-pdf';
-  options?: string[];
-  correctAnswer?: string;
-  correctAnswers?: string[];
-  userAnswer?: string;
-  userAnswers?: string[];
-  userFileName?: string;
-  feedback?: string;
-  evaluation?: {
-    isCorrect: boolean;
-    mistakes: string[];
-    score?: number;
-    explanation?: string;
-  };
-  completed: boolean;
-}
-
 
 function AppContent() {
   // Configure OpenAPI base URL from Vite env (fallback to backend-kotlin default)
@@ -297,7 +277,16 @@ function AppContent() {
       {/* Header */}
       <div ref={headerRef} className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-card shadow-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+          <Flex align="center" gap={16}>
+            <Flex vertical className="leading-tight">
+              <h1 className="text-base font-medium">PDF Course Generator</h1>
+              <p className="text-sm text-muted-foreground">
+                Welcome back, {user.name}
+              </p>
+            </Flex>
+          </Flex>
+
+          <div className="flex items-center gap-3">
             {appState !== 'upload' && (
             <Button
                 variant="outline"
@@ -305,23 +294,16 @@ function AppContent() {
                 onClick={async () => {
                   if (appState === 'toc') {
                       handleBackToUpload();
-                  }
-                  else if (appState === 'course') {
+                  } else if (appState === 'course') {
                     if (lastContentOrigin === 'book') {
-                        console.log("book")
                         await refreshCurrentBook();
                         setAppState('book');
-                    }
-                    else {
+                    } else {
                         handleBackToTOC();
                     }
-                  }
-                  else if (appState === 'library') {
-                      console.log("upload")
+                  } else if (appState === 'library') {
                       setAppState('upload');
-                  }
-                  else if (appState === 'book') {
-                      console.log("library")
+                  } else if (appState === 'book') {
                       await handleOpenLibrary();
                   }
                 }}
@@ -330,15 +312,6 @@ function AppContent() {
                 Back
               </Button>
             )}
-            <div>
-              <h1>PDF Course Generator</h1>
-              <p className="text-sm text-muted-foreground">
-                Welcome back, {user.name}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
             <Button
               variant="outline"
               size="sm"
@@ -458,14 +431,40 @@ function AppContent() {
   );
 }
 
-export default function App() {
+function AppProviders() {
+  const { theme } = useTheme();
+  const isDarkMode = theme === 'dark';
+  const algorithm = isDarkMode ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm;
+  const darkTokens = isDarkMode
+    ? {
+        colorText: '#e5e7eb',
+        colorTextHeading: '#f8fafc',
+        colorBgContainer: '#0f172a',
+        colorBgElevated: '#1f2937',
+        colorLink: '#60a5fa',
+      }
+    : undefined;
+
   return (
-    <ThemeProvider>
+    <ConfigProvider
+      theme={{
+        algorithm,
+        token: darkTokens,
+      }}
+    >
       <SettingsProvider>
         <AuthProvider>
           <AppContent />
         </AuthProvider>
       </SettingsProvider>
+    </ConfigProvider>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppProviders />
     </ThemeProvider>
   );
 }

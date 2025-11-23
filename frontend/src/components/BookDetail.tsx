@@ -64,10 +64,7 @@ export function BookDetail({ book, onGenerateCourse, onOpenGeneratedCourse, onDe
             <div className="text-sm text-muted-foreground">Completed: <span className="text-foreground font-medium">{stats.completedCourses}</span></div>
             <div className="text-sm text-muted-foreground">Tasks: <span className="text-foreground font-medium">{stats.completedTasks}/{stats.totalTasks}</span>{stats.failedTasks > 0 && <span className="text-red-600"> • {stats.failedTasks} failed</span>}</div>
           </div>
-          <div className="flex items-center gap-2">
-            <Progress value={stats.progress} className="flex-1 h-2" />
-            <span className="text-xs text-muted-foreground min-w-0">{Math.round(stats.progress)}%</span>
-          </div>
+          <Progress value={stats.progress} className="flex-1 h-2" showInfo />
         </CardContent>
       </Card>
 
@@ -130,12 +127,7 @@ export function BookDetail({ book, onGenerateCourse, onOpenGeneratedCourse, onDe
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-2">
-                                <Progress value={progress} className="flex-1 h-2" />
-                                <span className="text-xs text-muted-foreground min-w-0">
-                                    {Math.round(progress)}%
-                                  </span>
-                            </div>
+                            <Progress value={progress} className="flex-1 h-2" showInfo />
                         </div>
 
                         <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />

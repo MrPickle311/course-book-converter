@@ -3,10 +3,9 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   MoreHorizontalIcon,
-} from "lucide-react@0.487.0";
+} from "lucide-react";
 
 import { cn } from "./utils";
-import { Button, buttonVariants } from "./button";
 
 function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
   return (
@@ -39,8 +38,8 @@ function PaginationItem({ ...props }: React.ComponentProps<"li">) {
 
 type PaginationLinkProps = {
   isActive?: boolean;
-} & Pick<React.ComponentProps<typeof Button>, "size"> &
-  React.ComponentProps<"a">;
+  size?: "default" | "icon";
+} & React.ComponentProps<"a">;
 
 function PaginationLink({
   className,
@@ -48,16 +47,21 @@ function PaginationLink({
   size = "icon",
   ...props
 }: PaginationLinkProps) {
+  const sizeClass =
+    size === "icon"
+      ? "size-9 rounded-md"
+      : "h-9 rounded-md px-3 py-2 has-[>svg]:px-2.5";
+
   return (
     <a
       aria-current={isActive ? "page" : undefined}
       data-slot="pagination-link"
       data-active={isActive}
       className={cn(
-        buttonVariants({
-          variant: isActive ? "outline" : "ghost",
-          size,
-        }),
+        "inline-flex items-center justify-center gap-1 border text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50",
+        "border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground",
+        !isActive && "text-muted-foreground",
+        sizeClass,
         className,
       )}
       {...props}
@@ -125,3 +129,4 @@ export {
   PaginationNext,
   PaginationEllipsis,
 };
+
