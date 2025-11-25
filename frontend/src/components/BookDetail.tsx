@@ -5,6 +5,7 @@ import { Progress } from './ui/progress';
 import { Calendar, CheckCircle, ChevronRight, BookOpen, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { type BookDetail, type Chapter, DefaultService } from '@/openapi';
+import { Flex, Typography } from 'antd';
 
 export interface BookDetailProps {
   book: BookDetail;
@@ -29,66 +30,102 @@ export function BookDetail({ book, onGenerateCourse, onOpenGeneratedCourse, onDe
   const [generating, setGenerating] = useState<Set<string>>(new Set());
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <Flex vertical gap={24} style={{ maxWidth: '72rem', margin: '0 auto' }}>
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-              <BookOpen className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <CardTitle className="text-2xl">{book.title}</CardTitle>
-              <p className="text-sm text-muted-foreground">Uploaded {new Date(book.uploadDate).toLocaleDateString()}</p>
-            </div>
-            <div className="ml-auto">
-              <Button variant="destructive" size="sm" onClick={async () => {
-                try {
-                  if (onDeleteBook) {
-                    await onDeleteBook(book.id);
-                  } else {
-                    await DefaultService.deleteBook({ uploadId: book.id });
-                    window.location.href = '/';
+          <Flex align="center" gap={16}>
+            <Flex
+              align="center"
+              justify="center"
+              style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: '#eef2ff' }}
+            >
+              <BookOpen style={{ width: 24, height: 24, color: '#4f46e5' }} />
+            </Flex>
+            <Flex vertical>
+              <CardTitle style={{ fontSize: '1.5rem' }}>{book.title}</CardTitle>
+              <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
+                Uploaded {new Date(book.uploadDate).toLocaleDateString()}
+              </Typography.Text>
+            </Flex>
+            <div style={{ marginLeft: 'auto' }}>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    if (onDeleteBook) {
+                      await onDeleteBook(book.id);
+                    } else {
+                      await DefaultService.deleteBook({ uploadId: book.id });
+                      window.location.href = '/';
+                    }
+                  } catch (e) {
+                    console.error('Failed to delete book', e);
                   }
-                } catch (e) {
-                  console.error('Failed to delete book', e);
-                }
-              }}>
+                }}
+              >
                 <Trash2 className="w-4 h-4 mr-1" /> Delete book
               </Button>
             </div>
-          </div>
+          </Flex>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div className="text-sm text-muted-foreground">Generated courses: <span className="text-foreground font-medium">{stats.generatedChaptersCount}</span></div>
-            <div className="text-sm text-muted-foreground">Completed: <span className="text-foreground font-medium">{stats.completedCourses}</span></div>
-            <div className="text-sm text-muted-foreground">Tasks: <span className="text-foreground font-medium">{stats.completedTasks}/{stats.totalTasks}</span>{stats.failedTasks > 0 && <span className="text-red-600"> • {stats.failedTasks} failed</span>}</div>
-          </div>
-          <Progress value={stats.progress} className="flex-1 h-2" showInfo />
+          <Flex wrap gap={16} style={{ marginBottom: 16 }}>
+            <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
+              Generated courses:{' '}
+              <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>{stats.generatedChaptersCount}</span>
+            </Typography.Text>
+            <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
+              Completed:{' '}
+              <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>{stats.completedCourses}</span>
+            </Typography.Text>
+            <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
+              Tasks:{' '}
+              <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>
+                {stats.completedTasks}/{stats.totalTasks}
+              </span>
+              {stats.failedTasks > 0 && <span style={{ color: '#dc2626' }}> • {stats.failedTasks} failed</span>}
+            </Typography.Text>
+          </Flex>
+          <Progress value={stats.progress} style={{ height: 8 }} showInfo />
         </CardContent>
       </Card>
 
-      <div className="space-y-3">
+      <Flex vertical gap={16}>
         {book.chapters.map((chapter) => {
           if (!chapter.isGenerated) {
             const isBusy = generating.has(chapter.chapterId);
             return (
               <Card key={chapter.chapterId}>
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-medium">{chapter.title}</h4>
-                    </div>
-                    <div className="text-xs text-muted-foreground">Page {chapter.startPage}</div>
-                  </div>
-                  <Button onClick={async () => {
-                    if (!onGenerateCourse || isBusy) {
-                        return;
-                    }
-                    setGenerating(prev => new Set(prev).add(chapter.chapterId));
-                    await onGenerateCourse(chapter.chapterId);
-                    setGenerating(prev => { const next = new Set(prev); next.delete(chapter.chapterId); return next; });
-                  }} size="sm" disabled={isBusy}>{isBusy ? 'Generating…' : 'Generate course'}</Button>
+                <CardContent style={{ padding: 16 }}>
+                  <Flex align="center" justify="space-between">
+                    <Flex vertical gap={4}>
+                      <Typography.Title level={5} style={{ margin: 0 }}>
+                        {chapter.title}
+                      </Typography.Title>
+                      <Typography.Text style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
+                        Page {chapter.startPage}
+                      </Typography.Text>
+                    </Flex>
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        if (!onGenerateCourse || isBusy) {
+                          return;
+                        }
+                        setGenerating((prev) => new Set(prev).add(chapter.chapterId));
+                        await onGenerateCourse(chapter.chapterId);
+                        setGenerating((prev) => {
+                          const next = new Set(prev);
+                          next.delete(chapter.chapterId);
+                          return next;
+                        });
+                      }}
+                      disabled={isBusy}
+                    >
+                      {isBusy ? 'Generating…' : 'Generate course'}
+                    </Button>
+                  </Flex>
                 </CardContent>
               </Card>
             );
@@ -99,44 +136,50 @@ export function BookDetail({ book, onGenerateCourse, onOpenGeneratedCourse, onDe
             const progress = tasksCount > 0 ? (completedTasks / tasksCount) * 100 : 0;
             const isCourseCompleted = tasksCount > 0 && (chapter.progressData?.tasksCompleted === chapter.progressData?.tasksCount);
             return (
-                <div
-                    key={chapter.chapterId}
-                    className="group border rounded-lg p-4 hover:bg-accent/50 transition-colors cursor-pointer"
-                    onClick={() => onOpenGeneratedCourse && onOpenGeneratedCourse(chapter.chapterId)}
-                >
-                    <div className="flex items-center justify-between">
-                        <div className="flex-1 space-y-2">
-                            <div className="flex items-center gap-2">
-                                <h4 className="font-medium">{chapter.title}</h4>
-                                <Badge
-                                    variant={isCourseCompleted ? "default" : "secondary"}
-                                    className="text-xs"
-                                >
-                                    {isCourseCompleted ? "Completed" : "In Progress"}
-                                </Badge>
-                            </div>
-
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                <div className="flex items-center gap-1">
-                                    <Calendar className="w-3 h-3" />
-                                    <span>Created {new Date(book.uploadDate).toLocaleDateString()}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                    <CheckCircle className="w-3 h-3" />
-                                    <span>{completedTasks}/{tasksCount} tasks</span>
-                                </div>
-                            </div>
-
-                            <Progress value={progress} className="flex-1 h-2" showInfo />
-                        </div>
-
-                        <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                    </div>
-                </div>
+              <Flex
+                key={chapter.chapterId}
+                align="center"
+                justify="space-between"
+                style={{
+                  border: '1px solid var(--border)',
+                  borderRadius: 12,
+                  padding: 16,
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s ease',
+                }}
+                onClick={() => onOpenGeneratedCourse && onOpenGeneratedCourse(chapter.chapterId)}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--card)')}
+              >
+                <Flex vertical gap={8} style={{ flex: 1 }}>
+                  <Flex align="center" gap={8}>
+                    <Typography.Title level={5} style={{ margin: 0 }}>
+                      {chapter.title}
+                    </Typography.Title>
+                    <Badge variant={isCourseCompleted ? 'default' : 'secondary'} style={{ fontSize: '0.75rem' }}>
+                      {isCourseCompleted ? 'Completed' : 'In Progress'}
+                    </Badge>
+                  </Flex>
+                  <Flex align="center" gap={16} style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
+                    <Flex align="center" gap={6}>
+                      <Calendar style={{ width: 12, height: 12 }} />
+                      <span>Created {new Date(book.uploadDate).toLocaleDateString()}</span>
+                    </Flex>
+                    <Flex align="center" gap={6}>
+                      <CheckCircle style={{ width: 12, height: 12 }} />
+                      <span>
+                        {completedTasks}/{tasksCount} tasks
+                      </span>
+                    </Flex>
+                  </Flex>
+                  <Progress value={progress} style={{ height: 8 }} showInfo />
+                </Flex>
+                <ChevronRight style={{ width: 20, height: 20, color: 'var(--muted-foreground)' }} />
+              </Flex>
             );
         })}
-      </div>
-    </div>
+      </Flex>
+    </Flex>
   );
 }
 
