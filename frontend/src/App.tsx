@@ -6,7 +6,6 @@ import { SettingsProvider } from './components/SettingsContext';
 import { AuthForm } from './components/AuthForm';
 import { UserMenu } from './components/UserMenu';
 import { UploadPDF } from './components/UploadPDF';
-import { TableOfContents } from './components/TableOfContents';
 import {type Course, CourseContent} from './components/CourseContent';
 import { BooksLibrary } from './components/BooksLibrary';
 import { BookDetail } from './components/BookDetail.tsx';
@@ -340,29 +339,6 @@ function AppContent() {
           <UploadPDF
             onFileUpload={handleFileUpload}
             userCourses={courses.filter(course => course.userId === user.id)}
-          />
-        )}
-
-        {appState === 'toc' && currentBook && (
-          <TableOfContents
-            // TableOfContents expects legacy shape; adapt minimally
-            book={{
-              id: currentBook.id,
-              title: currentBook.title,
-              uploadDate: currentBook.uploadDate,
-              tableOfContents: currentBook.chapters.map((c, idx) => ({
-                id: c.chapterId,
-                title: c.title,
-                page: c.startPage ?? (idx + 1),
-              })),
-            } as any}
-            onChapterSelect={(legacy: any) => handleChapterSelect({
-              chapterId: legacy.id as string,
-              title: legacy.title as string,
-              startPage: legacy.page as number,
-              endPage: legacy.page as number,
-              isGenerated: false,
-            } as Chapter)}
           />
         )}
 
