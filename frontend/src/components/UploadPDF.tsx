@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Progress } from './ui/progress';
-import { useAuth } from './AuthContext';
+import { Flex, Typography, Spin } from 'antd';
 import { Upload, FileText, CheckCircle } from 'lucide-react';
 
 interface Course {
@@ -17,14 +17,12 @@ interface UploadPDFProps {
 }
 
 export function UploadPDF({ onFileUpload, userCourses = [] }: UploadPDFProps) {
-  const { user } = useAuth();
   const [isDragOver, setIsDragOver] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   
-  const completedCourses = userCourses.filter(course => course.completed).length;
-  const totalCourses = userCourses.length;
+  void userCourses;
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -78,22 +76,56 @@ export function UploadPDF({ onFileUpload, userCourses = [] }: UploadPDFProps) {
     }, 200);
   };
 
+  const mutedTextStyle = { color: 'var(--muted-foreground)' };
+  const smallMutedTextStyle = { fontSize: '0.875rem', color: 'var(--muted-foreground)' };
+  const extraSmallMutedTextStyle = { fontSize: '0.75rem', color: 'var(--muted-foreground)' };
+
+  const dropZoneBaseStyle: React.CSSProperties = {
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: 'var(--border)',
+    borderRadius: 12,
+    padding: 32,
+    textAlign: 'center',
+    transition: 'all 0.2s ease',
+    cursor: 'pointer',
+    maxWidth: 520,
+    margin: '0 auto',
+    backgroundColor: 'var(--card)',
+  };
+
+  const dropZoneStyle: React.CSSProperties = isDragOver
+    ? {
+        ...dropZoneBaseStyle,
+        borderColor: '#a5b4fc',
+        backgroundColor: 'rgba(165, 180, 252, 0.12)',
+      }
+    : { ...dropZoneBaseStyle, borderColor: '#d4d4d8' };
+
+  const stepCircleStyle: React.CSSProperties = {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'var(--primary)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: '0 auto',
+  };
+
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
-      <div className="text-center space-y-4">
-        <h2>Turn a PDF book into a course with notes and tasks</h2>
-        <p className="text-muted-foreground">
-        </p>
-      </div>
+    <Flex vertical gap={32} style={{ maxWidth: '60rem', margin: '0 auto' }}>
+      <Flex vertical align="center" gap={16} style={{ textAlign: 'center' }}>
+        <Typography.Title level={2} style={{ marginBottom: 0 }}>
+          Turn a PDF book into a course with notes and tasks
+        </Typography.Title>
+        <Typography.Text style={mutedTextStyle}>Convert PDFs into interactive study material in minutes.</Typography.Text>
+      </Flex>
 
       <Card>
-        <CardContent className="p-8">
+        <CardContent style={{ padding: 32 }}>
           <div
-            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-              isDragOver 
-                ? 'border-primary bg-primary/5' 
-                : 'border-border hover:border-primary/50'
-            }`}
+            style={dropZoneStyle}
             role="button"
             aria-label="Upload PDF by drag-and-drop or choose a file"
             title="Upload PDF by drag-and-drop or choose a file"
@@ -102,109 +134,99 @@ export function UploadPDF({ onFileUpload, userCourses = [] }: UploadPDFProps) {
             onDrop={handleDrop}
           >
             {!selectedFile ? (
-              <div className="space-y-4">
-                <Upload className="w-12 h-12 mx-auto text-muted-foreground" />
-                <div className="space-y-2">
-                  <p>Drag and drop your PDF book here</p>
-                  <p className="text-sm text-muted-foreground">or</p>
+              <Flex vertical gap={16} align="center">
+                <Upload style={{ width: 48, height: 48, color: 'var(--muted-foreground)' }} />
+                <Flex vertical gap={8}>
+                  <Typography.Text>Drag and drop your PDF book here</Typography.Text>
+                  <Typography.Text style={smallMutedTextStyle}>or</Typography.Text>
                   <Button variant="outline" asChild>
-                    <label htmlFor="file-upload" className="cursor-pointer">
+                    <label htmlFor="file-upload" style={{ cursor: 'pointer' }}>
                       Choose File
                       <input
                         id="file-upload"
                         type="file"
                         accept=".pdf"
-                        className="hidden"
+                        style={{ display: 'none' }}
                         onChange={handleFileInputChange}
                       />
                     </label>
                   </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
+                </Flex>
+                <Typography.Text style={extraSmallMutedTextStyle}>
                   Only PDF files are supported
-                </p>
-              </div>
+                </Typography.Text>
+              </Flex>
             ) : (
-              <div className="space-y-4">
-                <FileText className="w-12 h-12 mx-auto text-primary" />
-                <div className="space-y-2">
-                  <p>{selectedFile.name}</p>
-                  <p className="text-sm text-muted-foreground">
+              <Flex vertical gap={16} align="center">
+                <FileText style={{ width: 48, height: 48, color: 'var(--primary)' }} />
+                <Flex vertical gap={8} align="center">
+                  <Typography.Text>{selectedFile.name}</Typography.Text>
+                  <Typography.Text style={smallMutedTextStyle}>
                     {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                  </p>
+                  </Typography.Text>
                   {!isProcessing ? (
-                    <div className="flex gap-2 justify-center">
-                      <Button onClick={handleUpload}>
-                        Process PDF
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => setSelectedFile(null)}
-                      >
+                    <Flex gap={8} justify="center">
+                      <Button onClick={handleUpload}>Process PDF</Button>
+                      <Button variant="outline" onClick={() => setSelectedFile(null)}>
                         Remove
                       </Button>
-                    </div>
+                    </Flex>
                   ) : (
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-center gap-2">
-                          {uploadProgress < 100 ? (
-                            <>
-                              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                              <span className="text-sm">Processing PDF...</span>
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle className="w-4 h-4 text-green-500" />
-                              <span className="text-sm">Processing complete!</span>
-                            </>
-                          )}
-                        </div>
-                        <Progress value={uploadProgress} className="w-full max-w-sm mx-auto" />
-                        <p className="text-xs text-muted-foreground">
-                          {uploadProgress < 100 
-                            ? 'Extracting table of contents...' 
+                    <Flex vertical gap={16} align="center">
+                      <Flex vertical gap={8} align="center">
+                        {uploadProgress < 100 ? (
+                          <Flex align="center" gap={8}>
+                            <Spin size="small" />
+                            <Typography.Text style={smallMutedTextStyle}>
+                              Processing PDF...
+                            </Typography.Text>
+                          </Flex>
+                        ) : (
+                          <Flex align="center" gap={8}>
+                            <CheckCircle style={{ width: 16, height: 16, color: '#16a34a' }} />
+                            <Typography.Text style={smallMutedTextStyle}>
+                              Processing complete!
+                            </Typography.Text>
+                          </Flex>
+                        )}
+                        <Progress value={uploadProgress} style={{ width: '100%', maxWidth: 320 }} />
+                        <Typography.Text style={extraSmallMutedTextStyle}>
+                          {uploadProgress < 100
+                            ? 'Extracting table of contents...'
                             : 'Redirecting to table of contents...'}
-                        </p>
-                      </div>
-                    </div>
+                        </Typography.Text>
+                      </Flex>
+                    </Flex>
                   )}
-                </div>
-              </div>
+                </Flex>
+              </Flex>
             )}
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid md:grid-cols-3 gap-6 text-center">
-        <div className="space-y-2">
-          <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-            <span className="text-primary">1</span>
-          </div>
-          <h3>Upload PDF</h3>
-          <p className="text-sm text-muted-foreground">
-            Upload your technical book in PDF format
-          </p>
-        </div>
-        <div className="space-y-2">
-          <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-            <span className="text-primary">2</span>
-          </div>
-          <h3>Select Chapter</h3>
-          <p className="text-sm text-muted-foreground">
-            Choose a chapter from the extracted table of contents
-          </p>
-        </div>
-        <div className="space-y-2">
-          <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-            <span className="text-primary">3</span>
-          </div>
-          <h3>Learn & Practice</h3>
-          <p className="text-sm text-muted-foreground">
-            Study generated notes and complete interactive tasks
-          </p>
-        </div>
-      </div>
-    </div>
+      <Flex
+        wrap="wrap"
+        justify="center"
+        gap={32}
+        style={{ textAlign: 'center' }}
+      >
+        {[
+          { title: 'Upload PDF', description: 'Upload your technical book in PDF format' },
+          { title: 'Select Chapter', description: 'Choose a chapter from the extracted table of contents' },
+          { title: 'Learn & Practice', description: 'Study generated notes and complete interactive tasks' },
+        ].map((item, idx) => (
+          <Flex key={item.title} vertical gap={8} align="center" style={{ width: 220 }}>
+            <div style={{ ...stepCircleStyle, backgroundColor: '#e5e7eb' }}>
+              <span style={{ color: '#4b5563', fontWeight: 600 }}>{idx + 1}</span>
+            </div>
+            <Typography.Title level={4} style={{ margin: 0 }}>
+              {item.title}
+            </Typography.Title>
+            <Typography.Text style={smallMutedTextStyle}>{item.description}</Typography.Text>
+          </Flex>
+        ))}
+      </Flex>
+    </Flex>
   );
 }

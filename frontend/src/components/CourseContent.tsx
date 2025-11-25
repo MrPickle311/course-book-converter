@@ -460,7 +460,7 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                           color: '#4b5563',
                         }}
                       >
-                        {index + 1}
+                      {index + 1}
                       </Flex>
                     </Flex>
                     <Flex vertical gap={4} justify="center">
@@ -610,7 +610,7 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                     )}
                     {task.evaluation && (
                       <>
-                        {typeof task.evaluation.score === 'number' && (
+                          {typeof task.evaluation.score === 'number' && (
                           <Alert
                             type={task.evaluation.isCorrect ? 'success' : 'error'}
                             message={`Score: ${Math.round(task.evaluation.score * 100)}%`}
@@ -687,7 +687,7 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
                     )}
                     {task.evaluation && (
                       <>
-                        {typeof task.evaluation.score === 'number' && (
+                          {typeof task.evaluation.score === 'number' && (
                           <Alert
                             type={task.evaluation.isCorrect ? 'success' : 'error'}
                             message={`Score: ${Math.round(task.evaluation.score * 100)}%`}
