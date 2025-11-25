@@ -5,6 +5,7 @@ import { useAuth } from './AuthContext';
 import { useTheme } from './ThemeContext';
 import { useSettings } from './SettingsContext';
 import { Sun, Moon, X } from 'lucide-react';
+import { Flex, Typography } from 'antd';
 
 export function UserMenu() {
   const { user } = useAuth();
@@ -34,93 +35,139 @@ export function UserMenu() {
 
   return (
     <>
-      <div className="flex items-center gap-3">
-            <Button 
-              variant="outline"
-              size="sm" 
-              onClick={handleOpenSettings}
+      <Flex align="center" gap={12}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleOpenSettings}
           className="flex items-center gap-2 px-3"
-            >
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">
-                  {getInitials(user.name)}
-          </span>
-          <span className="text-sm font-medium">{user.name.split(' ')[0]}</span>
-            </Button>
-      </div>
+        >
+          <Flex
+            align="center"
+            justify="center"
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: 9999,
+              backgroundColor: 'var(--primary)',
+              color: 'var(--primary-foreground)',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+            }}
+          >
+            {getInitials(user.name)}
+          </Flex>
+          <Typography.Text style={{ fontSize: '0.875rem', fontWeight: 500, marginLeft: 4 }}>
+            {user.name.split(' ')[0]}
+          </Typography.Text>
+        </Button>
+      </Flex>
 
       {/* User Settings Panel */}
       {showSettings && (
-        <div className="fixed inset-0 bg-black/50 z-50" onClick={handleCloseSettings}>
-          <div className="absolute right-0 top-0 w-1/4 min-w-[300px] bg-background border-l border-border h-full shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-6 border-b border-border">
-              <h2 className="text-lg font-semibold">User Settings</h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCloseSettings}
-              >
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            zIndex: 50,
+          }}
+          onClick={handleCloseSettings}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              right: 0,
+              top: 0,
+              width: '25%',
+              minWidth: 300,
+              height: '100%',
+              backgroundColor: 'var(--background)',
+              borderLeft: '1px solid var(--border)',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Flex
+              align="center"
+              justify="space-between"
+              style={{ padding: 24, borderBottom: '1px solid var(--border)' }}
+            >
+              <Typography.Title level={4} style={{ margin: 0 }}>
+                User Settings
+              </Typography.Title>
+              <Button variant="ghost" size="sm" onClick={handleCloseSettings}>
                 <X className="h-4 w-4" />
               </Button>
-            </div>
+            </Flex>
             
-            <div className="p-6 space-y-6">
+            <Flex vertical gap={24} style={{ padding: 24 }}>
               {/* Theme Toggle */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-medium">Appearance</h3>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
+              <Flex vertical gap={12}>
+                <Typography.Text style={{ fontSize: '0.875rem', fontWeight: 500 }}>
+                  Appearance
+                </Typography.Text>
+                <Flex align="center" justify="space-between">
+                  <Flex align="center" gap={8}>
                     {theme === 'light' ? (
-                      <Sun className="h-4 w-4 text-muted-foreground" />
+                      <Sun style={{ width: 16, height: 16, color: 'var(--muted-foreground)' }} />
                     ) : (
-                      <Moon className="h-4 w-4 text-muted-foreground" />
+                      <Moon style={{ width: 16, height: 16, color: 'var(--muted-foreground)' }} />
                     )}
-                    <span className="text-sm">
+                    <Typography.Text style={{ fontSize: '0.875rem' }}>
                       {theme === 'light' ? 'Light mode' : 'Dark mode'}
-                    </span>
-                  </div>
-                  <Switch
-                    checked={theme === 'dark'}
-                    onCheckedChange={toggleTheme}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">
+                    </Typography.Text>
+                  </Flex>
+                  <Switch checked={theme === 'dark'} onCheckedChange={toggleTheme} />
+                </Flex>
+                <Typography.Text style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
                   Toggle between light and dark theme
-                </p>
-              </div>
+                </Typography.Text>
+              </Flex>
 
               {/* Pagination Settings */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-medium">Pagination</h3>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Books per page</span>
-                  <div className="flex items-center gap-2">
+              <Flex vertical gap={12}>
+                <Typography.Text style={{ fontSize: '0.875rem', fontWeight: 500 }}>
+                  Pagination
+                </Typography.Text>
+                <Flex align="center" justify="space-between">
+                  <Typography.Text style={{ fontSize: '0.875rem' }}>
+                    Books per page
+                  </Typography.Text>
+                  <Flex align="center" gap={8}>
                     <Button
-                      variant={pageSize === 10 ? 'default' : 'outline'}
+                      variant={pageSize === (10 as typeof pageSize) ? 'default' : 'outline'}
                       size="sm"
-                      onClick={() => setPageSize(10)}
+                      onClick={() => setPageSize(10 as typeof pageSize)}
                     >
                       10
                     </Button>
                     <Button
-                      variant={pageSize === 20 ? 'default' : 'outline'}
+                      variant={pageSize === (20 as typeof pageSize) ? 'default' : 'outline'}
                       size="sm"
-                      onClick={() => setPageSize(20)}
+                      onClick={() => setPageSize(20 as typeof pageSize)}
                     >
                       20
                     </Button>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
+                  </Flex>
+                </Flex>
+                <Typography.Text style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
                   Choose how many books to display per page in the library
-                </p>
-              </div>
+                </Typography.Text>
+              </Flex>
 
               {/* Image size settings */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-medium">Study Images</h3>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Global image size</span>
-                  <div className="flex items-center gap-2">
+              <Flex vertical gap={12}>
+                <Typography.Text style={{ fontSize: '0.875rem', fontWeight: 500 }}>
+                  Study Images
+                </Typography.Text>
+                <Flex align="center" justify="space-between">
+                  <Typography.Text style={{ fontSize: '0.875rem' }}>
+                    Global image size
+                  </Typography.Text>
+                  <Flex align="center" gap={8}>
                     <Button
                       variant={imageSize === 'small' ? 'default' : 'outline'}
                       size="sm"
@@ -142,13 +189,13 @@ export function UserMenu() {
                     >
                       Large
                     </Button>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
+                  </Flex>
+                </Flex>
+                <Typography.Text style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
                   Controls the width of all images in study notes.
-                </p>
-              </div>
-            </div>
+                </Typography.Text>
+              </Flex>
+            </Flex>
           </div>
         </div>
       )}
