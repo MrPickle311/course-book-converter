@@ -8,7 +8,7 @@ import { BookOpen, CheckCircle, ChevronRight, Search, Trophy, Clock } from 'luci
 import { useSettings } from './SettingsContext';
 import type {Course} from "@/components/CourseContent.tsx";
 import type {BookDetail} from "@/openapi";
-import { Tabs } from 'antd';
+import { Tabs, Flex, Typography } from 'antd';
 
 interface LibraryMetricsUI {
   totalBooks: number;
@@ -136,88 +136,119 @@ export function BooksLibrary({ books, courses, onOpenBook, metrics }: BooksLibra
   const overallProgress = stats.overallProgressPct;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2>My Books</h2>
-        </div>
+    <Flex vertical gap={24} style={{ maxWidth: '72rem', margin: '0 auto' }}>
+      <Flex vertical gap={16}>
+        <Flex align="center" justify="space-between">
+          <Typography.Title level={2} style={{ margin: 0 }}>
+            My Books
+          </Typography.Title>
+        </Flex>
 
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <div style={{ position: 'relative' }}>
+          <Search
+            style={{
+              position: 'absolute',
+              left: 12,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: 16,
+              height: 16,
+              color: 'var(--muted-foreground)',
+            }}
+          />
           <Input
             placeholder="Search books by title..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            style={{ paddingLeft: 32 }}
           />
         </div>
-      </div>
+      </Flex>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Books</p>
-                <p className="text-2xl font-semibold">{stats.total}</p>
-              </div>
-              <BookOpen className="w-8 h-8 text-blue-500" />
-            </div>
+      <Flex wrap gap={16}>
+        <Card style={{ flex: '1 1 200px' }}>
+          <CardContent style={{ padding: 16 }}>
+            <Flex align="center" justify="space-between">
+              <Flex vertical gap={4}>
+                <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
+                  Total Books
+                </Typography.Text>
+                <Typography.Text style={{ fontSize: '1.75rem', fontWeight: 600 }}>
+                  {stats.total}
+                </Typography.Text>
+              </Flex>
+              <BookOpen style={{ width: 32, height: 32, color: '#3b82f6' }} />
+            </Flex>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Completed</p>
-                <p className="text-2xl font-semibold text-green-600">{stats.completed}</p>
-              </div>
-              <CheckCircle className="w-8 h-8 text-green-500" />
-            </div>
+        <Card style={{ flex: '1 1 200px' }}>
+          <CardContent style={{ padding: 16 }}>
+            <Flex align="center" justify="space-between">
+              <Flex vertical gap={4}>
+                <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
+                  Completed
+                </Typography.Text>
+                <Typography.Text style={{ fontSize: '1.75rem', fontWeight: 600, color: '#16a34a' }}>
+                  {stats.completed}
+                </Typography.Text>
+              </Flex>
+              <CheckCircle style={{ width: 32, height: 32, color: '#16a34a' }} />
+            </Flex>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">In Progress</p>
-                <p className="text-2xl font-semibold text-orange-600">{stats.inProgress}</p>
-              </div>
-              <Clock className="w-8 h-8 text-orange-500" />
-            </div>
+        <Card style={{ flex: '1 1 200px' }}>
+          <CardContent style={{ padding: 16 }}>
+            <Flex align="center" justify="space-between">
+              <Flex vertical gap={4}>
+                <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
+                  In Progress
+                </Typography.Text>
+                <Typography.Text style={{ fontSize: '1.75rem', fontWeight: 600, color: '#f97316' }}>
+                  {stats.inProgress}
+                </Typography.Text>
+              </Flex>
+              <Clock style={{ width: 32, height: 32, color: '#f97316' }} />
+            </Flex>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Failed Tasks</p>
-                <p className="text-2xl font-semibold text-red-600">{stats.failedTasks}</p>
-              </div>
-            </div>
+        <Card style={{ flex: '1 1 200px' }}>
+          <CardContent style={{ padding: 16 }}>
+            <Flex align="center" justify="space-between">
+              <Flex vertical gap={4}>
+                <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
+                  Failed Tasks
+                </Typography.Text>
+                <Typography.Text style={{ fontSize: '1.75rem', fontWeight: 600, color: '#dc2626' }}>
+                  {stats.failedTasks}
+                </Typography.Text>
+              </Flex>
+            </Flex>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Overall Progress</p>
-                <p className="text-2xl font-semibold">{Math.round(overallProgress)}%</p>
-              </div>
-              <Trophy className="w-8 h-8 text-purple-500" />
-            </div>
-            <Progress value={overallProgress} className="mt-2" />
+        <Card style={{ flex: '1 1 200px' }}>
+          <CardContent style={{ padding: 16 }}>
+            <Flex align="center" justify="space-between">
+              <Flex vertical gap={4}>
+                <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
+                  Overall Progress
+                </Typography.Text>
+                <Typography.Text style={{ fontSize: '1.75rem', fontWeight: 600 }}>
+                  {Math.round(overallProgress)}%
+                </Typography.Text>
+              </Flex>
+              <Trophy style={{ width: 32, height: 32, color: '#a855f7' }} />
+            </Flex>
+            <Progress value={overallProgress} style={{ marginTop: 8 }} />
           </CardContent>
         </Card>
-      </div>
+      </Flex>
 
       <Tabs
         className="bcc-tabs bcc-tabs--pill"
-        itemColor="white"
         activeKey={activeView}
         onChange={(key) => setActiveView(key as 'all' | 'in-progress' | 'completed')}
         items={[
@@ -227,88 +258,133 @@ export function BooksLibrary({ books, courses, onOpenBook, metrics }: BooksLibra
         ]}
       />
 
-      <div className="mt-6">
-          {filteredBooks.length === 0 ? (
-            <Card>
-              <CardContent className="p-12 text-center">
-                <BookOpen className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                <h3>No books found</h3>
-                <p className="text-muted-foreground mb-4">
-                  {searchQuery ? 'No books match your search criteria.' : 'Start by uploading a PDF book to create your first course.'}
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-8">
-              {filteredBooks
-                .slice((page - 1) * BOOKS_PER_PAGE, page * BOOKS_PER_PAGE)
-                .map((book) => {
-                  const statsForBook = bookStats.get(book.id)!;
-                  const progress = statsForBook.totalTasks > 0 ? (statsForBook.completedTasks / statsForBook.totalTasks) * 100 : 0;
-                  return (
-                    <Card key={book.id} className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => onOpenBook(book)}>
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                              <BookOpen className="w-5 h-5 text-primary" />
-                            </div>
-                            <div>
-                              <CardTitle className="text-lg">{book.title}</CardTitle>
-                              <p className="text-sm text-muted-foreground">
-                                {statsForBook.totalCourses} generated course{statsForBook.totalCourses !== 1 ? 's' : ''} • Uploaded {new Date(book.uploadDate).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant={statsForBook.isCompleted ? 'default' : (statsForBook.isInProgress ? 'secondary' : 'outline')} className="text-xs">
-                              {statsForBook.isCompleted ? 'Completed' : statsForBook.isInProgress ? 'In Progress' : 'Not Started'}
-                            </Badge>
-                            <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
-                          <div className="flex items-center gap-1">
-                            <CheckCircle className="w-4 h-4" />
-                            <span>{statsForBook.completedTasks}/{statsForBook.totalTasks} tasks</span>
-                          </div>
-                          {statsForBook.failedTasks > 0 && (
-                            <div className="flex items-center gap-1 text-red-600">
-                              <span>• {statsForBook.failedTasks} failed</span>
-                            </div>
-                          )}
-                        </div>
-                        <Progress value={progress} className="flex-1 h-2" showInfo />
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+      <Flex vertical gap={24} style={{ marginTop: 24 }}>
+        {filteredBooks.length === 0 ? (
+          <Card>
+            <CardContent style={{ padding: 48, textAlign: 'center' }}>
+              <BookOpen style={{ width: 64, height: 64, color: 'var(--muted-foreground)', marginBottom: 16 }} />
+              <Typography.Title level={3}>No books found</Typography.Title>
+              <Typography.Text style={{ color: 'var(--muted-foreground)' }}>
+                {searchQuery
+                  ? 'No books match your search criteria.'
+                  : 'Start by uploading a PDF book to create your first course.'}
+              </Typography.Text>
+            </CardContent>
+          </Card>
+        ) : (
+          <Flex vertical gap={24}>
+            {filteredBooks
+              .slice((page - 1) * BOOKS_PER_PAGE, page * BOOKS_PER_PAGE)
+              .map((book) => {
+                const statsForBook = bookStats.get(book.id)!;
+                const progress = statsForBook.totalTasks > 0 ? (statsForBook.completedTasks / statsForBook.totalTasks) * 100 : 0;
+                return (
+                  <Card
+                    key={book.id}
+                    style={{ cursor: 'pointer', transition: 'background-color 0.2s ease' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--card)')}
+                    onClick={() => onOpenBook(book)}
+                  >
+                    <CardHeader>
+                      <Flex align="center" justify="space-between" gap={12}>
+                        <Flex align="center" gap={12}>
+                          <Flex
+                            align="center"
+                            justify="center"
+                            style={{
+                              width: 40,
+                              height: 40,
+                              borderRadius: 12,
+                              backgroundColor: '#eef2ff',
+                            }}
+                          >
+                            <BookOpen style={{ width: 20, height: 20, color: '#4f46e5' }} />
+                          </Flex>
+                          <Flex vertical>
+                            <CardTitle style={{ fontSize: '1.1rem' }}>{book.title}</CardTitle>
+                            <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
+                              {statsForBook.totalCourses} generated course{statsForBook.totalCourses !== 1 ? 's' : ''} • Uploaded{' '}
+                              {new Date(book.uploadDate).toLocaleDateString()}
+                            </Typography.Text>
+                          </Flex>
+                        </Flex>
+                        <Flex align="center" gap={12}>
+                          <Badge
+                            variant={statsForBook.isCompleted ? 'default' : statsForBook.isInProgress ? 'secondary' : 'outline'}
+                            style={{ fontSize: '0.75rem' }}
+                          >
+                            {statsForBook.isCompleted ? 'Completed' : statsForBook.isInProgress ? 'In Progress' : 'Not Started'}
+                          </Badge>
+                          <ChevronRight style={{ width: 20, height: 20, color: 'var(--muted-foreground)' }} />
+                        </Flex>
+                      </Flex>
+                    </CardHeader>
+                    <CardContent>
+                      <Flex align="center" gap={16} style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)', marginBottom: 8 }}>
+                        <Flex align="center" gap={6}>
+                          <CheckCircle style={{ width: 16, height: 16 }} />
+                          <span>
+                            {statsForBook.completedTasks}/{statsForBook.totalTasks} tasks
+                          </span>
+                        </Flex>
+                        {statsForBook.failedTasks > 0 && (
+                          <Flex align="center" gap={6} style={{ color: '#dc2626' }}>
+                            <span>• {statsForBook.failedTasks} failed</span>
+                          </Flex>
+                        )}
+                      </Flex>
+                      <Progress value={progress} style={{ height: 8 }} showInfo />
+                    </CardContent>
+                  </Card>
+                );
+              })}
 
-              {totalPages > 1 && (
-                <Pagination className="mt-4">
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious href="#" size="default" onClick={(e) => { e.preventDefault(); setPage((p) => Math.max(1, p - 1)); }} />
+            {totalPages > 1 && (
+              <Pagination style={{ marginTop: 16 }}>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      size="default"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setPage((p) => Math.max(1, p - 1));
+                      }}
+                    />
+                  </PaginationItem>
+                  {Array.from({ length: totalPages }).map((_, idx) => (
+                    <PaginationItem key={idx}>
+                      <PaginationLink
+                        href="#"
+                        size="default"
+                        isActive={page === idx + 1}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setPage(idx + 1);
+                        }}
+                      >
+                        {idx + 1}
+                      </PaginationLink>
                     </PaginationItem>
-                    {Array.from({ length: totalPages }).map((_, idx) => (
-                      <PaginationItem key={idx}>
-                        <PaginationLink href="#" size="default" isActive={page === idx + 1} onClick={(e) => { e.preventDefault(); setPage(idx + 1); }}>
-                          {idx + 1}
-                        </PaginationLink>
-                      </PaginationItem>
-                    ))}
-                    <PaginationItem>
-                      <PaginationNext href="#" size="default" onClick={(e) => { e.preventDefault(); setPage((p) => Math.min(totalPages, p + 1)); }} />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              )}
-            </div>
-          )}
-      </div>
-    </div>
+                  ))}
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      size="default"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setPage((p) => Math.min(totalPages, p + 1));
+                      }}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
+          </Flex>
+        )}
+      </Flex>
+    </Flex>
   );
 }
 
