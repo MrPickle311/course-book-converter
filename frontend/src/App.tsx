@@ -11,7 +11,7 @@ import { BooksLibrary } from './components/BooksLibrary';
 import { BookDetail } from './components/BookDetail.tsx';
 import { Button } from './components/ui/button';
 import { ArrowLeft, Library, LogOut } from 'lucide-react';
-import { ConfigProvider, Flex, theme as antdTheme } from 'antd';
+import { ConfigProvider, Flex, theme as antdTheme, Spin, Typography } from 'antd';
 
 type AppState = 'upload' | 'toc' | 'course' | 'library' | 'book';
 
@@ -157,9 +157,9 @@ function AppContent() {
   // Show loading spinner while checking authentication
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-      </div>
+      <Flex align="center" justify="center" style={{ minHeight: '100vh' }}>
+        <Spin size="large" />
+      </Flex>
     );
   }
 
@@ -183,11 +183,6 @@ function AppContent() {
     setCurrentBook(newBook);
     // After processing finishes, refresh the library list immediately
     await handleOpenLibrary();
-  };
-
-  const handleChapterSelect = (chapter: Chapter) => {
-    // In new model, selecting a chapter should trigger generation flow
-    handleGenerateCourseForChapter(chapter.chapterId);
   };
 
   const handleGenerateCourseForChapter = async (chapterId: string) => {
@@ -272,20 +267,38 @@ function AppContent() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--background)' }}>
       {/* Header */}
-      <div ref={headerRef} className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-card shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+      <div
+        ref={headerRef}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 50,
+          borderBottom: '1px solid var(--border)',
+          backgroundColor: 'var(--card)',
+          boxShadow: '0 4px 12px rgba(15,23,42,0.05)',
+        }}
+      >
+        <Flex
+          align="center"
+          justify="space-between"
+          style={{ maxWidth: '72rem', margin: '0 auto', padding: '16px 24px' }}
+        >
           <Flex align="center" gap={16}>
-            <Flex vertical className="leading-tight">
-              <h1 className="text-base font-medium">PDF Course Generator</h1>
-              <p className="text-sm text-muted-foreground">
+            <Flex vertical style={{ lineHeight: 1.4 }}>
+              <Typography.Text style={{ fontSize: '1rem', fontWeight: 500 }}>
+                PDF Course Generator
+              </Typography.Text>
+              <Typography.Text style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)' }}>
                 Welcome back, {user.name}
-              </p>
+              </Typography.Text>
             </Flex>
           </Flex>
 
-          <div className="flex items-center gap-3">
+          <Flex align="center" gap={12}>
             {appState !== 'upload' && (
             <Button
                 variant="outline"
@@ -329,12 +342,19 @@ function AppContent() {
               <LogOut className="w-4 h-4" />
               Logout
             </Button>
-          </div>
-        </div>
+          </Flex>
+        </Flex>
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 pb-8" style={{ paddingTop: headerHeight + 10}}>
+      <div
+        style={{
+          maxWidth: '72rem',
+          margin: '0 auto',
+          padding: '16px 24px',
+          paddingTop: headerHeight + 10,
+        }}
+      >
         {appState === 'upload' && (
           <UploadPDF
             onFileUpload={handleFileUpload}

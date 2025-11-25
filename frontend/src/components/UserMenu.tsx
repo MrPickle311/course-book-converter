@@ -36,12 +36,12 @@ export function UserMenu() {
   return (
     <>
       <Flex align="center" gap={12}>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleOpenSettings}
+            <Button 
+              variant="outline"
+              size="sm" 
+              onClick={handleOpenSettings}
           className="flex items-center gap-2 px-3"
-        >
+            >
           <Flex
             align="center"
             justify="center"
@@ -55,12 +55,12 @@ export function UserMenu() {
               fontWeight: 600,
             }}
           >
-            {getInitials(user.name)}
+                  {getInitials(user.name)}
           </Flex>
           <Typography.Text style={{ fontSize: '0.875rem', fontWeight: 500, marginLeft: 4 }}>
             {user.name.split(' ')[0]}
           </Typography.Text>
-        </Button>
+            </Button>
       </Flex>
 
       {/* User Settings Panel */}
@@ -72,8 +72,8 @@ export function UserMenu() {
             backgroundColor: 'rgba(0,0,0,0.5)',
             zIndex: 50,
           }}
-          onClick={handleCloseSettings}
-        >
+                onClick={handleCloseSettings}
+              >
           <div
             style={{
               position: 'absolute',
