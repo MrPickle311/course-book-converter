@@ -127,7 +127,7 @@ export function AuthForm() {
                 {/* Google Sign-In Section */}
                 <div className="space-y-4">
                   <GoogleSignIn mode={activeTab as 'login' | 'register'} />
-                  <Divider plain className="text-xs uppercase text-muted-foreground">
+                  <Divider plain className="text-xs text-muted-foreground">
                         Or continue with email
                   </Divider>
                 </div>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
+import { Flex, Typography } from 'antd';
 
 // Google Identity Services types
 declare global {
@@ -104,9 +105,9 @@ export function GoogleSignIn({ mode }: GoogleSignInProps) {
   const buttonText = mode === 'login' ? 'Sign in with Google' : 'Sign up with Google';
 
   return (
-    <div className="space-y-3">
+    <Flex vertical gap={12}>
       {/* Real Google Sign-In Button (hidden in demo) */}
-      <div id="google-signin-button" className="hidden" />
+      <div id="google-signin-button" style={{ display: 'none' }} />
       
       {/* Demo Google Sign-In Button */}
       <Button
@@ -117,13 +118,13 @@ export function GoogleSignIn({ mode }: GoogleSignInProps) {
         className="w-full rounded-full px-4 py-2 text-sm font-medium shadow-sm flex items-center justify-center gap-3"
       >
         {isGoogleLoading ? (
-          <span className="flex items-center justify-center gap-2">
+          <Flex align="center" justify="center" gap={8}>
             <Loader2 className="w-4 h-4 animate-spin" />
-            Signing in...
-          </span>
+            <Typography.Text>Signing in...</Typography.Text>
+          </Flex>
         ) : (
-          <span className="flex items-center justify-center gap-3">
-            <svg className="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
+          <Flex align="center" justify="center" gap={12}>
+            <svg style={{ width: 16, height: 16 }} viewBox="0 0 24 24" aria-hidden="true">
               <path
                 fill="#4285F4"
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -141,18 +142,12 @@ export function GoogleSignIn({ mode }: GoogleSignInProps) {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            <span>{buttonText} (Demo)</span>
-          </span>
+            <Typography.Text>{buttonText} (Demo)</Typography.Text>
+          </Flex>
         )}
       </Button>
 
       {/* Instructions for real implementation */}
-      <div className="text-xs text-muted-foreground text-center space-y-1">
-        <p><strong>For real Google OAuth:</strong></p>
-        <p>1. Get Google Client ID from Google Cloud Console</p>
-        <p>2. Replace YOUR_GOOGLE_CLIENT_ID_HERE in GoogleSignIn.tsx</p>
-        <p>3. Add your domain to authorized origins</p>
-      </div>
-    </div>
+    </Flex>
   );
 }
