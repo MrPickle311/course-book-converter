@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 
 interface User {
   id: string;
@@ -57,12 +57,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
-    
+
     // Simulate API call delay
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
+
     const foundUser = mockUsers.find(u => u.email === email && u.password === password);
-    
+
     if (foundUser) {
       const userWithoutPassword = {
         id: foundUser.id,
@@ -70,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: foundUser.email,
         createdAt: foundUser.createdAt
       };
-      
+
       setUser(userWithoutPassword);
       localStorage.setItem('pdf_course_user', JSON.stringify(userWithoutPassword));
       setIsLoading(false);
@@ -83,17 +83,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (name: string, email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
-    
+
     // Simulate API call delay
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
+
     // Check if user already exists
     const existingUser = mockUsers.find(u => u.email === email);
     if (existingUser) {
       setIsLoading(false);
       return { success: false, error: 'An account with this email already exists' };
     }
-    
+
     // Create new user
     const newUser = {
       id: Date.now().toString(),
@@ -102,16 +102,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
       createdAt: new Date().toISOString().split('T')[0]
     };
-    
+
     mockUsers.push(newUser);
-    
+
     const userWithoutPassword = {
       id: newUser.id,
       name: newUser.name,
       email: newUser.email,
       createdAt: newUser.createdAt
     };
-    
+
     setUser(userWithoutPassword);
     localStorage.setItem('pdf_course_user', JSON.stringify(userWithoutPassword));
     setIsLoading(false);
@@ -120,24 +120,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithGoogle = async (googleCredential: any): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
-    
+
     try {
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       // In a real implementation, you would:
       // 1. Send the googleCredential.credential (JWT token) to your backend
       // 2. Verify the token with Google's servers
       // 3. Extract user information from the verified token
       // 4. Create or update user in your database
-      
+
       // For demo purposes, we'll decode the JWT token (don't do this in production!)
       // In production, always verify tokens on your backend
       const payload = JSON.parse(atob(googleCredential.credential.split('.')[1]));
-      
+
       // Check if user already exists
       let existingUser = mockUsers.find(u => u.email === payload.email);
-      
+
       if (!existingUser) {
         // Create new user from Google data
         const newUser = {
@@ -150,19 +150,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         mockUsers.push(newUser);
         existingUser = newUser;
       }
-      
+
       const userWithoutPassword = {
         id: existingUser.id,
         name: existingUser.name,
         email: existingUser.email,
         createdAt: existingUser.createdAt
       };
-      
+
       setUser(userWithoutPassword);
       localStorage.setItem('pdf_course_user', JSON.stringify(userWithoutPassword));
       setIsLoading(false);
       return { success: true };
-      
+
     } catch (error) {
       console.error('Google sign-in error:', error);
       setIsLoading(false);

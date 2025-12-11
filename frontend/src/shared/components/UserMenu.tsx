@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Button, Switch, Flex, Typography, Drawer, Avatar, Radio } from 'antd';
-import { useAuth } from './AuthContext';
-import { useTheme } from './ThemeContext';
-import { useSettings } from './SettingsContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { useSettings } from '../contexts/SettingsContext';
 import { UserOutlined, SettingOutlined } from '@ant-design/icons';
 
 export function UserMenu() {

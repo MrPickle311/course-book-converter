@@ -1,16 +1,18 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { DefaultService, OpenAPI, type ProcessPdfResponse, type GenerateCourseRequest, type BookDetail as ApiBookDetail, type Chapter as ApiChapter } from '@/openapi';
-import { AuthProvider, useAuth } from './components/AuthContext';
-import { ThemeProvider, useTheme } from './components/ThemeContext';
-import { SettingsProvider } from './components/SettingsContext';
-import { AuthForm } from './components/AuthForm';
-import { UserMenu } from './components/UserMenu';
-import { UploadPDF } from './components/UploadPDF';
-import { type Course, CourseContent } from './components/CourseContent';
-import { BooksLibrary } from './components/BooksLibrary';
-import { BookDetail } from './components/BookDetail.tsx';
+import { AuthProvider, useAuth } from './shared/contexts/AuthContext';
+import { ThemeProvider, useTheme } from './shared/contexts/ThemeContext';
+import { SettingsProvider } from './shared/contexts/SettingsContext';
+import { AuthForm } from './features/auth/AuthForm';
+import { UserMenu } from './shared/components/UserMenu';
+import { UploadBook } from './features/book/components/UploadBook';
+import { type Course } from './features/course/types';
+import { CourseContent } from './features/course/CourseContent';
+import { BooksLibrary } from './features/library/BooksLibrary';
+import { BookDetail } from './features/book/BookDetail';
 import { ArrowLeftOutlined, ReadOutlined, LogoutOutlined } from '@ant-design/icons';
-import { ConfigProvider, Flex, theme as antdTheme, Spin, Typography, Button, Layout } from 'antd';
+import { ConfigProvider, Flex, Spin, Typography, Button, Layout } from 'antd';
+import { createAppTheme } from './theme/appTheme';
 
 const { Header, Content } = Layout;
 
@@ -346,7 +348,7 @@ function AppContent() {
       >
         <div style={{ width: '100%', maxWidth: '72rem' }}>
           {appState === 'upload' && (
-            <UploadPDF
+            <UploadBook
               onFileUpload={handleFileUpload}
               userCourses={courses.filter(course => course.userId === user.id)}
             />
@@ -423,28 +425,7 @@ function AppProviders() {
   const isDarkMode = theme === 'dark';
 
   // Define our brand theme
-  const brandTheme = {
-    token: {
-      colorPrimary: '#4f46e5',
-      borderRadius: 8,
-      ...(isDarkMode ? {
-        colorBgLayout: '#0f172a', // Slate 900
-        colorBgContainer: '#1e293b', // Slate 800
-        colorBgElevated: '#334155', // Slate 700
-        colorText: '#f8fafc', // Slate 50
-        colorTextSecondary: '#94a3b8', // Slate 400
-        colorBorder: '#334155', // Slate 700
-        colorBorderSecondary: '#1e293b',
-      } : {
-        colorBgLayout: '#f8fafc', // Slate 50
-        colorBgContainer: '#ffffff',
-        colorText: '#0f172a', // Slate 900
-        colorTextSecondary: '#64748b', // Slate 500
-      })
-    },
-    algorithm: isDarkMode ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
-    cssVar: true, // Enable CSS variables for easy usage in styles
-  };
+  const brandTheme = createAppTheme(isDarkMode);
 
   return (
     <ConfigProvider theme={brandTheme}>

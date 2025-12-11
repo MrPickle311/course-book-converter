@@ -1,119 +1,44 @@
-import { useState } from 'react';
-import { Card, Button, Input, Tabs, Divider, Flex, Typography, Alert, theme } from 'antd';
-import { GoogleSignIn } from './GoogleSignIn';
-import { useAuth } from './AuthContext';
+import { theme, Card, Button, Input, Tabs, Divider, Flex, Typography, Alert } from 'antd';
+import { GoogleSignIn } from './components/GoogleSignIn';
 import { ReadOutlined, MailOutlined, LockOutlined, UserOutlined } from '@ant-design/icons';
+import { useAuthForm } from './hooks/useAuthForm';
+import { getAuthStyles } from './styles';
 
 const { useToken } = theme;
 
 export function AuthForm() {
   const { token } = useToken();
-  const { login, register, isLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState('login');
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [submitError, setSubmitError] = useState('');
+  const styles = getAuthStyles(token);
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear field-specific error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
-    }
-    setSubmitError('');
-  };
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    }
-
-    if (activeTab === 'register') {
-      if (!formData.name) {
-        newErrors.name = 'Name is required';
-      }
-      if (!formData.confirmPassword) {
-        newErrors.confirmPassword = 'Please confirm your password';
-      } else if (formData.password !== formData.confirmPassword) {
-        newErrors.confirmPassword = 'Passwords do not match';
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!validateForm()) return;
-
-    try {
-      let result;
-      if (activeTab === 'login') {
-        result = await login(formData.email, formData.password);
-      } else {
-        result = await register(formData.name, formData.email, formData.password);
-      }
-
-      if (!result.success && result.error) {
-        setSubmitError(result.error);
-      }
-    } catch (error) {
-      setSubmitError('An unexpected error occurred. Please try again.');
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({ name: '', email: '', password: '', confirmPassword: '' });
-    setErrors({});
-    setSubmitError('');
-  };
-
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-    resetForm();
-  };
+  const {
+    activeTab,
+    formData,
+    errors,
+    submitError,
+    isLoading,
+    handleInputChange,
+    handleSubmit,
+    handleTabChange
+  } = useAuthForm();
 
   return (
     <Flex
       vertical
       align="center"
       justify="center"
-      style={{ minHeight: '100vh', backgroundColor: token.colorBgLayout, padding: '0 1rem' }}
+      style={styles.container}
     >
-      <Flex vertical gap={24} style={{ width: '100%', maxWidth: 420 }}>
+      <Flex vertical gap={24} style={styles.wrapper}>
         {/* Logo/Brand */}
-        <Flex vertical align="center" gap={8} style={{ textAlign: 'center' }}>
+        <Flex vertical align="center" gap={8} style={styles.logoContainer}>
           <Flex
             align="center"
             justify="center"
-            style={{
-              width: 64,
-              height: 64,
-              borderRadius: 24,
-              backgroundColor: token.colorPrimaryBg,
-              margin: '0 auto',
-            }}
+            style={styles.logoIconWrapper}
           >
-            <ReadOutlined style={{ fontSize: 32, color: token.colorPrimary }} />
+            <ReadOutlined style={styles.logoIcon} />
           </Flex>
-          <Typography.Title level={3} style={{ margin: 0 }}>
+          <Typography.Title level={3} style={styles.title}>
             PDF Course Generator
           </Typography.Title>
           <Typography.Text type="secondary" style={{ fontSize: '0.9rem' }}>
@@ -121,7 +46,7 @@ export function AuthForm() {
           </Typography.Text>
         </Flex>
 
-        <Card title={<div style={{ textAlign: 'center' }}>{activeTab === 'login' ? 'Welcome Back' : 'Create Account'}</div>}>
+        <Card title={<div style={styles.cardTitle}>{activeTab === 'login' ? 'Welcome Back' : 'Create Account'}</div>}>
           <Tabs
             activeKey={activeTab}
             onChange={handleTabChange}
@@ -132,11 +57,11 @@ export function AuthForm() {
             ]}
           />
 
-          <Flex vertical gap={24} style={{ marginTop: 24 }}>
+          <Flex vertical gap={24} style={styles.formContainer}>
             {/* Google Sign-In Section */}
             <Flex vertical gap={16}>
               <GoogleSignIn mode={activeTab as 'login' | 'register'} />
-              <Divider plain style={{ fontSize: '0.75rem', color: token.colorTextSecondary, margin: 0 }}>
+              <Divider plain style={styles.divider}>
                 Or continue with email
               </Divider>
             </Flex>
@@ -154,13 +79,13 @@ export function AuthForm() {
                         placeholder="Enter your email"
                         value={formData.email}
                         onChange={(e) => handleInputChange('email', e.target.value)}
-                        prefix={<MailOutlined style={{ color: token.colorTextQuaternary }} />}
+                        prefix={<MailOutlined style={styles.inputPrefix} />}
                         disabled={isLoading}
                         status={errors.email ? 'error' : ''}
                         size="large"
                       />
                       {errors.email && (
-                        <Typography.Text type="danger" style={{ fontSize: '0.875rem' }}>
+                        <Typography.Text type="danger" style={styles.errorText}>
                           {errors.email}
                         </Typography.Text>
                       )}
@@ -173,13 +98,13 @@ export function AuthForm() {
                         placeholder="Enter your password"
                         value={formData.password}
                         onChange={(e) => handleInputChange('password', e.target.value)}
-                        prefix={<LockOutlined style={{ color: token.colorTextQuaternary }} />}
+                        prefix={<LockOutlined style={styles.inputPrefix} />}
                         disabled={isLoading}
                         status={errors.password ? 'error' : ''}
                         size="large"
                       />
                       {errors.password && (
-                        <Typography.Text type="danger" style={{ fontSize: '0.875rem' }}>
+                        <Typography.Text type="danger" style={styles.errorText}>
                           {errors.password}
                         </Typography.Text>
                       )}
@@ -197,13 +122,13 @@ export function AuthForm() {
                         placeholder="Enter your full name"
                         value={formData.name}
                         onChange={(e) => handleInputChange('name', e.target.value)}
-                        prefix={<UserOutlined style={{ color: token.colorTextQuaternary }} />}
+                        prefix={<UserOutlined style={styles.inputPrefix} />}
                         disabled={isLoading}
                         status={errors.name ? 'error' : ''}
                         size="large"
                       />
                       {errors.name && (
-                        <Typography.Text type="danger" style={{ fontSize: '0.875rem' }}>
+                        <Typography.Text type="danger" style={styles.errorText}>
                           {errors.name}
                         </Typography.Text>
                       )}
@@ -217,13 +142,13 @@ export function AuthForm() {
                         placeholder="Enter your email"
                         value={formData.email}
                         onChange={(e) => handleInputChange('email', e.target.value)}
-                        prefix={<MailOutlined style={{ color: token.colorTextQuaternary }} />}
+                        prefix={<MailOutlined style={styles.inputPrefix} />}
                         disabled={isLoading}
                         status={errors.email ? 'error' : ''}
                         size="large"
                       />
                       {errors.email && (
-                        <Typography.Text type="danger" style={{ fontSize: '0.875rem' }}>
+                        <Typography.Text type="danger" style={styles.errorText}>
                           {errors.email}
                         </Typography.Text>
                       )}
@@ -236,13 +161,13 @@ export function AuthForm() {
                         placeholder="Create a password"
                         value={formData.password}
                         onChange={(e) => handleInputChange('password', e.target.value)}
-                        prefix={<LockOutlined style={{ color: token.colorTextQuaternary }} />}
+                        prefix={<LockOutlined style={styles.inputPrefix} />}
                         disabled={isLoading}
                         status={errors.password ? 'error' : ''}
                         size="large"
                       />
                       {errors.password && (
-                        <Typography.Text type="danger" style={{ fontSize: '0.875rem' }}>
+                        <Typography.Text type="danger" style={styles.errorText}>
                           {errors.password}
                         </Typography.Text>
                       )}
@@ -255,13 +180,13 @@ export function AuthForm() {
                         placeholder="Confirm your password"
                         value={formData.confirmPassword}
                         onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                        prefix={<LockOutlined style={{ color: token.colorTextQuaternary }} />}
+                        prefix={<LockOutlined style={styles.inputPrefix} />}
                         disabled={isLoading}
                         status={errors.confirmPassword ? 'error' : ''}
                         size="large"
                       />
                       {errors.confirmPassword && (
-                        <Typography.Text type="danger" style={{ fontSize: '0.875rem' }}>
+                        <Typography.Text type="danger" style={styles.errorText}>
                           {errors.confirmPassword}
                         </Typography.Text>
                       )}

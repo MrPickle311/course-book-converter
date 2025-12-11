@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useAuth } from './AuthContext';
+import { useAuth } from '../../../shared/contexts/AuthContext';
 import { Button, Flex, App } from 'antd';
 import { GoogleOutlined } from '@ant-design/icons';
 

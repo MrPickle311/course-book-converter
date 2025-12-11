@@ -4,8 +4,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import type { TextAreaRef } from 'antd/es/input/TextArea';
-import '../styles/mdx.css';
-import '../styles/markdown-editor.css';
+import '../../styles/mdx.css';
+import '../../styles/markdown-editor.css';
 
 interface MarkdownEditModalProps {
   open: boolean;

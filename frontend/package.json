@@ -1,5 +1,5 @@
 {
-      "name": "Course Generation from PDF",
+      "name": "course-generation-from-pdf",
       "version": "0.1.0",
       "private": true,
       "dependencies": {
