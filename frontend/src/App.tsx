@@ -10,7 +10,9 @@ import { type Course, CourseContent } from './components/CourseContent';
 import { BooksLibrary } from './components/BooksLibrary';
 import { BookDetail } from './components/BookDetail.tsx';
 import { ArrowLeftOutlined, ReadOutlined, LogoutOutlined } from '@ant-design/icons';
-import { ConfigProvider, Flex, theme as antdTheme, Spin, Typography, Button } from 'antd';
+import { ConfigProvider, Flex, theme as antdTheme, Spin, Typography, Button, Layout } from 'antd';
+
+const { Header, Content } = Layout;
 
 type AppState = 'upload' | 'toc' | 'course' | 'library' | 'book';
 
@@ -41,16 +43,9 @@ function AppContent() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [currentBook, setCurrentBook] = useState<Book | null>(null);
   const [currentCourse, setCurrentCourse] = useState<Course | null>(null);
-  const [headerHeight, setHeaderHeight] = useState(0);
   const [lastContentOrigin, setLastContentOrigin] = useState<'toc' | 'book' | null>(null);
   const pollingIntervalRef = useRef<number | null>(null);
   const pollingStopTimeoutRef = useRef<number | null>(null);
-
-  const headerRef = useCallback((node: HTMLDivElement | null) => {
-    if (node) {
-      setHeaderHeight(node.getBoundingClientRect().height ?? 0);
-    }
-  }, []);
 
   const refreshBooks = useCallback(async () => {
     try {
@@ -216,12 +211,10 @@ function AppContent() {
   };
 
   const handleBackToTOC = () => {
-    console.log("toc")
     setAppState('toc');
   };
 
   const handleBackToUpload = () => {
-    console.log("upload")
     setAppState('upload');
     setCurrentBook(null);
   };
@@ -237,7 +230,6 @@ function AppContent() {
   // removed legacy select course handler in favor of chapter-driven flows
 
   const handleOpenBook = async (book: Book) => {
-    console.log("book")
     setAppState('book');
     // optimistic open with summary
     setCurrentBook({ ...book });
@@ -266,32 +258,34 @@ function AppContent() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--background)' }}>
-      {/* Header */}
-      <div
-        ref={headerRef}
+    <Layout style={{ minHeight: '100vh' }}>
+      <Header
         style={{
           position: 'fixed',
           top: 0,
           left: 0,
           right: 0,
           zIndex: 50,
-          borderBottom: '1px solid var(--border)',
-          backgroundColor: 'var(--card)',
-          boxShadow: '0 4px 12px rgba(15,23,42,0.05)',
+          padding: '0 24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: 'var(--ant-color-bg-container)',
+          borderBottom: '1px solid var(--ant-color-border-secondary)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
         }}
       >
         <Flex
           align="center"
           justify="space-between"
-          style={{ maxWidth: '72rem', margin: '0 auto', padding: '16px 24px' }}
+          style={{ width: '100%', maxWidth: '72rem' }}
         >
           <Flex align="center" gap={16}>
             <Flex vertical style={{ lineHeight: 1.4 }}>
-              <Typography.Text style={{ fontSize: '1rem', fontWeight: 500 }}>
+              <Typography.Text strong style={{ fontSize: '1rem' }}>
                 PDF Course Generator
               </Typography.Text>
-              <Typography.Text style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)' }}>
+              <Typography.Text type="secondary" style={{ fontSize: '0.85rem' }}>
                 Welcome back, {user.name}
               </Typography.Text>
             </Flex>
@@ -340,116 +334,133 @@ function AppContent() {
             </Button>
           </Flex>
         </Flex>
-      </div>
+      </Header>
 
-      {/* Main Content */}
-      <div
+      <Content
         style={{
-          maxWidth: '72rem',
-          margin: '0 auto',
-          padding: '16px 24px',
-          paddingTop: headerHeight + 10,
+          marginTop: 64,
+          padding: '24px',
+          display: 'flex',
+          justifyContent: 'center',
         }}
       >
-        {appState === 'upload' && (
-          <UploadPDF
-            onFileUpload={handleFileUpload}
-            userCourses={courses.filter(course => course.userId === user.id)}
-          />
-        )}
+        <div style={{ width: '100%', maxWidth: '72rem' }}>
+          {appState === 'upload' && (
+            <UploadPDF
+              onFileUpload={handleFileUpload}
+              userCourses={courses.filter(course => course.userId === user.id)}
+            />
+          )}
 
-        {appState === 'course' && currentCourse && (
-          <CourseContent
-            course={currentCourse}
-            onUpdateCourse={handleUpdateCourse}
-          />
-        )}
+          {appState === 'course' && currentCourse && (
+            <CourseContent
+              course={currentCourse}
+              onUpdateCourse={handleUpdateCourse}
+            />
+          )}
 
-        {appState === 'library' && (
-          <BooksLibrary
-            books={books}
-            courses={courses.filter(course => course.userId === user.id)}
-            onOpenBook={handleOpenBook}
-            metrics={libraryMetrics || undefined}
-          />
-        )}
+          {appState === 'library' && (
+            <BooksLibrary
+              books={books}
+              courses={courses.filter(course => course.userId === user.id)}
+              onOpenBook={handleOpenBook}
+              metrics={libraryMetrics || undefined}
+            />
+          )}
 
-        {appState === 'book' && currentBook && (
-          <BookDetail
-            book={currentBook}
-            onGenerateCourse={handleGenerateCourseForChapter}
-            onOpenGeneratedCourse={async (chapterId) => {
-              // Open existing or fetch notes-only if needed
-              const existing = courses.find(c => c.bookId === currentBook.id && c.chapterId === chapterId);
-              if (existing) {
-                setCurrentCourse(existing);
+          {appState === 'book' && currentBook && (
+            <BookDetail
+              book={currentBook}
+              onGenerateCourse={handleGenerateCourseForChapter}
+              onOpenGeneratedCourse={async (chapterId) => {
+                // Open existing or fetch notes-only if needed
+                const existing = courses.find(c => c.bookId === currentBook.id && c.chapterId === chapterId);
+                if (existing) {
+                  setCurrentCourse(existing);
+                  setAppState('course');
+                  setLastContentOrigin('book');
+                  return;
+                }
+                const chapter = currentBook.chapters.find(c => c.chapterId === chapterId);
+                if (!chapter) return;
+                let mdxText: string = '';
+                try {
+                  mdxText = await DefaultService.getChapterNotes({ uploadId: currentBook.id, chapterId });
+                } catch { }
+                const openCourse: Course = {
+                  id: `canonical-${currentBook.id}-${chapter.chapterId}`,
+                  bookId: currentBook.id,
+                  bookTitle: currentBook.title,
+                  chapterId: chapter.chapterId,
+                  chapterTitle: chapter.title,
+                  notes: mdxText,
+                  tasks: [],
+                  createdDate: new Date().toISOString().split('T')[0],
+                  completed: false,
+                  userId: user.id,
+                };
+                setCurrentCourse(openCourse);
                 setAppState('course');
                 setLastContentOrigin('book');
-                return;
-              }
-              const chapter = currentBook.chapters.find(c => c.chapterId === chapterId);
-              if (!chapter) return;
-              let mdxText: string = '';
-              try {
-                mdxText = await DefaultService.getChapterNotes({ uploadId: currentBook.id, chapterId });
-              } catch { }
-              const openCourse: Course = {
-                id: `canonical-${currentBook.id}-${chapter.chapterId}`,
-                bookId: currentBook.id,
-                bookTitle: currentBook.title,
-                chapterId: chapter.chapterId,
-                chapterTitle: chapter.title,
-                notes: mdxText,
-                tasks: [],
-                createdDate: new Date().toISOString().split('T')[0],
-                completed: false,
-                userId: user.id,
-              };
-              setCurrentCourse(openCourse);
-              setAppState('course');
-              setLastContentOrigin('book');
-            }}
-            onDeleteBook={async (bookId: string) => {
-              try {
-                await DefaultService.deleteBook({ uploadId: bookId });
-              } finally {
-                await handleOpenLibrary();
-              }
-            }}
-          />
-        )}
-      </div>
-    </div>
+              }}
+              onDeleteBook={async (bookId: string) => {
+                try {
+                  await DefaultService.deleteBook({ uploadId: bookId });
+                } finally {
+                  await handleOpenLibrary();
+                }
+              }}
+            />
+          )}
+        </div>
+      </Content>
+    </Layout>
   );
 }
 
 function AppProviders() {
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
-  const algorithm = isDarkMode ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm;
-  const darkTokens = isDarkMode
-    ? {
-      colorText: '#e5e7eb',
-      colorTextHeading: '#f8fafc',
-      colorBgContainer: '#0f172a',
-      colorBgElevated: '#1f2937',
-      colorLink: '#60a5fa',
-    }
-    : undefined;
+
+  // Define our brand theme
+  const brandTheme = {
+    token: {
+      colorPrimary: '#4f46e5',
+      borderRadius: 8,
+      ...(isDarkMode ? {
+        colorBgLayout: '#0f172a', // Slate 900
+        colorBgContainer: '#1e293b', // Slate 800
+        colorBgElevated: '#334155', // Slate 700
+        colorText: '#f8fafc', // Slate 50
+        colorTextSecondary: '#94a3b8', // Slate 400
+        colorBorder: '#334155', // Slate 700
+        colorBorderSecondary: '#1e293b',
+      } : {
+        colorBgLayout: '#f8fafc', // Slate 50
+        colorBgContainer: '#ffffff',
+        colorText: '#0f172a', // Slate 900
+        colorTextSecondary: '#64748b', // Slate 500
+      })
+    },
+    algorithm: isDarkMode ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+    cssVar: true, // Enable CSS variables for easy usage in styles
+  };
 
   return (
-    <ConfigProvider
-      theme={{
-        algorithm,
-        token: darkTokens,
-      }}
-    >
-      <SettingsProvider>
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
-      </SettingsProvider>
+    <ConfigProvider theme={brandTheme}>
+      <AppContentWrapper />
     </ConfigProvider>
+  );
+}
+
+// Wrapper to provide contexts safely
+function AppContentWrapper() {
+  return (
+    <SettingsProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </SettingsProvider>
   );
 }
 

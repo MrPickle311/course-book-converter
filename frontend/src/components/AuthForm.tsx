@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { Card, Button, Input, Tabs, Divider, Flex, Typography, Alert, App } from 'antd';
+import { Card, Button, Input, Tabs, Divider, Flex, Typography, Alert, theme } from 'antd';
 import { GoogleSignIn } from './GoogleSignIn';
 import { useAuth } from './AuthContext';
 import { ReadOutlined, MailOutlined, LockOutlined, UserOutlined } from '@ant-design/icons';
 
+const { useToken } = theme;
+
 export function AuthForm() {
+  const { token } = useToken();
   const { login, register, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('login');
   const [formData, setFormData] = useState({
@@ -92,7 +95,7 @@ export function AuthForm() {
       vertical
       align="center"
       justify="center"
-      style={{ minHeight: '100vh', backgroundColor: 'var(--background)', padding: '0 1rem' }}
+      style={{ minHeight: '100vh', backgroundColor: token.colorBgLayout, padding: '0 1rem' }}
     >
       <Flex vertical gap={24} style={{ width: '100%', maxWidth: 420 }}>
         {/* Logo/Brand */}
@@ -104,11 +107,11 @@ export function AuthForm() {
               width: 64,
               height: 64,
               borderRadius: 24,
-              backgroundColor: '#eef2ff',
+              backgroundColor: token.colorPrimaryBg,
               margin: '0 auto',
             }}
           >
-            <ReadOutlined style={{ fontSize: 32, color: '#4f46e5' }} />
+            <ReadOutlined style={{ fontSize: 32, color: token.colorPrimary }} />
           </Flex>
           <Typography.Title level={3} style={{ margin: 0 }}>
             PDF Course Generator
@@ -133,7 +136,7 @@ export function AuthForm() {
             {/* Google Sign-In Section */}
             <Flex vertical gap={16}>
               <GoogleSignIn mode={activeTab as 'login' | 'register'} />
-              <Divider plain style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', margin: 0 }}>
+              <Divider plain style={{ fontSize: '0.75rem', color: token.colorTextSecondary, margin: 0 }}>
                 Or continue with email
               </Divider>
             </Flex>
@@ -151,7 +154,7 @@ export function AuthForm() {
                         placeholder="Enter your email"
                         value={formData.email}
                         onChange={(e) => handleInputChange('email', e.target.value)}
-                        prefix={<MailOutlined style={{ color: 'rgba(0,0,0,0.25)' }} />}
+                        prefix={<MailOutlined style={{ color: token.colorTextQuaternary }} />}
                         disabled={isLoading}
                         status={errors.email ? 'error' : ''}
                         size="large"
@@ -170,7 +173,7 @@ export function AuthForm() {
                         placeholder="Enter your password"
                         value={formData.password}
                         onChange={(e) => handleInputChange('password', e.target.value)}
-                        prefix={<LockOutlined style={{ color: 'rgba(0,0,0,0.25)' }} />}
+                        prefix={<LockOutlined style={{ color: token.colorTextQuaternary }} />}
                         disabled={isLoading}
                         status={errors.password ? 'error' : ''}
                         size="large"
@@ -194,7 +197,7 @@ export function AuthForm() {
                         placeholder="Enter your full name"
                         value={formData.name}
                         onChange={(e) => handleInputChange('name', e.target.value)}
-                        prefix={<UserOutlined style={{ color: 'rgba(0,0,0,0.25)' }} />}
+                        prefix={<UserOutlined style={{ color: token.colorTextQuaternary }} />}
                         disabled={isLoading}
                         status={errors.name ? 'error' : ''}
                         size="large"
@@ -214,7 +217,7 @@ export function AuthForm() {
                         placeholder="Enter your email"
                         value={formData.email}
                         onChange={(e) => handleInputChange('email', e.target.value)}
-                        prefix={<MailOutlined style={{ color: 'rgba(0,0,0,0.25)' }} />}
+                        prefix={<MailOutlined style={{ color: token.colorTextQuaternary }} />}
                         disabled={isLoading}
                         status={errors.email ? 'error' : ''}
                         size="large"
@@ -233,7 +236,7 @@ export function AuthForm() {
                         placeholder="Create a password"
                         value={formData.password}
                         onChange={(e) => handleInputChange('password', e.target.value)}
-                        prefix={<LockOutlined style={{ color: 'rgba(0,0,0,0.25)' }} />}
+                        prefix={<LockOutlined style={{ color: token.colorTextQuaternary }} />}
                         disabled={isLoading}
                         status={errors.password ? 'error' : ''}
                         size="large"
@@ -252,7 +255,7 @@ export function AuthForm() {
                         placeholder="Confirm your password"
                         value={formData.confirmPassword}
                         onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                        prefix={<LockOutlined style={{ color: 'rgba(0,0,0,0.25)' }} />}
+                        prefix={<LockOutlined style={{ color: token.colorTextQuaternary }} />}
                         disabled={isLoading}
                         status={errors.confirmPassword ? 'error' : ''}
                         size="large"
