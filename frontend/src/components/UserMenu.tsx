@@ -1,11 +1,9 @@
 import { useState } from 'react';
-import { Button } from './ui/button';
-import { Switch } from './ui/switch';
+import { Button, Switch, Flex, Typography, Drawer, Avatar, Radio } from 'antd';
 import { useAuth } from './AuthContext';
 import { useTheme } from './ThemeContext';
 import { useSettings } from './SettingsContext';
-import { Sun, Moon, X } from 'lucide-react';
-import { Flex, Typography } from 'antd';
+import { UserOutlined, SettingOutlined } from '@ant-design/icons';
 
 export function UserMenu() {
   const { user } = useAuth();
@@ -35,170 +33,112 @@ export function UserMenu() {
 
   return (
     <>
-      <Flex align="center" gap={12}>
-            <Button 
-              variant="outline"
-              size="sm" 
-              onClick={handleOpenSettings}
-          className="flex items-center gap-2 px-3"
-            >
-          <Flex
-            align="center"
-            justify="center"
-            style={{
-              width: 24,
-              height: 24,
-              borderRadius: 9999,
-              backgroundColor: 'var(--primary)',
-              color: 'var(--primary-foreground)',
-              fontSize: '0.75rem',
-              fontWeight: 600,
-            }}
+      <Button
+        type="text"
+        onClick={handleOpenSettings}
+        style={{ height: 'auto', padding: '4px 8px' }}
+      >
+        <Flex align="center" gap={8}>
+          <Avatar
+            style={{ backgroundColor: 'var(--primary)' }}
+            icon={<UserOutlined />}
           >
-                  {getInitials(user.name)}
-          </Flex>
-          <Typography.Text style={{ fontSize: '0.875rem', fontWeight: 500, marginLeft: 4 }}>
+            {getInitials(user.name)}
+          </Avatar>
+          <Typography.Text strong style={{ fontSize: '0.875rem' }}>
             {user.name.split(' ')[0]}
           </Typography.Text>
-            </Button>
-      </Flex>
+        </Flex>
+      </Button>
 
-      {/* User Settings Panel */}
-      {showSettings && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            zIndex: 50,
-          }}
-                onClick={handleCloseSettings}
+      {/* User Settings Drawer */}
+      <Drawer
+        title={
+          <Flex align="center" gap={8}>
+            <SettingOutlined />
+            <span>User Settings</span>
+          </Flex>
+        }
+        placement="right"
+        onClose={handleCloseSettings}
+        open={showSettings}
+        width={320}
+      >
+        <Flex vertical gap={24}>
+          {/* Theme Toggle */}
+          <Flex vertical gap={12}>
+            <Typography.Text strong>
+              Appearance
+            </Typography.Text>
+            <Flex align="center" justify="space-between">
+              <Typography.Text>
+                {theme === 'light' ? 'Light mode' : 'Dark mode'}
+              </Typography.Text>
+              <Switch
+                checked={theme === 'dark'}
+                onChange={toggleTheme}
+                checkedChildren="Dark"
+                unCheckedChildren="Light"
+              />
+            </Flex>
+            <Typography.Text type="secondary" style={{ fontSize: '0.75rem' }}>
+              Toggle between light and dark theme
+            </Typography.Text>
+          </Flex>
+
+          {/* Pagination Settings */}
+          <Flex vertical gap={12}>
+            <Typography.Text strong>
+              Pagination
+            </Typography.Text>
+            <Flex align="center" justify="space-between">
+              <Typography.Text>
+                Books per page
+              </Typography.Text>
+              <Radio.Group
+                value={pageSize}
+                onChange={(e) => setPageSize(e.target.value)}
+                buttonStyle="solid"
+                size="small"
               >
-          <div
-            style={{
-              position: 'absolute',
-              right: 0,
-              top: 0,
-              width: '25%',
-              minWidth: 300,
-              height: '100%',
-              backgroundColor: 'var(--background)',
-              borderLeft: '1px solid var(--border)',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Flex
-              align="center"
-              justify="space-between"
-              style={{ padding: 24, borderBottom: '1px solid var(--border)' }}
-            >
-              <Typography.Title level={4} style={{ margin: 0 }}>
-                User Settings
-              </Typography.Title>
-              <Button variant="ghost" size="sm" onClick={handleCloseSettings}>
-                <X className="h-4 w-4" />
-              </Button>
+                <Radio.Button value={10}>10</Radio.Button>
+                <Radio.Button value={20}>20</Radio.Button>
+              </Radio.Group>
             </Flex>
-            
-            <Flex vertical gap={24} style={{ padding: 24 }}>
-              {/* Theme Toggle */}
-              <Flex vertical gap={12}>
-                <Typography.Text style={{ fontSize: '0.875rem', fontWeight: 500 }}>
-                  Appearance
-                </Typography.Text>
-                <Flex align="center" justify="space-between">
-                  <Flex align="center" gap={8}>
-                    {theme === 'light' ? (
-                      <Sun style={{ width: 16, height: 16, color: 'var(--muted-foreground)' }} />
-                    ) : (
-                      <Moon style={{ width: 16, height: 16, color: 'var(--muted-foreground)' }} />
-                    )}
-                    <Typography.Text style={{ fontSize: '0.875rem' }}>
-                      {theme === 'light' ? 'Light mode' : 'Dark mode'}
-                    </Typography.Text>
-                  </Flex>
-                  <Switch checked={theme === 'dark'} onCheckedChange={toggleTheme} />
-                </Flex>
-                <Typography.Text style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
-                  Toggle between light and dark theme
-                </Typography.Text>
-              </Flex>
+            <Typography.Text type="secondary" style={{ fontSize: '0.75rem' }}>
+              Choose how many books to display per page in the library
+            </Typography.Text>
+          </Flex>
 
-              {/* Pagination Settings */}
-              <Flex vertical gap={12}>
-                <Typography.Text style={{ fontSize: '0.875rem', fontWeight: 500 }}>
-                  Pagination
-                </Typography.Text>
-                <Flex align="center" justify="space-between">
-                  <Typography.Text style={{ fontSize: '0.875rem' }}>
-                    Books per page
-                  </Typography.Text>
-                  <Flex align="center" gap={8}>
-                    <Button
-                      variant={pageSize === (10 as typeof pageSize) ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setPageSize(10 as typeof pageSize)}
-                    >
-                      10
-                    </Button>
-                    <Button
-                      variant={pageSize === (20 as typeof pageSize) ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setPageSize(20 as typeof pageSize)}
-                    >
-                      20
-                    </Button>
-                  </Flex>
-                </Flex>
-                <Typography.Text style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
-                  Choose how many books to display per page in the library
+          {/* Image size settings */}
+          <Flex vertical gap={12}>
+            <Typography.Text strong>
+              Study Images
+            </Typography.Text>
+            <Flex vertical gap={8}>
+              <Flex align="center" justify="space-between">
+                <Typography.Text>
+                  Global image size
                 </Typography.Text>
               </Flex>
-
-              {/* Image size settings */}
-              <Flex vertical gap={12}>
-                <Typography.Text style={{ fontSize: '0.875rem', fontWeight: 500 }}>
-                  Study Images
-                </Typography.Text>
-                <Flex align="center" justify="space-between">
-                  <Typography.Text style={{ fontSize: '0.875rem' }}>
-                    Global image size
-                  </Typography.Text>
-                  <Flex align="center" gap={8}>
-                    <Button
-                      variant={imageSize === 'small' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setImageSize('small')}
-                    >
-                      Small
-                    </Button>
-                    <Button
-                      variant={imageSize === 'medium' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setImageSize('medium')}
-                    >
-                      Medium
-                    </Button>
-                    <Button
-                      variant={imageSize === 'large' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setImageSize('large')}
-                    >
-                      Large
-                    </Button>
-                  </Flex>
-                </Flex>
-                <Typography.Text style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
-                  Controls the width of all images in study notes.
-                </Typography.Text>
-              </Flex>
+              <Radio.Group
+                value={imageSize}
+                onChange={(e) => setImageSize(e.target.value)}
+                buttonStyle="solid"
+                size="small"
+                style={{ width: '100%' }}
+              >
+                <Radio.Button value="small" style={{ width: '33%', textAlign: 'center' }}>Small</Radio.Button>
+                <Radio.Button value="medium" style={{ width: '33%', textAlign: 'center' }}>Medium</Radio.Button>
+                <Radio.Button value="large" style={{ width: '33%', textAlign: 'center' }}>Large</Radio.Button>
+              </Radio.Group>
             </Flex>
-          </div>
-        </div>
-      )}
+            <Typography.Text type="secondary" style={{ fontSize: '0.75rem' }}>
+              Controls the width of all images in study notes.
+            </Typography.Text>
+          </Flex>
+        </Flex>
+      </Drawer>
     </>
   );
 }

@@ -6,12 +6,11 @@ import { SettingsProvider } from './components/SettingsContext';
 import { AuthForm } from './components/AuthForm';
 import { UserMenu } from './components/UserMenu';
 import { UploadPDF } from './components/UploadPDF';
-import {type Course, CourseContent} from './components/CourseContent';
+import { type Course, CourseContent } from './components/CourseContent';
 import { BooksLibrary } from './components/BooksLibrary';
 import { BookDetail } from './components/BookDetail.tsx';
-import { Button } from './components/ui/button';
-import { ArrowLeft, Library, LogOut } from 'lucide-react';
-import { ConfigProvider, Flex, theme as antdTheme, Spin, Typography } from 'antd';
+import { ArrowLeftOutlined, ReadOutlined, LogoutOutlined } from '@ant-design/icons';
+import { ConfigProvider, Flex, theme as antdTheme, Spin, Typography, Button } from 'antd';
 
 type AppState = 'upload' | 'toc' | 'course' | 'library' | 'book';
 
@@ -54,8 +53,8 @@ function AppContent() {
   }, []);
 
   const refreshBooks = useCallback(async () => {
-      try {
-        const res = await DefaultService.getBooksList({ page: 1, pageSize: 20 });
+    try {
+      const res = await DefaultService.getBooksList({ page: 1, pageSize: 20 });
       // openapi typing may lag behind spec; use any to safely access metrics
       const dataAny: any = (res as any)?.data ?? (res as any)?.data;
       const apiBooks = (dataAny?.items || []) as Array<any>;
@@ -72,7 +71,7 @@ function AppContent() {
         generatedCoursesCount: (raw as any).generatedCoursesCount,
         chapters: [],
       } as unknown as Book));
-        setBooks(mapped);
+      setBooks(mapped);
       const m = dataAny?.metrics;
       if (m) {
         setLibraryMetrics({
@@ -85,9 +84,9 @@ function AppContent() {
           overallProgress: typeof m.overallProgress === 'number' ? m.overallProgress : 0,
         });
       }
-      } catch (e) {
-        console.error('Failed to load books', e);
-      }
+    } catch (e) {
+      console.error('Failed to load books', e);
+    }
   }, []);
 
   const startLibraryPolling = useCallback(() => {
@@ -217,12 +216,12 @@ function AppContent() {
   };
 
   const handleBackToTOC = () => {
-      console.log("toc")
+    console.log("toc")
     setAppState('toc');
   };
 
   const handleBackToUpload = () => {
-      console.log("upload")
+    console.log("upload")
     setAppState('upload');
     setCurrentBook(null);
   };
@@ -238,7 +237,7 @@ function AppContent() {
   // removed legacy select course handler in favor of chapter-driven flows
 
   const handleOpenBook = async (book: Book) => {
-      console.log("book")
+    console.log("book")
     setAppState('book');
     // optimistic open with summary
     setCurrentBook({ ...book });
@@ -300,46 +299,43 @@ function AppContent() {
 
           <Flex align="center" gap={12}>
             {appState !== 'upload' && (
-            <Button
-                variant="outline"
-                size="sm"
+              <Button
+                size="small"
                 onClick={async () => {
                   if (appState === 'toc') {
-                      handleBackToUpload();
+                    handleBackToUpload();
                   } else if (appState === 'course') {
                     if (lastContentOrigin === 'book') {
-                        await refreshCurrentBook();
-                        setAppState('book');
+                      await refreshCurrentBook();
+                      setAppState('book');
                     } else {
-                        handleBackToTOC();
+                      handleBackToTOC();
                     }
                   } else if (appState === 'library') {
-                      setAppState('upload');
+                    setAppState('upload');
                   } else if (appState === 'book') {
-                      await handleOpenLibrary();
+                    await handleOpenLibrary();
                   }
                 }}
+                icon={<ArrowLeftOutlined />}
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
               </Button>
             )}
             <Button
-              variant="outline"
-              size="sm"
+              size="small"
               onClick={handleOpenLibrary}
+              icon={<ReadOutlined />}
             >
-              <Library className="w-4 h-4 mr-2" />
               My books
             </Button>
             <UserMenu />
             <Button
-              variant="destructive"
-              size="sm"
+              danger
+              size="small"
               onClick={logout}
-              className="gap-2"
+              icon={<LogoutOutlined />}
             >
-              <LogOut className="w-4 h-4" />
               Logout
             </Button>
           </Flex>
@@ -396,7 +392,7 @@ function AppContent() {
               let mdxText: string = '';
               try {
                 mdxText = await DefaultService.getChapterNotes({ uploadId: currentBook.id, chapterId });
-              } catch {}
+              } catch { }
               const openCourse: Course = {
                 id: `canonical-${currentBook.id}-${chapter.chapterId}`,
                 bookId: currentBook.id,
@@ -433,12 +429,12 @@ function AppProviders() {
   const algorithm = isDarkMode ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm;
   const darkTokens = isDarkMode
     ? {
-        colorText: '#e5e7eb',
-        colorTextHeading: '#f8fafc',
-        colorBgContainer: '#0f172a',
-        colorBgElevated: '#1f2937',
-        colorLink: '#60a5fa',
-      }
+      colorText: '#e5e7eb',
+      colorTextHeading: '#f8fafc',
+      colorBgContainer: '#0f172a',
+      colorBgElevated: '#1f2937',
+      colorLink: '#60a5fa',
+    }
     : undefined;
 
   return (

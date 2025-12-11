@@ -1,13 +1,8 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Alert } from './ui/alert';
-import { Tabs, Divider, Flex, Typography, Spin } from 'antd';
+import { Card, Button, Input, Tabs, Divider, Flex, Typography, Alert, App } from 'antd';
 import { GoogleSignIn } from './GoogleSignIn';
 import { useAuth } from './AuthContext';
-import { BookOpen, Mail, Lock, User, AlertCircle } from 'lucide-react';
+import { ReadOutlined, MailOutlined, LockOutlined, UserOutlined } from '@ant-design/icons';
 
 export function AuthForm() {
   const { login, register, isLoading } = useAuth();
@@ -62,7 +57,7 @@ export function AuthForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     try {
@@ -113,222 +108,194 @@ export function AuthForm() {
               margin: '0 auto',
             }}
           >
-            <BookOpen style={{ width: 32, height: 32, color: '#4f46e5' }} />
+            <ReadOutlined style={{ fontSize: 32, color: '#4f46e5' }} />
           </Flex>
           <Typography.Title level={3} style={{ margin: 0 }}>
             PDF Course Generator
           </Typography.Title>
-          <Typography.Text style={{ fontSize: '0.9rem', color: 'var(--muted-foreground)' }}>
+          <Typography.Text type="secondary" style={{ fontSize: '0.9rem' }}>
             Transform technical books into interactive learning experiences
           </Typography.Text>
         </Flex>
 
-        <Card>
-          <CardHeader>
-            <CardTitle style={{ textAlign: 'center' }}>
-              {activeTab === 'login' ? 'Welcome Back' : 'Create Account'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Tabs
-              className="bcc-tabs bcc-tabs--underline"
-              activeKey={activeTab}
-              onChange={handleTabChange}
-              items={[
-                { key: "login", label: "Sign In" },
-                { key: "register", label: "Sign Up" },
-              ]}
-            />
+        <Card title={<div style={{ textAlign: 'center' }}>{activeTab === 'login' ? 'Welcome Back' : 'Create Account'}</div>}>
+          <Tabs
+            activeKey={activeTab}
+            onChange={handleTabChange}
+            centered
+            items={[
+              { key: "login", label: "Sign In" },
+              { key: "register", label: "Sign Up" },
+            ]}
+          />
 
-              <Flex vertical gap={24} style={{ marginTop: 24 }}>
-                {/* Google Sign-In Section */}
-                <Flex vertical gap={16}>
-                  <GoogleSignIn mode={activeTab as 'login' | 'register'} />
-                  <Divider plain style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
-                    Or continue with email
-                  </Divider>
-                </Flex>
+          <Flex vertical gap={24} style={{ marginTop: 24 }}>
+            {/* Google Sign-In Section */}
+            <Flex vertical gap={16}>
+              <GoogleSignIn mode={activeTab as 'login' | 'register'} />
+              <Divider plain style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', margin: 0 }}>
+                Or continue with email
+              </Divider>
+            </Flex>
 
-                {/* Email/Password Form */}
-                <form onSubmit={handleSubmit}>
+            {/* Email/Password Form */}
+            <form onSubmit={handleSubmit}>
+              <Flex vertical gap={16}>
+                {activeTab === 'login' && (
                   <Flex vertical gap={16}>
-                  {activeTab === 'login' && (
-                  <Flex vertical gap={16}>
-                    <Flex vertical gap={8}>
-                      <Label htmlFor="email">Email</Label>
-                      <Flex style={{ position: 'relative' }}>
-                        <Mail style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: 'var(--muted-foreground)' }} />
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder="Enter your email"
-                          value={formData.email}
-                          onChange={(e) => handleInputChange('email', e.target.value)}
-                          style={{ paddingLeft: 36 }}
-                          disabled={isLoading}
-                        />
-                      </Flex>
+                    <Flex vertical gap={6}>
+                      <label htmlFor="email" style={{ fontSize: '14px', fontWeight: 500 }}>Email</label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="Enter your email"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        prefix={<MailOutlined style={{ color: 'rgba(0,0,0,0.25)' }} />}
+                        disabled={isLoading}
+                        status={errors.email ? 'error' : ''}
+                        size="large"
+                      />
                       {errors.email && (
-                        <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--destructive)' }}>
+                        <Typography.Text type="danger" style={{ fontSize: '0.875rem' }}>
                           {errors.email}
                         </Typography.Text>
                       )}
                     </Flex>
 
-                    <Flex vertical gap={8}>
-                      <Label htmlFor="password">Password</Label>
-                      <Flex style={{ position: 'relative' }}>
-                        <Lock style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: 'var(--muted-foreground)' }} />
-                        <Input
-                          id="password"
-                          type="password"
-                          placeholder="Enter your password"
-                          value={formData.password}
-                          onChange={(e) => handleInputChange('password', e.target.value)}
-                          style={{ paddingLeft: 36 }}
-                          disabled={isLoading}
-                        />
-                      </Flex>
+                    <Flex vertical gap={6}>
+                      <label htmlFor="password" style={{ fontSize: '14px', fontWeight: 500 }}>Password</label>
+                      <Input.Password
+                        id="password"
+                        placeholder="Enter your password"
+                        value={formData.password}
+                        onChange={(e) => handleInputChange('password', e.target.value)}
+                        prefix={<LockOutlined style={{ color: 'rgba(0,0,0,0.25)' }} />}
+                        disabled={isLoading}
+                        status={errors.password ? 'error' : ''}
+                        size="large"
+                      />
                       {errors.password && (
-                        <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--destructive)' }}>
+                        <Typography.Text type="danger" style={{ fontSize: '0.875rem' }}>
                           {errors.password}
                         </Typography.Text>
                       )}
                     </Flex>
                   </Flex>
-                  )}
+                )}
 
-                  {activeTab === 'register' && (
+                {activeTab === 'register' && (
                   <Flex vertical gap={16}>
-                    <Flex vertical gap={8}>
-                      <Label htmlFor="name">Full Name</Label>
-                      <Flex style={{ position: 'relative' }}>
-                        <User style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: 'var(--muted-foreground)' }} />
-                        <Input
-                          id="name"
-                          type="text"
-                          placeholder="Enter your full name"
-                          value={formData.name}
-                          onChange={(e) => handleInputChange('name', e.target.value)}
-                          style={{ paddingLeft: 36 }}
-                          disabled={isLoading}
-                        />
-                      </Flex>
+                    <Flex vertical gap={6}>
+                      <label htmlFor="name" style={{ fontSize: '14px', fontWeight: 500 }}>Full Name</label>
+                      <Input
+                        id="name"
+                        type="text"
+                        placeholder="Enter your full name"
+                        value={formData.name}
+                        onChange={(e) => handleInputChange('name', e.target.value)}
+                        prefix={<UserOutlined style={{ color: 'rgba(0,0,0,0.25)' }} />}
+                        disabled={isLoading}
+                        status={errors.name ? 'error' : ''}
+                        size="large"
+                      />
                       {errors.name && (
-                        <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--destructive)' }}>
+                        <Typography.Text type="danger" style={{ fontSize: '0.875rem' }}>
                           {errors.name}
                         </Typography.Text>
                       )}
                     </Flex>
 
-                    <Flex vertical gap={8}>
-                      <Label htmlFor="register-email">Email</Label>
-                      <Flex style={{ position: 'relative' }}>
-                        <Mail style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: 'var(--muted-foreground)' }} />
-                        <Input
-                          id="register-email"
-                          type="email"
-                          placeholder="Enter your email"
-                          value={formData.email}
-                          onChange={(e) => handleInputChange('email', e.target.value)}
-                          style={{ paddingLeft: 36 }}
-                          disabled={isLoading}
-                        />
-                      </Flex>
+                    <Flex vertical gap={6}>
+                      <label htmlFor="register-email" style={{ fontSize: '14px', fontWeight: 500 }}>Email</label>
+                      <Input
+                        id="register-email"
+                        type="email"
+                        placeholder="Enter your email"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        prefix={<MailOutlined style={{ color: 'rgba(0,0,0,0.25)' }} />}
+                        disabled={isLoading}
+                        status={errors.email ? 'error' : ''}
+                        size="large"
+                      />
                       {errors.email && (
-                        <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--destructive)' }}>
+                        <Typography.Text type="danger" style={{ fontSize: '0.875rem' }}>
                           {errors.email}
                         </Typography.Text>
                       )}
                     </Flex>
 
-                    <Flex vertical gap={8}>
-                      <Label htmlFor="register-password">Password</Label>
-                      <Flex style={{ position: 'relative' }}>
-                        <Lock style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: 'var(--muted-foreground)' }} />
-                        <Input
-                          id="register-password"
-                          type="password"
-                          placeholder="Create a password"
-                          value={formData.password}
-                          onChange={(e) => handleInputChange('password', e.target.value)}
-                          style={{ paddingLeft: 36 }}
-                          disabled={isLoading}
-                        />
-                      </Flex>
+                    <Flex vertical gap={6}>
+                      <label htmlFor="register-password" style={{ fontSize: '14px', fontWeight: 500 }}>Password</label>
+                      <Input.Password
+                        id="register-password"
+                        placeholder="Create a password"
+                        value={formData.password}
+                        onChange={(e) => handleInputChange('password', e.target.value)}
+                        prefix={<LockOutlined style={{ color: 'rgba(0,0,0,0.25)' }} />}
+                        disabled={isLoading}
+                        status={errors.password ? 'error' : ''}
+                        size="large"
+                      />
                       {errors.password && (
-                        <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--destructive)' }}>
+                        <Typography.Text type="danger" style={{ fontSize: '0.875rem' }}>
                           {errors.password}
                         </Typography.Text>
                       )}
                     </Flex>
 
-                    <Flex vertical gap={8}>
-                      <Label htmlFor="confirm-password">Confirm Password</Label>
-                      <Flex style={{ position: 'relative' }}>
-                        <Lock style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: 'var(--muted-foreground)' }} />
-                        <Input
-                          id="confirm-password"
-                          type="password"
-                          placeholder="Confirm your password"
-                          value={formData.confirmPassword}
-                          onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                          style={{ paddingLeft: 36 }}
-                          disabled={isLoading}
-                        />
-                      </Flex>
+                    <Flex vertical gap={6}>
+                      <label htmlFor="confirm-password" style={{ fontSize: '14px', fontWeight: 500 }}>Confirm Password</label>
+                      <Input.Password
+                        id="confirm-password"
+                        placeholder="Confirm your password"
+                        value={formData.confirmPassword}
+                        onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                        prefix={<LockOutlined style={{ color: 'rgba(0,0,0,0.25)' }} />}
+                        disabled={isLoading}
+                        status={errors.confirmPassword ? 'error' : ''}
+                        size="large"
+                      />
                       {errors.confirmPassword && (
-                        <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--destructive)' }}>
+                        <Typography.Text type="danger" style={{ fontSize: '0.875rem' }}>
                           {errors.confirmPassword}
                         </Typography.Text>
                       )}
                     </Flex>
                   </Flex>
-                  )}
+                )}
 
-                  {submitError && (
-                    <Alert variant="destructive">
-                      <AlertCircle style={{ width: 16, height: 16 }} />
-                      <Typography.Text style={{ fontSize: '0.875rem' }}>{submitError}</Typography.Text>
-                    </Alert>
-                  )}
+                {submitError && (
+                  <Alert message={submitError} type="error" showIcon />
+                )}
 
-                  <Button htmlType="submit" style={{ width: '100%' }} disabled={isLoading}>
-                    {isLoading ? (
-                      <Flex align="center" gap={8} justify="center">
-                        <Spin size="small" />
-                        {activeTab === 'login' ? 'Signing in...' : 'Creating account...'}
-                      </Flex>
-                    ) : (
-                      activeTab === 'login' ? 'Sign In with Email' : 'Create Account with Email'
-                    )}
-                  </Button>
-                  </Flex>
-                </form>
+                <Button type="primary" htmlType="submit" size="large" block loading={isLoading} disabled={isLoading}>
+                  {activeTab === 'login' ? 'Sign In with Email' : 'Create Account with Email'}
+                </Button>
               </Flex>
-          </CardContent>
+            </form>
+          </Flex>
         </Card>
 
         {/* Demo credentials */}
         <Card>
-          <CardContent style={{ padding: 16 }}>
-            <Flex vertical align="center" gap={8}>
-              <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
-                Demo Credentials:
+          <Flex vertical align="center" gap={8} style={{ padding: 16 }}>
+            <Typography.Text type="secondary" style={{ fontSize: '0.875rem' }}>
+              Demo Credentials:
+            </Typography.Text>
+            <Flex vertical gap={4} style={{ fontSize: '0.8rem', textAlign: 'center' }}>
+              <Typography.Text>
+                <strong>Email:</strong> john@example.com
               </Typography.Text>
-              <Flex vertical gap={4} style={{ fontSize: '0.8rem', textAlign: 'center' }}>
-                <Typography.Text>
-                  <strong>Email:</strong> john@example.com
-                </Typography.Text>
-                <Typography.Text>
-                  <strong>Password:</strong> password123
-                </Typography.Text>
-                <Typography.Text>
-                  <strong>Google:</strong> Click "Sign in with Google (Demo)"
-                </Typography.Text>
-              </Flex>
+              <Typography.Text>
+                <strong>Password:</strong> password123
+              </Typography.Text>
+              <Typography.Text>
+                <strong>Google:</strong> Click "Sign in with Google (Demo)"
+              </Typography.Text>
             </Flex>
-          </CardContent>
+          </Flex>
         </Card>
       </Flex>
     </Flex>

@@ -1,9 +1,6 @@
 import { useState } from 'react';
-import { Card, CardContent } from './ui/card';
-import { Button } from './ui/button';
-import { Progress } from './ui/progress';
-import { Flex, Typography, Spin } from 'antd';
-import { Upload, FileText, CheckCircle } from 'lucide-react';
+import { Card, Button, Progress, Flex, Typography, Spin, Steps } from 'antd';
+import { CloudUploadOutlined, FilePdfOutlined, CheckCircleOutlined, DeleteOutlined } from '@ant-design/icons';
 
 interface Course {
   id: string;
@@ -21,7 +18,7 @@ export function UploadPDF({ onFileUpload, userCourses = [] }: UploadPDFProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  
+
   void userCourses;
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -37,10 +34,10 @@ export function UploadPDF({ onFileUpload, userCourses = [] }: UploadPDFProps) {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-    
+
     const files = Array.from(e.dataTransfer.files);
     const pdfFile = files.find(file => file.type === 'application/pdf');
-    
+
     if (pdfFile) {
       handleFileSelection(pdfFile);
     }
@@ -59,10 +56,10 @@ export function UploadPDF({ onFileUpload, userCourses = [] }: UploadPDFProps) {
 
   const handleUpload = () => {
     if (!selectedFile) return;
-    
+
     setIsProcessing(true);
     setUploadProgress(0);
-    
+
     // Simulate upload progress
     const interval = setInterval(() => {
       setUploadProgress(prev => {
@@ -96,22 +93,11 @@ export function UploadPDF({ onFileUpload, userCourses = [] }: UploadPDFProps) {
 
   const dropZoneStyle: React.CSSProperties = isDragOver
     ? {
-        ...dropZoneBaseStyle,
-        borderColor: '#a5b4fc',
-        backgroundColor: 'rgba(165, 180, 252, 0.12)',
-      }
-    : { ...dropZoneBaseStyle, borderColor: '#d4d4d8' };
-
-  const stepCircleStyle: React.CSSProperties = {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'var(--primary)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    margin: '0 auto',
-  };
+      ...dropZoneBaseStyle,
+      borderColor: '#a5b4fc',
+      backgroundColor: 'rgba(165, 180, 252, 0.12)',
+    }
+    : { ...dropZoneBaseStyle, borderColor: '#d4d4d8', backgroundColor: 'var(--card)' }; // explicitly set bg to match base
 
   return (
     <Flex vertical gap={32} style={{ maxWidth: '60rem', margin: '0 auto' }}>
@@ -123,109 +109,93 @@ export function UploadPDF({ onFileUpload, userCourses = [] }: UploadPDFProps) {
       </Flex>
 
       <Card>
-        <CardContent style={{ padding: 32 }}>
-          <div
-            style={dropZoneStyle}
-            role="button"
-            aria-label="Upload PDF by drag-and-drop or choose a file"
-            title="Upload PDF by drag-and-drop or choose a file"
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
-            {!selectedFile ? (
-              <Flex vertical gap={16} align="center">
-                <Upload style={{ width: 48, height: 48, color: 'var(--muted-foreground)' }} />
-                <Flex vertical gap={8}>
-                  <Typography.Text>Drag and drop your PDF book here</Typography.Text>
-                  <Typography.Text style={smallMutedTextStyle}>or</Typography.Text>
-                  <Button variant="outline" asChild>
-                    <label htmlFor="file-upload" style={{ cursor: 'pointer' }}>
-                      Choose File
-                      <input
-                        id="file-upload"
-                        type="file"
-                        accept=".pdf"
-                        style={{ display: 'none' }}
-                        onChange={handleFileInputChange}
-                      />
-                    </label>
-                  </Button>
-                </Flex>
-                <Typography.Text style={extraSmallMutedTextStyle}>
-                  Only PDF files are supported
+        <div
+          style={dropZoneStyle}
+          role="button"
+          aria-label="Upload PDF by drag-and-drop or choose a file"
+          title="Upload PDF by drag-and-drop or choose a file"
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          {!selectedFile ? (
+            <Flex vertical gap={16} align="center">
+              <CloudUploadOutlined style={{ fontSize: 48, color: 'var(--muted-foreground)' }} />
+              <Flex vertical gap={8}>
+                <Typography.Text>Drag and drop your PDF book here</Typography.Text>
+                <Typography.Text style={smallMutedTextStyle}>or</Typography.Text>
+                <label htmlFor="file-upload" style={{ cursor: 'pointer' }}>
+                  <Button>Choose File</Button>
+                  <input
+                    id="file-upload"
+                    type="file"
+                    accept=".pdf"
+                    style={{ display: 'none' }}
+                    onChange={handleFileInputChange}
+                  />
+                </label>
+              </Flex>
+              <Typography.Text style={extraSmallMutedTextStyle}>
+                Only PDF files are supported
+              </Typography.Text>
+            </Flex>
+          ) : (
+            <Flex vertical gap={16} align="center">
+              <FilePdfOutlined style={{ fontSize: 48, color: 'var(--primary)' }} />
+              <Flex vertical gap={8} align="center">
+                <Typography.Text>{selectedFile.name}</Typography.Text>
+                <Typography.Text style={smallMutedTextStyle}>
+                  {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                 </Typography.Text>
-              </Flex>
-            ) : (
-              <Flex vertical gap={16} align="center">
-                <FileText style={{ width: 48, height: 48, color: 'var(--primary)' }} />
-                <Flex vertical gap={8} align="center">
-                  <Typography.Text>{selectedFile.name}</Typography.Text>
-                  <Typography.Text style={smallMutedTextStyle}>
-                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                  </Typography.Text>
-                  {!isProcessing ? (
-                    <Flex gap={8} justify="center">
-                      <Button onClick={handleUpload}>Process PDF</Button>
-                      <Button variant="outline" onClick={() => setSelectedFile(null)}>
-                        Remove
-                      </Button>
+                {!isProcessing ? (
+                  <Flex gap={8} justify="center">
+                    <Button type="primary" onClick={handleUpload}>Process PDF</Button>
+                    <Button icon={<DeleteOutlined />} onClick={() => setSelectedFile(null)}>
+                      Remove
+                    </Button>
+                  </Flex>
+                ) : (
+                  <Flex vertical gap={16} align="center" style={{ width: '100%', minWidth: 300 }}>
+                    <Flex vertical gap={8} align="center" style={{ width: '100%' }}>
+                      {uploadProgress < 100 ? (
+                        <Flex align="center" gap={8}>
+                          <Spin size="small" />
+                          <Typography.Text style={smallMutedTextStyle}>
+                            Processing PDF...
+                          </Typography.Text>
+                        </Flex>
+                      ) : (
+                        <Flex align="center" gap={8}>
+                          <CheckCircleOutlined style={{ fontSize: 16, color: '#16a34a' }} />
+                          <Typography.Text style={smallMutedTextStyle}>
+                            Processing complete!
+                          </Typography.Text>
+                        </Flex>
+                      )}
+                      <Progress percent={uploadProgress} status={uploadProgress === 100 ? 'success' : 'active'} />
+                      <Typography.Text style={extraSmallMutedTextStyle}>
+                        {uploadProgress < 100
+                          ? 'Extracting table of contents...'
+                          : 'Redirecting to table of contents...'}
+                      </Typography.Text>
                     </Flex>
-                  ) : (
-                    <Flex vertical gap={16} align="center">
-                      <Flex vertical gap={8} align="center">
-                        {uploadProgress < 100 ? (
-                          <Flex align="center" gap={8}>
-                            <Spin size="small" />
-                            <Typography.Text style={smallMutedTextStyle}>
-                              Processing PDF...
-                            </Typography.Text>
-                          </Flex>
-                        ) : (
-                          <Flex align="center" gap={8}>
-                            <CheckCircle style={{ width: 16, height: 16, color: '#16a34a' }} />
-                            <Typography.Text style={smallMutedTextStyle}>
-                              Processing complete!
-                            </Typography.Text>
-                          </Flex>
-                        )}
-                        <Progress value={uploadProgress} style={{ width: '100%', maxWidth: 320 }} />
-                        <Typography.Text style={extraSmallMutedTextStyle}>
-                          {uploadProgress < 100
-                            ? 'Extracting table of contents...'
-                            : 'Redirecting to table of contents...'}
-                        </Typography.Text>
-                      </Flex>
-                    </Flex>
-                  )}
-                </Flex>
+                  </Flex>
+                )}
               </Flex>
-            )}
-          </div>
-        </CardContent>
+            </Flex>
+          )}
+        </div>
       </Card>
 
-      <Flex
-        wrap="wrap"
-        justify="center"
-        gap={32}
-        style={{ textAlign: 'center' }}
-      >
-        {[
-          { title: 'Upload PDF', description: 'Upload your technical book in PDF format' },
-          { title: 'Select Chapter', description: 'Choose a chapter from the extracted table of contents' },
-          { title: 'Learn & Practice', description: 'Study generated notes and complete interactive tasks' },
-        ].map((item, idx) => (
-          <Flex key={item.title} vertical gap={8} align="center" style={{ width: 220 }}>
-            <div style={{ ...stepCircleStyle, backgroundColor: '#e5e7eb' }}>
-              <span style={{ color: '#4b5563', fontWeight: 600 }}>{idx + 1}</span>
-            </div>
-            <Typography.Title level={4} style={{ margin: 0 }}>
-              {item.title}
-            </Typography.Title>
-            <Typography.Text style={smallMutedTextStyle}>{item.description}</Typography.Text>
-          </Flex>
-        ))}
+      <Flex justify="center">
+        <Steps
+          current={-1}
+          items={[
+            { title: 'Upload PDF', description: 'Upload your technical book in PDF format' },
+            { title: 'Select Chapter', description: 'Choose a chapter from the extracted table of contents' },
+            { title: 'Learn & Practice', description: 'Study generated notes and complete interactive tasks' },
+          ]}
+        />
       </Flex>
     </Flex>
   );

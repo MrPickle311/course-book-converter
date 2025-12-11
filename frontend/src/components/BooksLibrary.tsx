@@ -1,14 +1,9 @@
 import { useMemo, useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Badge } from './ui/badge';
-import { Input } from './ui/input';
-import { Progress } from './ui/progress';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from './ui/pagination';
-import { BookOpen, CheckCircle, ChevronRight, Search, Trophy, Clock } from 'lucide-react';
+import { Card, Input, Progress, Pagination, Tabs, Flex, Typography, Tag, Empty } from 'antd';
+import { ReadOutlined, CheckCircleOutlined, RightOutlined, SearchOutlined, TrophyOutlined, ClockCircleOutlined, BookOutlined } from '@ant-design/icons';
 import { useSettings } from './SettingsContext';
-import type {Course} from "@/components/CourseContent.tsx";
-import type {BookDetail} from "@/openapi";
-import { Tabs, Flex, Typography } from 'antd';
+import type { Course } from "@/components/CourseContent.tsx";
+import type { BookDetail } from "@/openapi";
 
 interface LibraryMetricsUI {
   totalBooks: number;
@@ -84,10 +79,10 @@ export function BooksLibrary({ books, courses, onOpenBook, metrics }: BooksLibra
       const stats = bookStats.get(b.id);
       const matches = b.title.toLowerCase().includes(q);
       if (activeView === 'completed') {
-          return matches && !!stats?.isCompleted;
+        return matches && !!stats?.isCompleted;
       }
       if (activeView === 'in-progress') {
-          return matches && !!stats?.isInProgress;
+        return matches && !!stats?.isInProgress;
       }
       return matches;
     });
@@ -144,111 +139,90 @@ export function BooksLibrary({ books, courses, onOpenBook, metrics }: BooksLibra
           </Typography.Title>
         </Flex>
 
-        <div style={{ position: 'relative' }}>
-          <Search
-            style={{
-              position: 'absolute',
-              left: 12,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              width: 16,
-              height: 16,
-              color: 'var(--muted-foreground)',
-            }}
-          />
-          <Input
-            placeholder="Search books by title..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ paddingLeft: 32 }}
-          />
-        </div>
+        <Input
+          placeholder="Search books by title..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          prefix={<SearchOutlined style={{ color: 'rgba(0,0,0,0.25)' }} />}
+          size="large"
+          allowClear
+        />
       </Flex>
 
       <Flex wrap gap={16}>
-        <Card style={{ flex: '1 1 200px' }}>
-          <CardContent style={{ padding: 16 }}>
-            <Flex align="center" justify="space-between">
-              <Flex vertical gap={4}>
-                <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
-                  Total Books
-                </Typography.Text>
-                <Typography.Text style={{ fontSize: '1.75rem', fontWeight: 600 }}>
-                  {stats.total}
-                </Typography.Text>
-              </Flex>
-              <BookOpen style={{ width: 32, height: 32, color: '#3b82f6' }} />
+        <Card style={{ flex: '1 1 200px' }} size="small">
+          <Flex align="center" justify="space-between">
+            <Flex vertical gap={4}>
+              <Typography.Text type="secondary">
+                Total Books
+              </Typography.Text>
+              <Typography.Text style={{ fontSize: '1.75rem', fontWeight: 600 }}>
+                {stats.total}
+              </Typography.Text>
             </Flex>
-          </CardContent>
+            <BookOutlined style={{ fontSize: 32, color: '#3b82f6' }} />
+          </Flex>
         </Card>
 
-        <Card style={{ flex: '1 1 200px' }}>
-          <CardContent style={{ padding: 16 }}>
-            <Flex align="center" justify="space-between">
-              <Flex vertical gap={4}>
-                <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
-                  Completed
-                </Typography.Text>
-                <Typography.Text style={{ fontSize: '1.75rem', fontWeight: 600, color: '#16a34a' }}>
-                  {stats.completed}
-                </Typography.Text>
-              </Flex>
-              <CheckCircle style={{ width: 32, height: 32, color: '#16a34a' }} />
+        <Card style={{ flex: '1 1 200px' }} size="small">
+          <Flex align="center" justify="space-between">
+            <Flex vertical gap={4}>
+              <Typography.Text type="secondary">
+                Completed
+              </Typography.Text>
+              <Typography.Text style={{ fontSize: '1.75rem', fontWeight: 600, color: '#16a34a' }}>
+                {stats.completed}
+              </Typography.Text>
             </Flex>
-          </CardContent>
+            <CheckCircleOutlined style={{ fontSize: 32, color: '#16a34a' }} />
+          </Flex>
         </Card>
 
-        <Card style={{ flex: '1 1 200px' }}>
-          <CardContent style={{ padding: 16 }}>
-            <Flex align="center" justify="space-between">
-              <Flex vertical gap={4}>
-                <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
-                  In Progress
-                </Typography.Text>
-                <Typography.Text style={{ fontSize: '1.75rem', fontWeight: 600, color: '#f97316' }}>
-                  {stats.inProgress}
-                </Typography.Text>
-              </Flex>
-              <Clock style={{ width: 32, height: 32, color: '#f97316' }} />
+        <Card style={{ flex: '1 1 200px' }} size="small">
+          <Flex align="center" justify="space-between">
+            <Flex vertical gap={4}>
+              <Typography.Text type="secondary">
+                In Progress
+              </Typography.Text>
+              <Typography.Text style={{ fontSize: '1.75rem', fontWeight: 600, color: '#f97316' }}>
+                {stats.inProgress}
+              </Typography.Text>
             </Flex>
-          </CardContent>
+            <ClockCircleOutlined style={{ fontSize: 32, color: '#f97316' }} />
+          </Flex>
         </Card>
 
-        <Card style={{ flex: '1 1 200px' }}>
-          <CardContent style={{ padding: 16 }}>
-            <Flex align="center" justify="space-between">
-              <Flex vertical gap={4}>
-                <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
-                  Failed Tasks
-                </Typography.Text>
-                <Typography.Text style={{ fontSize: '1.75rem', fontWeight: 600, color: '#dc2626' }}>
-                  {stats.failedTasks}
-                </Typography.Text>
-              </Flex>
+        <Card style={{ flex: '1 1 200px' }} size="small">
+          <Flex align="center" justify="space-between">
+            <Flex vertical gap={4}>
+              <Typography.Text type="secondary">
+                Failed Tasks
+              </Typography.Text>
+              <Typography.Text style={{ fontSize: '1.75rem', fontWeight: 600, color: '#dc2626' }}>
+                {stats.failedTasks}
+              </Typography.Text>
             </Flex>
-          </CardContent>
+          </Flex>
         </Card>
 
-        <Card style={{ flex: '1 1 200px' }}>
-          <CardContent style={{ padding: 16 }}>
-            <Flex align="center" justify="space-between">
-              <Flex vertical gap={4}>
-                <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
-                  Overall Progress
-                </Typography.Text>
-                <Typography.Text style={{ fontSize: '1.75rem', fontWeight: 600 }}>
-                  {Math.round(overallProgress)}%
-                </Typography.Text>
-              </Flex>
-              <Trophy style={{ width: 32, height: 32, color: '#a855f7' }} />
+        <Card style={{ flex: '1 1 200px' }} size="small">
+          <Flex align="center" justify="space-between">
+            <Flex vertical gap={4}>
+              <Typography.Text type="secondary">
+                Overall Progress
+              </Typography.Text>
+              <Typography.Text style={{ fontSize: '1.75rem', fontWeight: 600 }}>
+                {Math.round(overallProgress)}%
+              </Typography.Text>
             </Flex>
-            <Progress value={overallProgress} style={{ marginTop: 8 }} />
-          </CardContent>
+            <TrophyOutlined style={{ fontSize: 32, color: '#a855f7' }} />
+          </Flex>
+          <Progress percent={overallProgress} size="small" showInfo={false} />
         </Card>
       </Flex>
 
       <Tabs
-        className="bcc-tabs bcc-tabs--pill"
+        type="card"
         activeKey={activeView}
         onChange={(key) => setActiveView(key as 'all' | 'in-progress' | 'completed')}
         items={[
@@ -258,18 +232,19 @@ export function BooksLibrary({ books, courses, onOpenBook, metrics }: BooksLibra
         ]}
       />
 
-      <Flex vertical gap={24} style={{ marginTop: 24 }}>
+      <Flex vertical gap={24}>
         {filteredBooks.length === 0 ? (
           <Card>
-            <CardContent style={{ padding: 48, textAlign: 'center' }}>
-              <BookOpen style={{ width: 64, height: 64, color: 'var(--muted-foreground)', marginBottom: 16 }} />
-              <Typography.Title level={3}>No books found</Typography.Title>
-              <Typography.Text style={{ color: 'var(--muted-foreground)' }}>
-                {searchQuery
-                  ? 'No books match your search criteria.'
-                  : 'Start by uploading a PDF book to create your first course.'}
-              </Typography.Text>
-            </CardContent>
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={
+                <Typography.Text type="secondary">
+                  {searchQuery
+                    ? 'No books match your search criteria.'
+                    : 'Start by uploading a PDF book to create your first course.'}
+                </Typography.Text>
+              }
+            />
           </Card>
         ) : (
           <Flex vertical gap={24}>
@@ -281,12 +256,9 @@ export function BooksLibrary({ books, courses, onOpenBook, metrics }: BooksLibra
                 return (
                   <Card
                     key={book.id}
-                    style={{ cursor: 'pointer', transition: 'background-color 0.2s ease' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--card)')}
+                    hoverable
                     onClick={() => onOpenBook(book)}
-                  >
-                    <CardHeader>
+                    title={
                       <Flex align="center" justify="space-between" gap={12}>
                         <Flex align="center" gap={12}>
                           <Flex
@@ -299,87 +271,55 @@ export function BooksLibrary({ books, courses, onOpenBook, metrics }: BooksLibra
                               backgroundColor: '#eef2ff',
                             }}
                           >
-                            <BookOpen style={{ width: 20, height: 20, color: '#4f46e5' }} />
+                            <ReadOutlined style={{ fontSize: 20, color: '#4f46e5' }} />
                           </Flex>
                           <Flex vertical>
-                            <CardTitle style={{ fontSize: '1.1rem' }}>{book.title}</CardTitle>
-                            <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
+                            <Typography.Text strong style={{ fontSize: '1.1rem' }}>{book.title}</Typography.Text>
+                            <Typography.Text type="secondary" style={{ fontSize: '0.875rem' }}>
                               {statsForBook.totalCourses} generated course{statsForBook.totalCourses !== 1 ? 's' : ''} • Uploaded{' '}
                               {new Date(book.uploadDate).toLocaleDateString()}
                             </Typography.Text>
                           </Flex>
                         </Flex>
                         <Flex align="center" gap={12}>
-                          <Badge
-                            variant={statsForBook.isCompleted ? 'default' : statsForBook.isInProgress ? 'secondary' : 'outline'}
-                            style={{ fontSize: '0.75rem' }}
+                          <Tag
+                            color={statsForBook.isCompleted ? 'success' : statsForBook.isInProgress ? 'processing' : 'default'}
                           >
                             {statsForBook.isCompleted ? 'Completed' : statsForBook.isInProgress ? 'In Progress' : 'Not Started'}
-                          </Badge>
-                          <ChevronRight style={{ width: 20, height: 20, color: 'var(--muted-foreground)' }} />
+                          </Tag>
+                          <RightOutlined style={{ fontSize: 20, color: 'rgba(0,0,0,0.25)' }} />
                         </Flex>
                       </Flex>
-                    </CardHeader>
-                    <CardContent>
-                      <Flex align="center" gap={16} style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)', marginBottom: 8 }}>
-                        <Flex align="center" gap={6}>
-                          <CheckCircle style={{ width: 16, height: 16 }} />
-                          <span>
-                            {statsForBook.completedTasks}/{statsForBook.totalTasks} tasks
-                          </span>
-                        </Flex>
-                        {statsForBook.failedTasks > 0 && (
-                          <Flex align="center" gap={6} style={{ color: '#dc2626' }}>
-                            <span>• {statsForBook.failedTasks} failed</span>
-                          </Flex>
-                        )}
+                    }
+                  >
+                    <Flex align="center" gap={16} style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)', marginBottom: 8 }}>
+                      <Flex align="center" gap={6}>
+                        <CheckCircleOutlined style={{ fontSize: 16 }} />
+                        <Typography.Text type="secondary">
+                          {statsForBook.completedTasks}/{statsForBook.totalTasks} tasks
+                        </Typography.Text>
                       </Flex>
-                      <Progress value={progress} style={{ height: 8 }} showInfo />
-                    </CardContent>
+                      {statsForBook.failedTasks > 0 && (
+                        <Flex align="center" gap={6} style={{ color: '#dc2626' }}>
+                          <Typography.Text type="danger">• {statsForBook.failedTasks} failed</Typography.Text>
+                        </Flex>
+                      )}
+                    </Flex>
+                    <Progress percent={Math.round(progress)} size="small" status={statsForBook.failedTasks > 0 ? 'exception' : 'active'} />
                   </Card>
                 );
               })}
 
             {totalPages > 1 && (
-              <Pagination style={{ marginTop: 16 }}>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      href="#"
-                      size="default"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setPage((p) => Math.max(1, p - 1));
-                      }}
-                    />
-                  </PaginationItem>
-                  {Array.from({ length: totalPages }).map((_, idx) => (
-                    <PaginationItem key={idx}>
-                      <PaginationLink
-                        href="#"
-                        size="default"
-                        isActive={page === idx + 1}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setPage(idx + 1);
-                        }}
-                      >
-                        {idx + 1}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ))}
-                  <PaginationItem>
-                    <PaginationNext
-                      href="#"
-                      size="default"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setPage((p) => Math.min(totalPages, p + 1));
-                      }}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
+              <Flex justify="center" style={{ marginTop: 16 }}>
+                <Pagination
+                  current={page}
+                  total={filteredBooks.length}
+                  pageSize={BOOKS_PER_PAGE}
+                  onChange={(p) => setPage(p)}
+                  showSizeChanger={false}
+                />
+              </Flex>
             )}
           </Flex>
         )}

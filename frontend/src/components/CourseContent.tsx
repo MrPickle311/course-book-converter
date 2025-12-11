@@ -1,12 +1,6 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { Progress } from './ui/progress';
-import { Checkbox } from './ui/checkbox';
-import { Label } from './ui/label';
-import { Textarea } from './ui/textarea';
-import { CheckCircle, Circle, XCircle, BookOpen, CheckSquare, Award, Loader2 } from 'lucide-react';
+import { Card, Button, Progress, Checkbox, Input, Alert, Flex, Space, Tabs, Typography, Tag } from 'antd';
+import { CheckCircleOutlined, CloseCircleOutlined, BookOutlined, CheckSquareOutlined, TrophyOutlined, LoadingOutlined, EditOutlined, FilePdfOutlined, BorderOutlined } from '@ant-design/icons';
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import ReactMarkdown from 'react-markdown'
@@ -36,7 +30,7 @@ interface Task {
 import '../styles/mdx.css';
 import { DefaultService } from '@/openapi';
 import React from 'react';
-import { Alert, Flex, Space, Tabs, Typography } from 'antd';
+import { MarkdownEditModal } from './MarkdownEditModal';
 
 export interface Course {
   id: string;
@@ -68,11 +62,12 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
   const [activeTab, setActiveTab] = useState('notes');
   const [taskAnswers, setTaskAnswers] = useState<Record<string, string | string[] | File | null>>({});
   const [submitting, setSubmitting] = useState<Record<string, boolean>>({});
+  const [editOpen, setEditOpen] = useState(false);
   const openFilePicker = (taskId: string) => {
     const input = document.getElementById(`file-input-${taskId}`) as HTMLInputElement | null;
     if (input) {
-        input.click();
-      }
+      input.click();
+    }
   };
 
   const completedTasks = course.tasks.filter(task => task.completed).length;
@@ -103,10 +98,10 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
 
   const isTaskCorrect = (task: Task): boolean | null => {
     if (!task.completed) {
-        return null;
+      return null;
     }
     if (task.type === 'multiple-select') {
-        return task.evaluation?.isCorrect === true;
+      return task.evaluation?.isCorrect === true;
     }
     if (task.type === 'multiple-choice') {
       if (Array.isArray(task.correctAnswerIds) && task.correctAnswerIds.length > 0) {
@@ -122,18 +117,18 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
 
   const isTaskFailed = (task: Task): boolean => {
     if (!task.completed) {
-        return false;
+      return false;
     }
     return !isTaskCorrect(task);
   };
 
   const computeCourseCompleted = (tasks: Task[]): boolean => {
     if (tasks.length === 0) {
-        return false;
+      return false;
     }
     const allCompleted = tasks.every(t => t.completed);
     if (!allCompleted) {
-        return false;
+      return false;
     }
     return !tasks.some(t => isTaskFailed(t));
   };
@@ -209,7 +204,7 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
     if (task.type === 'multiple-select') {
       const list = (answer as string[] | undefined) || [];
       if (list.length === 0) {
-          return;
+        return;
       }
       setSubmitting(prev => ({ ...prev, [task.id]: true }));
       (async () => {
@@ -246,7 +241,7 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
     if (task.type === 'upload-pdf') {
       const file = answer as File | undefined;
       if (!file) {
-          return;
+        return;
       }
       setSubmitting(prev => ({ ...prev, [task.id]: true }));
       (async () => {
@@ -279,7 +274,7 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
 
     const userAnswer = (answer as string | undefined) || '';
     if (!userAnswer) {
-        return;
+      return;
     }
 
     if (task.type === 'short-answer') {
@@ -298,6 +293,7 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
             userAnswer,
             evaluation: mapEvaluation(resp.evaluation),
             completed: true,
+            userFileName: undefined,
           } as Task;
           const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
           const updatedCourse = { ...course, tasks: updatedTasks, completed: computeCourseCompleted(updatedTasks) };
@@ -327,6 +323,7 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
             userAnswer,
             evaluation: mapEvaluation(resp.evaluation),
             completed: true,
+            userFileName: undefined,
           } as Task;
           const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
           const updatedCourse = {
@@ -361,55 +358,54 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
     <Flex vertical gap={24} style={{ maxWidth: '72rem', margin: '0 auto' }}>
       {/* Course Header */}
       <Card>
-        <CardHeader>
-          <Flex justify="space-between" align="flex-start">
-            <Flex vertical gap={8}>
-              <Flex
-                align="center"
-                gap={8}
-                style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}
-              >
-                <BookOpen style={{ width: 16, height: 16 }} />
-                <span>{course.bookTitle}</span>
-              </Flex>
-              <CardTitle>{course.chapterTitle}</CardTitle>
-              <Flex align="center" gap={16}>
-                <Badge variant={course.completed ? "default" : "secondary"}>
-                  {course.completed ? "Completed" : "In Progress"}
-                </Badge>
-                <span style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
-                  Created: {new Date(course.createdDate).toLocaleDateString()}
-                </span>
-              </Flex>
+        <Flex justify="space-between" align="flex-start">
+          <Flex vertical gap={8}>
+            <Flex
+              align="center"
+              gap={8}
+              style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}
+            >
+              <BookOutlined style={{ width: 16, height: 16 }} />
+              <span>{course.bookTitle}</span>
             </Flex>
+            <Typography.Title level={3} style={{ margin: 0 }}>{course.chapterTitle}</Typography.Title>
+            <Flex align="center" gap={16}>
+              <Tag color={course.completed ? "success" : "processing"}>
+                {course.completed ? "Completed" : "In Progress"}
+              </Tag>
+              <span style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
+                Created: {new Date(course.createdDate).toLocaleDateString()}
+              </span>
+            </Flex>
+          </Flex>
+          <Flex align="center" gap={8}>
             {course.completed && (
               <Flex align="center" gap={8} style={{ color: '#16a34a' }}>
-                <Award style={{ width: 20, height: 20 }} />
+                <TrophyOutlined style={{ fontSize: 20 }} />
                 <span style={{ fontSize: '0.875rem' }}>Course Completed!</span>
               </Flex>
             )}
+            <Button icon={<EditOutlined />} onClick={() => setEditOpen(true)}>Edit</Button>
           </Flex>
-        </CardHeader>
+        </Flex>
       </Card>
 
       {/* Progress Overview */}
       <Card>
-        <CardContent style={{ padding: 24 }}>
-          <Flex vertical gap={16}>
-            <Flex align="center" justify="space-between">
-              <h3>Progress Overview</h3>
-              <span style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
-                {completedTasks} of {course.tasks.length} tasks completed
-              </span>
-            </Flex>
-            <Progress value={progressPercentage} />
+        <Flex vertical gap={16}>
+          <Flex align="center" justify="space-between">
+            <h3>Progress Overview</h3>
+            <span style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
+              {completedTasks} of {course.tasks.length} tasks completed
+            </span>
           </Flex>
-        </CardContent>
+          <Progress percent={Math.round(progressPercentage)} />
+        </Flex>
       </Card>
 
       {/* Main Content */}
       <Tabs
-        className="bcc-tabs bcc-tabs--grid"
+        type="card"
         activeKey={activeTab}
         onChange={(key) => setActiveTab(key)}
         items={[
@@ -417,16 +413,16 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
             key: "notes",
             label: (
               <Flex align="center" gap={8}>
-            <BookOpen style={{ width: 16, height: 16 }} />
-            Study Notes
+                <BookOutlined style={{ width: 16, height: 16 }} />
+                Study Notes
               </Flex>
             ),
             children: (
               <Flex vertical style={{ marginTop: 24 }}>
-          <Card>
-            <CardContent className="prose prose-slate max-w-none">
+                <Card>
+                  <div className="prose prose-slate max-w-none">
                     <Flex vertical gap={24}>{renderBlocks(course.notes)}</Flex>
-                  </CardContent>
+                  </div>
                 </Card>
               </Flex>
             ),
@@ -435,341 +431,343 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
             key: "tasks",
             label: (
               <Flex align="center" gap={8}>
-                <CheckSquare style={{ width: 16, height: 16 }} />
+                <CheckSquareOutlined style={{ width: 16, height: 16 }} />
                 Practice Tasks ({completedTasks}/{course.tasks.length})
               </Flex>
             ),
             children: (
               <Flex vertical gap={24} style={{ marginTop: 24 }}>
-          {course.tasks.map((task, index) => (
-            <Card key={task.id}>
-              <CardHeader>
-                <Flex align="center" justify="space-between">
-                  <Flex align="stretch" gap={12}>
-                    <Flex vertical justify="center">
-                      <Flex
-                        align="center"
-                        justify="center"
-                        style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: 9999,
-                          fontSize: '0.875rem',
-                          fontWeight: 500,
-                          backgroundColor: '#e5e7eb',
-                          color: '#4b5563',
-                        }}
-                      >
-                      {index + 1}
-                      </Flex>
-                    </Flex>
-                    <Flex vertical gap={4} justify="center">
-                      <CardTitle style={{ fontSize: '1rem', fontWeight: 500 }}>{task.question}</CardTitle>
-                    </Flex>
-                  </Flex>
-                  {submitting[task.id] ? (
-                    <Loader2
-                      className="animate-spin"
-                      style={{ width: 20, height: 20, color: 'var(--muted-foreground)' }}
-                    />
-                  ) : task.completed ? (
-                    isTaskCorrect(task) ? (
-                      <CheckCircle style={{ width: 20, height: 20, color: '#16a34a' }} />
-                    ) : (
-                      <XCircle style={{ width: 20, height: 20, color: '#dc2626' }} />
-                    )
-                  ) : (
-                    <Circle style={{ width: 20, height: 20, color: 'var(--muted-foreground)' }} />
-                  )}
-                </Flex>
-              </CardHeader>
-              <CardContent>
-                <Flex vertical gap={24} >
-                {task.type === 'multiple-choice' && task.options && (
-                  <Flex vertical gap={16}>
-                    <Flex vertical gap={8}>
-                      {task.options.map((option, optionIndex) => {
-                        const isCompleted = task.completed;
-                        const current = isCompleted ? (task.userAnswer || '') : (((taskAnswers[task.id] as string) || ''));
-                        const isSelected = current === option.id;
-                        const isCorrectOption = option.id === task.correctAnswerId;
-                        let labelClass = '';
-                        if (isCompleted) {
-                          const isOverallCorrect = task.userAnswer === task.correctAnswerId;
-                          if (isOverallCorrect) {
-                            labelClass = isCorrectOption ? 'text-green-600 font-medium' : '';
-                          } else {
-                            labelClass = isCorrectOption ? 'text-green-600 font-medium' : (isSelected ? 'text-red-600 font-medium' : '');
-                          }
-                        }
-                        return (
-                          <Space key={optionIndex} align="center">
-                            <Checkbox
-                              id={`${task.id}-sc-${optionIndex}`}
-                              checked={isSelected}
-                              onCheckedChange={(checked: boolean | 'indeterminate') => {
-                                if (task.completed) {
-                                    return;
-                                }
-                                if (checked === true) {
-                                    handleTaskAnswer(task.id, option.id);
-                                }
+                {course.tasks.map((task, index) => (
+                  <Card key={task.id}
+                    title={
+                      <Flex align="center" justify="space-between">
+                        <Flex align="stretch" gap={12}>
+                          <Flex vertical justify="center">
+                            <Flex
+                              align="center"
+                              justify="center"
+                              style={{
+                                width: 32,
+                                height: 32,
+                                borderRadius: 9999,
+                                fontSize: '0.875rem',
+                                fontWeight: 500,
+                                backgroundColor: '#e5e7eb',
+                                color: '#4b5563',
                               }}
-                              disabled={task.completed}
-                            />
-                            <Label htmlFor={`${task.id}-sc-${optionIndex}`} className={labelClass}>
-                              {option.label}
-                            </Label>
-                          </Space>
-                        );
-                      })}
-                    </Flex>
-                    {task.completed && (
-                      <Alert
-                        type={task.userAnswer === task.correctAnswerId ? 'success' : 'error'}
-                        message={task.userAnswer === task.correctAnswerId ? 'Correct' : 'Incorrect'}
-                        showIcon
-                        style={{ borderRadius: 8 }}
-                      />
-                    )}
-                    {!isTaskCorrect(task) && task.completed && (
-                      <Flex gap={8} style={{ marginTop: 8 }}>
-                        <Button variant="outline" size="sm" onClick={() => handleRetakeTask(task)}>Retake</Button>
-                      </Flex>
-                    )}
-                  </Flex>
-                )}
-
-                {task.type === 'multiple-select' && task.options && (
-                  <Flex vertical gap={16}>
-                    <Flex vertical gap={8}>
-                      {task.options.map((option, optionIndex) => {
-                        const isCompleted = task.completed;
-                        const current = isCompleted ? (task.userAnswers || []) : (((taskAnswers[task.id] as string[]) || []));
-                        const isSelected = current.includes(option.id);
-                        const isCorrectOption = task.correctAnswerIds?.includes(option.id);
-                        let labelClass = '';
-                        if (isCompleted) {
-                          const expected = task.correctAnswerIds || [];
-                          const isOverallCorrect = expected.every(correct => (task.userAnswers || []).includes(correct)) && expected.length === (task.userAnswers || []).length;
-                          if (isOverallCorrect) {
-                            labelClass = isCorrectOption ? 'text-green-600 font-medium' : '';
-                          } else {
-                            labelClass = isCorrectOption ? 'text-green-600 font-medium' : (isSelected ? 'text-red-600 font-medium' : '');
-                          }
-                        }
-                        return (
-                          <Space key={optionIndex} align="center">
-                            <Checkbox
-                              id={`${task.id}-ms-${optionIndex}`}
-                              checked={isSelected}
-                              onCheckedChange={() => toggleMultiSelectOption(task.id, option.id)}
-                              disabled={task.completed}
-                            />
-                            <Label htmlFor={`${task.id}-ms-${optionIndex}`} className={labelClass}>
-                              {option.label}
-                            </Label>
-                          </Space>
-                        );
-                      })}
-                    </Flex>
-                    {task.completed && (
-                      <Alert
-                        type={task.evaluation?.isCorrect ? 'success' : 'error'}
-                        message={task.evaluation?.isCorrect ? 'Correct' : 'Incorrect'}
-                        showIcon
-                        style={{ borderRadius: 8 }}
-                      />
-                    )}
-                    {!isTaskCorrect(task) && task.completed && (
-                      <Flex gap={8} style={{ marginTop: 8 }}>
-                        <Button variant="outline" size="sm" onClick={() => handleRetakeTask(task)}>Retake</Button>
-                      </Flex>
-                    )}
-                  </Flex>
-                )}
-
-                {(task.type === 'short-answer' || task.type === 'code') && (
-                  <Flex vertical gap={16}>
-                    {task.completed && (
-                      <Typography.Text style={{ fontSize: '0.875rem', fontWeight: 500 }}>
-                        Your answer
-                      </Typography.Text>
-                    )}
-                    <Textarea
-                      placeholder={'Enter your answer...'}
-                      value={(task.completed ? (task.userAnswer || '') : ((taskAnswers[task.id] as string) || ''))}
-                      onChange={(e) => handleTaskAnswer(task.id, e.target.value)}
-                      disabled={task.completed}
-                      rows={4}
-                    />
-                    {submitting[task.id] && (
-                      <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
-                        Evaluating answer...
-                      </Typography.Text>
-                    )}
-                    {task.evaluation && (
-                      <>
-                          {typeof task.evaluation.score === 'number' && (
-                          <Alert
-                            type={task.evaluation.isCorrect ? 'success' : 'error'}
-                            message={`Score: ${Math.round(task.evaluation.score * 100)}%`}
-                            showIcon
-                            style={{ borderRadius: 8 }}
-                          />
-                          )}
-                        {!task.evaluation.isCorrect && (
-                          <Flex
-                            vertical
-                            gap={8}
-                            style={{ padding: 12, border: '1px solid var(--border)', borderRadius: 8 }}
-                          >
-                            <Typography.Text style={{ fontSize: '0.875rem', fontWeight: 500 }}>
-                              Feedback:
-                            </Typography.Text>
-                            <Flex vertical gap={4} style={{ fontSize: '0.875rem', marginTop: 8 }}>
-                              {task.evaluation.mistakes.map((m, idx) => (
-                                <Flex key={idx} align="flex-start" gap={8}>
-                                  <span>•</span>
-                                  <span>{m}</span>
-                                </Flex>
-                              ))}
+                            >
+                              {index + 1}
                             </Flex>
                           </Flex>
-                        )}
-                        {!task.evaluation.isCorrect && (
-                          <Flex gap={8} style={{ marginTop: 8 }}>
-                            <Button variant="outline" size="sm" onClick={() => handleRetakeTask(task)}>Retake</Button>
+                          <Flex vertical gap={4} justify="center">
+                            <Typography.Text strong style={{ fontSize: '1rem' }}>{task.question}</Typography.Text>
                           </Flex>
+                        </Flex>
+                        {submitting[task.id] ? (
+                          <LoadingOutlined style={{ fontSize: 20, color: 'var(--muted-foreground)' }} spin />
+                        ) : task.completed ? (
+                          isTaskCorrect(task) ? (
+                            <CheckCircleOutlined style={{ fontSize: 20, color: '#16a34a' }} />
+                          ) : (
+                            <CloseCircleOutlined style={{ fontSize: 20, color: '#dc2626' }} />
+                          )
+                        ) : (
+                          <BorderOutlined style={{ fontSize: 20, color: 'var(--muted-foreground)' }} />
                         )}
-                      </>
-                    )}
-                  </Flex>
-                )}
-
-                {task.type === 'upload-pdf' && (
-                  <Flex vertical gap={16}>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openFilePicker(task.id)}
-                      disabled={task.completed}
-                      style={{ alignSelf: 'flex-start' }}
-                    >
-                      Upload PDF
-                    </Button>
-                    <input
-                      id={`file-input-${task.id}`}
-                      style={{ display: 'none' }}
-                      type="file"
-                      accept="application/pdf"
-                      onChange={(e) => handleTaskAnswer(task.id, e.target.files?.[0] || null)}
-                      disabled={task.completed}
-                    />
-                    {!task.completed && (
-                      <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
-                        {((taskAnswers[task.id] as File | undefined)?.name
-                          ? <>Selected: {(taskAnswers[task.id] as File).name}</>
-                          : <>No file selected</>)}
-                      </Typography.Text>
-                    )}
-                    {submitting[task.id] && (
-                      <Typography.Text style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
-                        Validating PDF...
-                      </Typography.Text>
-                    )}
-                    {task.completed && task.userFileName && (
-                      <Flex style={infoToneStyles}>
-                        <p style={{ fontSize: '0.875rem', fontWeight: 500, margin: 0 }}>
-                          <strong>Uploaded file:</strong> {task.userFileName}
-                        </p>
                       </Flex>
-                    )}
-                    {task.evaluation && (
-                      <>
-                          {typeof task.evaluation.score === 'number' && (
-                          <Alert
-                            type={task.evaluation.isCorrect ? 'success' : 'error'}
-                            message={`Score: ${Math.round(task.evaluation.score * 100)}%`}
-                            showIcon
-                            style={{ borderRadius: 8 }}
-                          />
-                          )}
-                        {!task.evaluation.isCorrect && (
-                          <Flex
-                            vertical
-                            gap={8}
-                            style={{ padding: 12, border: '1px solid var(--border)', borderRadius: 8 }}
-                          >
-                            <Typography.Text style={{ fontSize: '0.875rem', fontWeight: 500 }}>
-                              Feedback:
-                            </Typography.Text>
-                            <Flex vertical gap={4} style={{ fontSize: '0.875rem', marginTop: 8 }}>
-                              {task.evaluation.mistakes.map((m, idx) => (
-                                <Flex key={idx} align="flex-start" gap={8}>
-                                  <span>•</span>
-                                  <span>{m}</span>
-                                </Flex>
-                              ))}
-                            </Flex>
-                          </Flex>
-                        )}
-                        {!task.evaluation.isCorrect && (
-                          <Flex gap={8} style={{ marginTop: 8 }}>
-                            <Button variant="outline" size="sm" onClick={() => handleRetakeTask(task)}>Retake</Button>
-                          </Flex>
-                        )}
-                      </>
-                    )}
-                  </Flex>
-                )}
-
-                {!task.completed && (
-                  <Button
-                    onClick={() => handleSubmitTask(task)}
-                    variant="outline"
-                    size="sm"
-                    style={{ alignSelf: 'flex-start' }}
-                    disabled={
-                      (task.type === 'multiple-choice' || task.type === 'short-answer' || task.type === 'code')
-                        ? !taskAnswers[task.id]
-                        : task.type === 'multiple-select'
-                          ? ((taskAnswers[task.id] as string[] | undefined)?.length || 0) === 0
-                          : task.type === 'upload-pdf'
-                            ? !taskAnswers[task.id]
-                            : true
                     }
                   >
-                    {submitting[task.id] ? 'Submitting...' : 'Submit Answer'}
-                  </Button>
-                )}
-                </Flex>
-              </CardContent>
-            </Card>
-          ))}
+                    <Flex vertical gap={24} >
+                      {task.type === 'multiple-choice' && task.options && (
+                        <Flex vertical gap={16}>
+                          <Flex vertical gap={8}>
+                            {task.options.map((option, optionIndex) => {
+                              const isCompleted = task.completed;
+                              const current = isCompleted ? (task.userAnswer || '') : (((taskAnswers[task.id] as string) || ''));
+                              const isSelected = current === option.id;
+                              const isCorrectOption = option.id === task.correctAnswerId;
+                              // For Antd Checkbox inside Flex, we can just use styles
+                              let colorStyle = {};
+                              if (isCompleted) {
+                                const isOverallCorrect = task.userAnswer === task.correctAnswerId;
+                                if (isOverallCorrect) {
+                                  if (isCorrectOption) colorStyle = { color: '#16a34a', fontWeight: 500 };
+                                } else {
+                                  if (isCorrectOption) colorStyle = { color: '#16a34a', fontWeight: 500 };
+                                  else if (isSelected) colorStyle = { color: '#dc2626', fontWeight: 500 };
+                                }
+                              }
 
-          {course.tasks.length === 0 && (
-            <Card>
-              <CardContent style={{ padding: 32, textAlign: 'center' }}>
-                <CheckSquare
-                  style={{
-                    width: 48,
-                    height: 48,
-                    margin: '0 auto 16px',
-                    color: 'var(--muted-foreground)',
-                  }}
-                />
-                <h3>No Tasks Available</h3>
-                <p style={{ color: 'var(--muted-foreground)' }}>
-                  Tasks are being generated for this chapter. Please check back later.
-                </p>
-              </CardContent>
-            </Card>
-          )}
+                              return (
+                                <Space key={optionIndex} align="center">
+                                  <Checkbox
+                                    id={`${task.id}-sc-${optionIndex}`}
+                                    checked={isSelected}
+                                    onChange={(e) => {
+                                      if (task.completed) return;
+                                      if (e.target.checked) handleTaskAnswer(task.id, option.id);
+                                    }}
+                                    disabled={task.completed}
+                                  />
+                                  <label htmlFor={`${task.id}-sc-${optionIndex}`} style={{ cursor: task.completed ? 'default' : 'pointer', ...colorStyle }}>
+                                    {option.label}
+                                  </label>
+                                </Space>
+                              );
+                            })}
+                          </Flex>
+                          {task.completed && (
+                            <Alert
+                              type={task.userAnswer === task.correctAnswerId ? 'success' : 'error'}
+                              message={task.userAnswer === task.correctAnswerId ? 'Correct' : 'Incorrect'}
+                              showIcon
+                            />
+                          )}
+                          {!isTaskCorrect(task) && task.completed && (
+                            <Flex gap={8} style={{ marginTop: 8 }}>
+                              <Button size="small" onClick={() => handleRetakeTask(task)}>Retake</Button>
+                            </Flex>
+                          )}
+                        </Flex>
+                      )}
+
+                      {task.type === 'multiple-select' && task.options && (
+                        <Flex vertical gap={16}>
+                          <Flex vertical gap={8}>
+                            {task.options.map((option, optionIndex) => {
+                              const isCompleted = task.completed;
+                              const current = isCompleted ? (task.userAnswers || []) : (((taskAnswers[task.id] as string[]) || []));
+                              const isSelected = current.includes(option.id);
+                              const isCorrectOption = task.correctAnswerIds?.includes(option.id);
+                              let colorStyle = {};
+                              if (isCompleted) {
+                                const expected = task.correctAnswerIds || [];
+                                const isOverallCorrect = expected.every(correct => (task.userAnswers || []).includes(correct)) && expected.length === (task.userAnswers || []).length;
+                                if (isOverallCorrect) {
+                                  if (isCorrectOption) colorStyle = { color: '#16a34a', fontWeight: 500 };
+                                } else {
+                                  if (isCorrectOption) colorStyle = { color: '#16a34a', fontWeight: 500 };
+                                  else if (isSelected) colorStyle = { color: '#dc2626', fontWeight: 500 };
+                                }
+                              }
+
+                              return (
+                                <Space key={optionIndex} align="center">
+                                  <Checkbox
+                                    id={`${task.id}-ms-${optionIndex}`}
+                                    checked={isSelected}
+                                    onChange={() => toggleMultiSelectOption(task.id, option.id)}
+                                    disabled={task.completed}
+                                  />
+                                  <label htmlFor={`${task.id}-ms-${optionIndex}`} style={{ cursor: task.completed ? 'default' : 'pointer', ...colorStyle }}>
+                                    {option.label}
+                                  </label>
+                                </Space>
+                              );
+                            })}
+                          </Flex>
+                          {task.completed && (
+                            <Alert
+                              type={task.evaluation?.isCorrect ? 'success' : 'error'}
+                              message={task.evaluation?.isCorrect ? 'Correct' : 'Incorrect'}
+                              showIcon
+                            />
+                          )}
+                          {!isTaskCorrect(task) && task.completed && (
+                            <Flex gap={8} style={{ marginTop: 8 }}>
+                              <Button size="small" onClick={() => handleRetakeTask(task)}>Retake</Button>
+                            </Flex>
+                          )}
+                        </Flex>
+                      )}
+
+                      {(task.type === 'short-answer' || task.type === 'code') && (
+                        <Flex vertical gap={16}>
+                          {task.completed && (
+                            <Typography.Text strong>
+                              Your answer
+                            </Typography.Text>
+                          )}
+                          <Input.TextArea
+                            placeholder={'Enter your answer...'}
+                            value={(task.completed ? (task.userAnswer || '') : ((taskAnswers[task.id] as string) || ''))}
+                            onChange={(e) => handleTaskAnswer(task.id, e.target.value)}
+                            disabled={task.completed}
+                            rows={4}
+                          />
+                          {submitting[task.id] && (
+                            <Typography.Text type="secondary">
+                              Evaluating answer...
+                            </Typography.Text>
+                          )}
+                          {task.evaluation && (
+                            <>
+                              {typeof task.evaluation.score === 'number' && (
+                                <Alert
+                                  type={task.evaluation.isCorrect ? 'success' : 'error'}
+                                  message={`Score: ${Math.round(task.evaluation.score * 100)}%`}
+                                  showIcon
+                                />
+                              )}
+                              {!task.evaluation.isCorrect && (
+                                <Flex
+                                  vertical
+                                  gap={8}
+                                  style={{ padding: 12, border: '1px solid var(--border)', borderRadius: 8 }}
+                                >
+                                  <Typography.Text strong>
+                                    Feedback:
+                                  </Typography.Text>
+                                  <Flex vertical gap={4} style={{ fontSize: '0.875rem', marginTop: 8 }}>
+                                    {task.evaluation.mistakes.map((m, idx) => (
+                                      <Flex key={idx} align="flex-start" gap={8}>
+                                        <span>•</span>
+                                        <span>{m}</span>
+                                      </Flex>
+                                    ))}
+                                  </Flex>
+                                </Flex>
+                              )}
+                              {!task.evaluation.isCorrect && (
+                                <Flex gap={8} style={{ marginTop: 8 }}>
+                                  <Button size="small" onClick={() => handleRetakeTask(task)}>Retake</Button>
+                                </Flex>
+                              )}
+                            </>
+                          )}
+                        </Flex>
+                      )}
+
+                      {task.type === 'upload-pdf' && (
+                        <Flex vertical gap={16}>
+                          <Button
+                            icon={<FilePdfOutlined />}
+                            onClick={() => openFilePicker(task.id)}
+                            disabled={task.completed}
+                            style={{ alignSelf: 'flex-start' }}
+                          >
+                            Upload PDF
+                          </Button>
+                          <input
+                            id={`file-input-${task.id}`}
+                            style={{ display: 'none' }}
+                            type="file"
+                            accept="application/pdf"
+                            onChange={(e) => handleTaskAnswer(task.id, e.target.files?.[0] || null)}
+                            disabled={task.completed}
+                          />
+                          {!task.completed && (
+                            <Typography.Text type="secondary">
+                              {((taskAnswers[task.id] as File | undefined)?.name
+                                ? <>Selected: {(taskAnswers[task.id] as File).name}</>
+                                : <>No file selected</>)}
+                            </Typography.Text>
+                          )}
+                          {submitting[task.id] && (
+                            <Typography.Text type="secondary">
+                              Validating PDF...
+                            </Typography.Text>
+                          )}
+                          {task.completed && task.userFileName && (
+                            <Flex style={infoToneStyles}>
+                              <p style={{ fontSize: '0.875rem', fontWeight: 500, margin: 0 }}>
+                                <strong>Uploaded file:</strong> {task.userFileName}
+                              </p>
+                            </Flex>
+                          )}
+                          {task.evaluation && (
+                            <>
+                              {typeof task.evaluation.score === 'number' && (
+                                <Alert
+                                  type={task.evaluation.isCorrect ? 'success' : 'error'}
+                                  message={`Score: ${Math.round(task.evaluation.score * 100)}%`}
+                                  showIcon
+                                />
+                              )}
+                              {!task.evaluation.isCorrect && (
+                                <Flex
+                                  vertical
+                                  gap={8}
+                                  style={{ padding: 12, border: '1px solid var(--border)', borderRadius: 8 }}
+                                >
+                                  <Typography.Text strong>
+                                    Feedback:
+                                  </Typography.Text>
+                                  <Flex vertical gap={4} style={{ fontSize: '0.875rem', marginTop: 8 }}>
+                                    {task.evaluation.mistakes.map((m, idx) => (
+                                      <Flex key={idx} align="flex-start" gap={8}>
+                                        <span>•</span>
+                                        <span>{m}</span>
+                                      </Flex>
+                                    ))}
+                                  </Flex>
+                                </Flex>
+                              )}
+                              {!task.evaluation.isCorrect && (
+                                <Flex gap={8} style={{ marginTop: 8 }}>
+                                  <Button size="small" onClick={() => handleRetakeTask(task)}>Retake</Button>
+                                </Flex>
+                              )}
+                            </>
+                          )}
+                        </Flex>
+                      )}
+
+                      {!task.completed && (
+                        <Button
+                          onClick={() => handleSubmitTask(task)}
+                          type="primary"
+                          style={{ alignSelf: 'flex-start' }}
+                          loading={submitting[task.id]}
+                          disabled={
+                            (task.type === 'multiple-choice' || task.type === 'short-answer' || task.type === 'code')
+                              ? !taskAnswers[task.id]
+                              : task.type === 'multiple-select'
+                                ? ((taskAnswers[task.id] as string[] | undefined)?.length || 0) === 0
+                                : task.type === 'upload-pdf'
+                                  ? !taskAnswers[task.id]
+                                  : true
+                          }
+                        >
+                          {submitting[task.id] ? 'Submitting...' : 'Submit Answer'}
+                        </Button>
+                      )}
+                    </Flex>
+                  </Card>
+                ))}
+
+                {course.tasks.length === 0 && (
+                  <Card>
+                    <Flex vertical align="center" style={{ padding: 32, textAlign: 'center' }}>
+                      <CheckSquareOutlined
+                        style={{
+                          fontSize: 48,
+                          marginBottom: 16,
+                          color: 'var(--muted-foreground)',
+                        }}
+                      />
+                      <h3>No Tasks Available</h3>
+                      <p style={{ color: 'var(--muted-foreground)' }}>
+                        Tasks are being generated for this chapter. Please check back later.
+                      </p>
+                    </Flex>
+                  </Card>
+                )}
               </Flex>
             ),
           },
         ]}
+      />
+      <MarkdownEditModal
+        open={editOpen}
+        title="Edit Notes"
+        initialValue={course.notes}
+        onClose={() => setEditOpen(false)}
+        onSave={(value) => {
+          const updatedCourse = { ...course, notes: value };
+          onUpdateCourse(updatedCourse);
+          setEditOpen(false);
+        }}
       />
     </Flex>
   );
