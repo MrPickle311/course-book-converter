@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useSettings } from '../../../shared/contexts/SettingsContext';
 import type { Course } from '../../course/types';
-import type { BookDetail } from '@/openapi';
+import type { BookDetail } from '@/shared/api/openapi';
 
 interface LibraryMetricsUI {
     totalBooks: number;

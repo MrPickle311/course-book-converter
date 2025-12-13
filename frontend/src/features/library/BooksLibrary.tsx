@@ -1,7 +1,7 @@
 import { Card, Input, Progress, Pagination, Tabs, Flex, Typography, Tag, Empty, theme } from 'antd';
 import { ReadOutlined, CheckCircleOutlined, RightOutlined, SearchOutlined, TrophyOutlined, ClockCircleOutlined, BookOutlined } from '@ant-design/icons';
 import type { Course } from "../../features/course/types";
-import type { BookDetail } from "@/openapi";
+import type { BookDetail } from "@/shared/api/openapi";
 import { useLibrary } from './hooks/useLibrary';
 import { getLibraryStyles } from './styles';
 

@@ -1,6 +1,6 @@
 import { Card, Button, Progress, Tag, Typography, Flex, theme } from 'antd';
 import { CalendarOutlined, CheckCircleOutlined, RightOutlined, ReadOutlined, DeleteOutlined } from '@ant-design/icons';
-import type { BookDetail } from '@/openapi';
+import type { BookDetail } from '@/shared/api/openapi';
 import { useBookDetail, type BookDetailProps } from './hooks/useBookDetail';
 import { getBookDetailStyles } from './styles';
 

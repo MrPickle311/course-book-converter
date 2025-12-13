@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { DefaultService } from '@/openapi';
-import type { BookDetail, Chapter } from '@/openapi';
+import { DefaultService } from '@/shared/api/openapi';
+import type { BookDetail, Chapter } from '@/shared/api/openapi';
 
 export interface BookDetailProps {
     book: BookDetail;

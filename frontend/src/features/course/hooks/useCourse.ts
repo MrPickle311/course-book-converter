@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { DefaultService } from '@/openapi';
+import { DefaultService } from '@/shared/api/openapi';
 import type { Course, Task } from '../types';
 
 export function useCourse(course: Course, onUpdateCourse: (course: Course) => void) {

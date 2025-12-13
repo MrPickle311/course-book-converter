@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { DefaultService, OpenAPI, type ProcessPdfResponse, type GenerateCourseRequest, type BookDetail as ApiBookDetail, type Chapter as ApiChapter } from '@/openapi';
+import { DefaultService, OpenAPI, type ProcessPdfResponse, type GenerateCourseRequest, type BookDetail as ApiBookDetail, type Chapter as ApiChapter } from '@/shared/api/openapi';
 import { AuthProvider, useAuth } from './shared/contexts/AuthContext';
 import { ThemeProvider, useTheme } from './shared/contexts/ThemeContext';
 import { SettingsProvider } from './shared/contexts/SettingsContext';
@@ -12,7 +12,7 @@ import { BooksLibrary } from './features/library/BooksLibrary';
 import { BookDetail } from './features/book/BookDetail';
 import { ArrowLeftOutlined, ReadOutlined, LogoutOutlined } from '@ant-design/icons';
 import { ConfigProvider, Flex, Spin, Typography, Button, Layout } from 'antd';
-import { createAppTheme } from './theme/appTheme';
+import { createAppTheme } from './app/styles/appTheme';
 
 const { Header, Content } = Layout;
 
