@@ -1,5 +1,17 @@
+import { type GlobalToken } from 'antd';
+import { useMemo } from 'react';
+
+// We'll use a simple style injection if @emotion/react is not available or preferred, 
+// but since we want to use tokens, creating a <style> tag is the most portable way 
+// without adding new runtime dependencies if they don't exist.
+// Actually, let's check package.json for styled-components or emotion. 
+// Neither listed. We'll use a simple React component that renders a <style> tag.
+
+export const getMdxCss = (token: GlobalToken) => `
 .mdx-content {
   line-height: 1.7;
+  color: ${token.colorText};
+  font-family: ${token.fontFamily};
 }
 
 .mdx-content h1,
@@ -8,6 +20,8 @@
 .mdx-content h4 {
   margin-top: 1.25rem;
   margin-bottom: 0.75rem;
+  color: ${token.colorTextHeading};
+  font-weight: 600;
 }
 
 .mdx-content h1 { font-size: 1.75rem; }
@@ -27,9 +41,9 @@
 .mdx-content ol { list-style: decimal; }
 
 .mdx-content blockquote {
-  border-left: 4px solid var(--border);
+  border-left: 4px solid ${token.colorBorder};
   padding-left: 0.75rem;
-  color: var(--muted-foreground);
+  color: ${token.colorTextSecondary};
   margin: 0.75rem 0;
 }
 
@@ -41,20 +55,20 @@
 
 .mdx-content th,
 .mdx-content td {
-  border: 1px solid var(--border);
+  border: 1px solid ${token.colorBorder};
   padding: 0.5rem 0.6rem;
   text-align: left;
 }
 
-.mdx-content th { background: var(--muted); }
+.mdx-content th { background: ${token.colorFillAlter}; }
 
 .mdx-content img {
   max-width: 100%;
   height: auto;
   display: block;
   margin: 0.5rem auto;
-  border-radius: 6px;
-  border: 1px solid var(--border);
+  border-radius: ${token.borderRadius}px;
+  border: 1px solid ${token.colorBorder};
 }
 
 /* Global image sizing controlled by SettingsContext via data attribute */
@@ -72,7 +86,8 @@
 
 /* Inline code */
 .mdx-content :not(pre) > code {
-  background: var(--accent);
+  background: ${token.colorFillSecondary};
+  color: ${token.colorText};
   padding: 0.15rem 0.35rem;
   border-radius: 4px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
@@ -81,9 +96,9 @@
 
 /* Code blocks */
 .mdx-content pre {
-  background: var(--input-background);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  background: ${token.colorBgContainer};
+  border: 1px solid ${token.colorBorder};
+  border-radius: ${token.borderRadiusLG}px;
   padding: 0.9rem 1rem;
   overflow: auto;
 }
@@ -94,6 +109,11 @@
   border-radius: 0;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 0.875rem;
+  color: ${token.colorText};
 }
+`;
 
-
+export function MdxStyles({ token }: { token: GlobalToken }) {
+    const css = useMemo(() => getMdxCss(token), [token]);
+    return <style dangerouslySetInnerHTML={{ __html: css }} />;
+}

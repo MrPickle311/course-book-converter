@@ -1,11 +1,10 @@
-import React, { useDeferredValue, useEffect, useMemo, useRef, useState, startTransition } from 'react';
+import React, { useDeferredValue, useEffect, useMemo, useRef, useState, startTransition, type CSSProperties } from 'react';
 import { Modal, Row, Col, Typography, Input, Button, theme } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import type { TextAreaRef } from 'antd/es/input/TextArea';
-import '../../styles/mdx.css';
-import '../../styles/markdown-editor.css';
+import { MdxStyles } from './MdxStyles';
 
 interface MarkdownEditModalProps {
   open: boolean;
@@ -32,6 +31,57 @@ export function MarkdownEditModal({ open, title = 'Edit Markdown', initialValue,
   const [highlightEnabled, setHighlightEnabled] = useState(true);
 
   const { token } = theme.useToken();
+
+  // Styles object based on tokens
+  const styles = useMemo(() => ({
+    modalBody: {
+      height: '86vh',
+      padding: 0,
+      display: 'flex',
+      flexDirection: 'column',
+    } as CSSProperties,
+    columnLeft: {
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      borderRight: `1px solid ${token.colorBorderSecondary}`,
+      minHeight: 0,
+    } as CSSProperties,
+    columnRight: {
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: 0,
+    } as CSSProperties,
+    header: {
+      padding: '8px 12px',
+      borderBottom: `1px solid ${token.colorBorderSecondary}`,
+      background: token.colorBgContainer,
+    } as CSSProperties,
+    textArea: {
+      height: '100%',
+      width: '100%',
+      border: 'none',
+      borderRadius: 0,
+      background: token.colorBgContainer,
+      color: token.colorText,
+      padding: 12,
+      fontFamily:
+        'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+      fontSize: '0.95rem',
+      lineHeight: 1.5,
+      tabSize: 2,
+      overflow: 'auto',
+      resize: 'none',
+    } as CSSProperties,
+    previewContainer: {
+      flex: 1,
+      overflow: 'auto',
+      minHeight: 0,
+      padding: 12,
+      scrollbarWidth: 'none', // FireFox
+    } as CSSProperties,
+  }), [token]);
 
   // Hoist plugin arrays to avoid re-creating them on every render
   const remarkPlugins = useMemo(() => [remarkGfm], []);
@@ -97,7 +147,7 @@ export function MarkdownEditModal({ open, title = 'Edit Markdown', initialValue,
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
       if (typingTimerRef.current) window.clearTimeout(typingTimerRef.current);
       if (rafPreviewRef.current) cancelAnimationFrame(rafPreviewRef.current);
-    };
+    }
   }, [open]);
 
   // Helper to access the underlying HTMLTextAreaElement from AntD TextArea
@@ -168,84 +218,74 @@ export function MarkdownEditModal({ open, title = 'Edit Markdown', initialValue,
   if (!open) return null;
 
   return (
-    <Modal
-      open={open}
-      title={title}
-      onCancel={onClose}
-      width="96vw"
-      style={{ top: 8 }}
-      styles={{ body: { height: '86vh', padding: 0 } }}
-      maskClosable={false}
-      footer={[
-        <Button key="cancel" onClick={onClose}>
-          Cancel
-        </Button>,
-        <Button key="save" type="primary" onClick={() => onSave(value)}>
-          Save
-        </Button>,
-      ]}
-    >
-      <Row gutter={0} style={{ height: '100%' }}>
-        <Col span={12} style={{ height: '100%', display: 'flex', flexDirection: 'column', borderRight: `1px solid ${token.colorBorderSecondary}`, minHeight: 0 }}>
-          <div style={{ padding: '8px 12px', borderBottom: `1px solid ${token.colorBorderSecondary}`, background: token.colorBgContainer }}>
-            <Typography.Text type="secondary" style={{ fontSize: '0.85rem' }}>Markdown</Typography.Text>
-          </div>
-          <div style={{ flex: 1, minHeight: 0 }}>
-            <Input.TextArea
-              ref={textareaRef}
-              value={value}
-              onChange={(e) => {
-                const next = e.target.value;
-                setValue(next); // instant typing
-                // disable highlighting while actively typing
-                setHighlightEnabled(false);
-                schedulePreviewUpdate(next, 120);
-                if (typingTimerRef.current) window.clearTimeout(typingTimerRef.current);
-                typingTimerRef.current = window.setTimeout(() => setHighlightEnabled(true), 220);
-              }}
-              onScroll={handleLeftScroll}
-              spellCheck={false}
-              autoSize={false}
-              style={{
-                height: '100%',
-                width: '100%',
-                border: 'none',
-                borderRadius: 0,
-                background: token.colorBgContainer,
-                color: token.colorText,
-                padding: 12,
-                fontFamily:
-                  'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                fontSize: '0.95rem',
-                lineHeight: 1.5,
-                tabSize: 2,
-                overflow: 'auto',
-                resize: 'none',
-              }}
-            />
-          </div>
-        </Col>
-
-        <Col span={12} style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          <div style={{ padding: '8px 12px', borderBottom: `1px solid ${token.colorBorderSecondary}`, background: token.colorBgContainer }}>
-            <Typography.Text type="secondary" style={{ fontSize: '0.85rem' }}>Preview</Typography.Text>
-          </div>
-          <div
-            ref={previewRef}
-            className="bcc-preview-scroll"
-            style={{ flex: 1, overflow: 'auto', minHeight: 0, padding: 12 }}
-          >
-            <div className="mdx-content">
-              <MemoPreview value={deferredRenderValue} remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins} />
+    <>
+      <MdxStyles token={token} />
+      <style>{`
+        /* Hide scrollbar for preview to keep single-scroll illusion */
+        .bcc-preview-scroll::-webkit-scrollbar { width: 0; height: 0; }
+      `}</style>
+      <Modal
+        open={open}
+        title={title}
+        onCancel={onClose}
+        width="96vw"
+        style={{ top: 8 }}
+        styles={{ body: styles.modalBody }}
+        maskClosable={false}
+        footer={[
+          <Button key="cancel" onClick={onClose}>
+            Cancel
+          </Button>,
+          <Button key="save" type="primary" onClick={() => onSave(value)}>
+            Save
+          </Button>,
+        ]}
+      >
+        <Row gutter={0} style={{ height: '100%' }}>
+          <Col span={12} style={styles.columnLeft}>
+            <div style={styles.header}>
+              <Typography.Text type="secondary" style={{ fontSize: '0.85rem' }}>Markdown</Typography.Text>
             </div>
-          </div>
-        </Col>
-      </Row>
-    </Modal>
+            <div style={{ flex: 1, minHeight: 0 }}>
+              <Input.TextArea
+                ref={textareaRef}
+                value={value}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setValue(next); // instant typing
+                  // disable highlighting while actively typing
+                  setHighlightEnabled(false);
+                  schedulePreviewUpdate(next, 120);
+                  if (typingTimerRef.current) window.clearTimeout(typingTimerRef.current);
+                  typingTimerRef.current = window.setTimeout(() => setHighlightEnabled(true), 220);
+                }}
+                onScroll={handleLeftScroll}
+                spellCheck={false}
+                autoSize={false}
+                style={styles.textArea}
+              />
+            </div>
+          </Col>
+
+          <Col span={12} style={styles.columnRight}>
+            <div style={styles.header}>
+              <Typography.Text type="secondary" style={{ fontSize: '0.85rem' }}>Preview</Typography.Text>
+            </div>
+            <div
+              ref={previewRef}
+              className="bcc-preview-scroll"
+              style={styles.previewContainer}
+            >
+              <div className="mdx-content">
+                <MemoPreview value={deferredRenderValue} remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins} />
+              </div>
+            </div>
+          </Col>
+        </Row>
+      </Modal>
+    </>
   );
 }
-
-export default MarkdownEditModal;
 
 // Separate memoized preview to avoid unnecessary re-renders while typing
 const Preview = ({

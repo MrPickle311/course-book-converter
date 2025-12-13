@@ -3,7 +3,7 @@ import { CheckCircleOutlined, CloseCircleOutlined, BookOutlined, CheckSquareOutl
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import ReactMarkdown from 'react-markdown'
-import '../../styles/mdx.css';
+import { MdxStyles } from '../../shared/components/MdxStyles';
 import { MarkdownEditModal } from '../../shared/components/MarkdownEditModal';
 import type { Course } from "./types";
 import { useCourse } from './hooks/useCourse';
@@ -41,6 +41,7 @@ export function CourseContent({ course, onUpdateCourse }: CourseContentProps) {
   const renderBlocks = (notes: string) => {
     return (
       <div className="mdx-content">
+        <MdxStyles token={token} />
         <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
           {notes}
         </ReactMarkdown>
