@@ -4,7 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import type { TextAreaRef } from 'antd/es/input/TextArea';
-import { MdxStyles } from './MdxStyles';
+import { MdxStyles } from '../styles/MdxStyles.tsx';
 
 interface MarkdownEditModalProps {
   open: boolean;
@@ -215,7 +215,9 @@ export function MarkdownEditModal({ open, title = 'Edit Markdown', initialValue,
     return () => window.cancelAnimationFrame(id);
   }, [open, deferredRenderValue]);
 
-  if (!open) return null;
+  if (!open) {
+    return null;
+  }
 
   return (
     <>

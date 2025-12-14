@@ -1,5 +1,5 @@
 import {Avatar, Button, Flex, Layout, Typography} from "antd";
-import {LogoutButton} from "@/shared/ui/logout/components/LogoutButton.tsx";
+import {LogoutButton} from "@/shared/ui/components/LogoutButton.tsx";
 import {useAuth} from "@/shared/contexts/AuthContext.tsx";
 import {ArrowLeftOutlined, ReadOutlined, UserOutlined} from "@ant-design/icons";
 
