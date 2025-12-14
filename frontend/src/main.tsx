@@ -1,5 +1,5 @@
 import { createRoot } from "react-dom/client";
-import App from "./App.tsx";
+import App from "./app/entrypoint/App.tsx";
 import "antd/dist/reset.css";
 import "./index.css";
 import "highlight.js/styles/github.css";

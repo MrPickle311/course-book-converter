@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import {createContext, type ReactNode, useContext, useEffect, useState} from 'react';
 
 interface User {
   id: string;
@@ -122,33 +122,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
 
     try {
-      // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // In a real implementation, you would:
-      // 1. Send the googleCredential.credential (JWT token) to your backend
-      // 2. Verify the token with Google's servers
-      // 3. Extract user information from the verified token
-      // 4. Create or update user in your database
-
-      // For demo purposes, we'll decode the JWT token (don't do this in production!)
-      // In production, always verify tokens on your backend
       const payload = JSON.parse(atob(googleCredential.credential.split('.')[1]));
 
-      // Check if user already exists
       let existingUser = mockUsers.find(u => u.email === payload.email);
 
       if (!existingUser) {
-        // Create new user from Google data
-        const newUser = {
+        const mockedGoogleUser = {
           id: Date.now().toString(),
           name: payload.name,
           email: payload.email,
-          password: '', // No password for Google users
+          password: '',
           createdAt: new Date().toISOString().split('T')[0]
         };
-        mockUsers.push(newUser);
-        existingUser = newUser;
+        mockUsers.push(mockedGoogleUser);
+        existingUser = mockedGoogleUser;
       }
 
       const userWithoutPassword = {
