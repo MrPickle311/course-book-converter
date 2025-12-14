@@ -2,7 +2,7 @@ import { theme, Card, Button, Input, Tabs, Divider, Flex, Typography, Alert } fr
 import { GoogleSignIn } from '@/pages/auth/ui/components/GoogleSignIn.tsx';
 import { ReadOutlined, MailOutlined, LockOutlined, UserOutlined } from '@ant-design/icons';
 import { useAuthForm } from '@/pages/auth/ui/hooks/useAuthForm.ts';
-import { getAuthStyles } from './styles.ts';
+import { getAuthStyles } from '../styles/styles.ts';
 
 const { useToken } = theme;
 

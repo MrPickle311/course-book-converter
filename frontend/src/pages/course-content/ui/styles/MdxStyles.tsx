@@ -1,12 +1,6 @@
 import { type GlobalToken } from 'antd';
 import { useMemo } from 'react';
 
-// We'll use a simple style injection if @emotion/react is not available or preferred, 
-// but since we want to use tokens, creating a <style> tag is the most portable way 
-// without adding new runtime dependencies if they don't exist.
-// Actually, let's check package.json for styled-components or emotion. 
-// Neither listed. We'll use a simple React component that renders a <style> tag.
-
 export const getMdxCss = (token: GlobalToken) => `
 .mdx-content {
   line-height: 1.7;

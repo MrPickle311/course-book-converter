@@ -3,7 +3,7 @@ import { DefaultService, OpenAPI, type ProcessPdfResponse, type GenerateCourseRe
 import { AuthProvider, useAuth } from '../../shared/contexts/AuthContext.tsx';
 import { ThemeProvider, useTheme } from '../../shared/contexts/ThemeContext.tsx';
 import { SettingsProvider } from '../../shared/contexts/SettingsContext.tsx';
-import { AuthForm } from '@/pages/auth/ui/AuthForm.tsx';
+import { AuthForm } from '@/pages/auth/ui/components/AuthForm.tsx';
 import { UploadBook } from '@/pages/book-upload/ui/components/UploadBook.tsx';
 import { type Course } from '@/entities/course/model/types.ts';
 import { CourseContent } from '@/pages/course-content/ui/components/CourseContent.tsx';

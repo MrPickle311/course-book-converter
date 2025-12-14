@@ -7,7 +7,7 @@ import { MdxStyles } from '../styles/MdxStyles.tsx';
 import { MarkdownEditModal } from './MarkdownEditModal.tsx';
 import type { Course } from "@/entities/course/model/types.ts";
 import { useCourse } from '../hooks/useCourse.ts';
-import { getCourseStyles } from "../styles/styles.ts";
+import { getCourseStyles } from "../styles/courseContentStyles.ts";
 import { TaskItem } from "./Task.tsx";
 
 export interface CourseContentProps {
