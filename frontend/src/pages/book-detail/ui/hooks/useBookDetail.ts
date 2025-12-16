@@ -1,13 +1,6 @@
-import { useMemo, useState } from 'react';
-import { DefaultService } from '@/shared/api/openapi';
-import type { BookDetail, Chapter } from '@/shared/api/openapi';
-
-export interface BookDetailProps {
-    book: BookDetail;
-    onGenerateCourse?: (chapterId: string) => Promise<void> | void;
-    onOpenGeneratedCourse?: (chapterId: string) => Promise<void> | void;
-    onDeleteBook?: (bookId: string) => Promise<void> | void;
-}
+import {useMemo, useState} from 'react';
+import type {BookDetail, Chapter} from "@/entities/book/model/types.ts";
+import {booksDetailsApi} from "@/pages/book-detail/api/bookDetailsApi.ts";
 
 export function useBookDetail(book: BookDetail) {
     const [generating, setGenerating] = useState<Set<string>>(new Set());
@@ -24,13 +17,17 @@ export function useBookDetail(book: BookDetail) {
         return { generatedChaptersCount, completedCourses, totalTasks, completedTasks, failedTasks, progress };
     }, [book.id, book.chapters]);
 
+    const goToMainPage = () => {
+        window.location.href = '/'
+    }
+
     const handleDelete = async (onDeleteBook?: (id: string) => Promise<void> | void) => {
         try {
             if (onDeleteBook) {
                 await onDeleteBook(book.id);
             } else {
-                await DefaultService.deleteBook({ uploadId: book.id });
-                window.location.href = '/';
+                await booksDetailsApi.deleteBook(book)
+                goToMainPage()
             }
         } catch (e) {
             console.error('Failed to delete book', e);
@@ -38,7 +35,9 @@ export function useBookDetail(book: BookDetail) {
     };
 
     const handleGenerate = async (chapterId: string, onGenerateCourse?: (id: string) => Promise<void> | void) => {
-        if (!onGenerateCourse) return;
+        if (!onGenerateCourse) {
+            return;
+        }
         setGenerating((prev) => new Set(prev).add(chapterId));
         await onGenerateCourse(chapterId);
         setGenerating((prev) => {
