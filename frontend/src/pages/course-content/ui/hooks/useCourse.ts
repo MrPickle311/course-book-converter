@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { DefaultService } from '@/shared/api/openapi';
-import type { Course, Task } from '../../../../entities/course/model/types.ts';
+import type { Course, Task, TaskEvaluation } from '@/entities/course/model/types.ts';
+import { tasksApi } from '../../api/tasksApi.ts';
 
 export function useCourse(course: Course, onUpdateCourse: (course: Course) => void) {
     const [activeTab, setActiveTab] = useState('notes');
@@ -8,19 +8,8 @@ export function useCourse(course: Course, onUpdateCourse: (course: Course) => vo
     const [submitting, setSubmitting] = useState<Record<string, boolean>>({});
     const [editOpen, setEditOpen] = useState(false);
 
-    // Helper logic
     const completedTasks = course.tasks.filter(task => task.completed).length;
     const progressPercentage = course.tasks.length > 0 ? (completedTasks / course.tasks.length) * 100 : 0;
-
-    const mapEvaluation = (raw: any): Task["evaluation"] | undefined => {
-        if (!raw) return undefined;
-        return {
-            isCorrect: Boolean(raw.isCorrect),
-            mistakes: raw.mistakes || [],
-            score: typeof raw.score === 'number' ? raw.score : undefined,
-            explanation: raw.explanation,
-        };
-    };
 
     const isTaskCorrect = (task: Task): boolean | null => {
         if (!task.completed) {
@@ -42,68 +31,38 @@ export function useCourse(course: Course, onUpdateCourse: (course: Course) => vo
     };
 
     const isTaskFailed = (task: Task): boolean => {
-        if (!task.completed) return false;
+        if (!task.completed) {
+            return false;
+        }
         return !isTaskCorrect(task);
     };
 
     const computeCourseCompleted = (tasks: Task[]): boolean => {
-        if (tasks.length === 0) return false;
+        if (tasks.length === 0) {
+            return false;
+        }
         const allCompleted = tasks.every(t => t.completed);
-        if (!allCompleted) return false;
+        if (!allCompleted) {
+            return false;
+        }
         return !tasks.some(t => isTaskFailed(t));
     };
 
-    // Effects
-    useEffect(() => {
+    useEffect(function updateTasks() {
         (async () => {
             try {
-                const res = await DefaultService.getChapterTasks({ uploadId: course.bookId, chapterId: course.chapterId });
-                const items = (res as any)?.tasks || [];
-                const mapped: Task[] = items.map((tw: any) => {
-                    const def = tw.definition;
-                    const st = tw.state || {};
-                    const type = def.type as Task['type'];
-                    const opts = Array.isArray(def.options) ? def.options.map((o: any) => ({ id: o.id, label: o.label })) : undefined;
-                    return {
-                        id: def.id,
-                        question: def.question,
-                        type,
-                        options: opts,
-                        correctAnswerId: def.correctAnswerId,
-                        correctAnswerIds: def.correctAnswerIds,
-                        userAnswer: st.userAnswer,
-                        userAnswers: st.userAnswers,
-                        userFileName: st.userFileName,
-                        feedback: (st.evaluation as any)?.explanation,
-                        evaluation: st.evaluation ? {
-                            isCorrect: Boolean(st.evaluation.isCorrect),
-                            mistakes: st.evaluation.mistakes || [],
-                            score: typeof st.evaluation.score === 'number' ? st.evaluation.score : undefined,
-                            explanation: (st.evaluation as any)?.explanation,
-                        } : undefined,
-                        completed: Boolean(st.completed),
-                    } as Task;
-                });
+                const mapped = await tasksApi.getChapterTasks(course.bookId, course.chapterId);
                 const updatedCourse = {
                     ...course,
                     tasks: mapped,
                     completed: computeCourseCompleted(mapped)
                 };
-                // Only update if actually changed to avoid infinite loops if referential equality issues arose,
-                // but here we trust the parent or just emit it.
-                // Simple check: length or completed status or task completion count
+
                 const prevCompleted = course.tasks.filter(t => t.completed).length;
                 const newCompleted = mapped.filter(t => t.completed).length;
                 if (mapped.length !== course.tasks.length || prevCompleted !== newCompleted) {
                     onUpdateCourse(updatedCourse);
                 } else {
-                    // Deep comparison or just force update? 
-                    // Ideally we shouldn't trigger updates if data is same.
-                    // But for now, let's just emit. 
-                    // Actually, useEffect dependency on course.bookId/chapterId means this runs once per course change.
-                    // But if onUpdateCourse changes course prop, this effect runs again? 
-                    // The dependency array is [activeTab, course.bookId, course.chapterId].
-                    // So it runs when activeTab or IDs change. Safe.
                     onUpdateCourse(updatedCourse);
                 }
 
@@ -114,7 +73,6 @@ export function useCourse(course: Course, onUpdateCourse: (course: Course) => vo
     }, [activeTab, course.bookId, course.chapterId]);
 
 
-    // Handlers
     const openFilePicker = (taskId: string) => {
         const input = document.getElementById(`file-input-${taskId}`) as HTMLInputElement | null;
         if (input) input.click();
@@ -160,27 +118,29 @@ export function useCourse(course: Course, onUpdateCourse: (course: Course) => vo
     const handleSubmitTask = (task: Task) => {
         const answer = taskAnswers[task.id];
 
-        // Multiple Select
+        const updateTaskWithResult = (evaluation: TaskEvaluation | undefined, extraFields: Partial<Task>) => {
+            const updatedTask = {
+                ...task,
+                ...extraFields,
+                evaluation,
+                completed: true,
+            } as Task;
+            const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
+            onUpdateCourse({ ...course, tasks: updatedTasks, completed: computeCourseCompleted(updatedTasks) });
+        };
+
         if (task.type === 'multiple-select') {
             const list = (answer as string[] | undefined) || [];
-            if (list.length === 0) return;
+            if (list.length === 0) {
+                return;
+            }
             setSubmitting(prev => ({ ...prev, [task.id]: true }));
             (async () => {
                 try {
-                    const resp = await DefaultService.submitTask({
-                        taskId: task.id,
-                        requestBody: { type: task.type, selectedOptionIds: list } as any,
-                    });
-                    const updatedTask = {
-                        ...task,
-                        userAnswers: list,
-                        evaluation: mapEvaluation(resp.evaluation),
-                        completed: true,
-                    } as Task;
-                    const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
-                    onUpdateCourse({ ...course, tasks: updatedTasks, completed: computeCourseCompleted(updatedTasks) });
+                    const evaluation = await tasksApi.submitMultiSelect(task.id, list);
+                    updateTaskWithResult(evaluation, { userAnswers: list });
                 } catch (e) {
-                    console.error('Submit multi-select failed', e);
+                    console.error('Submit failed', e);
                 } finally {
                     setSubmitting(prev => ({ ...prev, [task.id]: false }));
                 }
@@ -188,27 +148,18 @@ export function useCourse(course: Course, onUpdateCourse: (course: Course) => vo
             return;
         }
 
-        // Upload PDF
         if (task.type === 'upload-pdf') {
             const file = answer as File | undefined;
-            if (!file) return;
+            if (!file) {
+                return;
+            }
             setSubmitting(prev => ({ ...prev, [task.id]: true }));
             (async () => {
                 try {
-                    const resp = await DefaultService.submitTaskFile({
-                        taskId: task.id,
-                        formData: { file }
-                    });
-                    const updatedTask = {
-                        ...task,
-                        userFileName: file.name,
-                        evaluation: mapEvaluation(resp.evaluation),
-                        completed: true,
-                    } as Task;
-                    const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
-                    onUpdateCourse({ ...course, tasks: updatedTasks, completed: computeCourseCompleted(updatedTasks) });
+                    const evaluation = await tasksApi.submitPdfUpload(task.id, file);
+                    updateTaskWithResult(evaluation, { userFileName: file.name });
                 } catch (e) {
-                    console.error('Submit upload-pdf failed', e);
+                    console.error('Submit failed', e);
                 } finally {
                     setSubmitting(prev => ({ ...prev, [task.id]: false }));
                 }
@@ -216,29 +167,19 @@ export function useCourse(course: Course, onUpdateCourse: (course: Course) => vo
             return;
         }
 
-        // Short Answer / Code / Multiple Choice
         const userAnswer = (answer as string | undefined) || '';
-        if (!userAnswer) return;
+        if (!userAnswer) {
+            return;
+        }
 
         if (task.type === 'short-answer' || task.type === 'code') {
             setSubmitting(prev => ({ ...prev, [task.id]: true }));
             (async () => {
                 try {
-                    const resp = await DefaultService.submitTask({
-                        taskId: task.id,
-                        requestBody: { type: task.type, textAnswer: userAnswer } as any,
-                    });
-                    const updatedTask = {
-                        ...task,
-                        userAnswer,
-                        evaluation: mapEvaluation(resp.evaluation),
-                        completed: true,
-                        userFileName: undefined,
-                    } as Task;
-                    const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
-                    onUpdateCourse({ ...course, tasks: updatedTasks, completed: computeCourseCompleted(updatedTasks) });
+                    const evaluation = await tasksApi.submitTextAnswer(task.id, userAnswer);
+                    updateTaskWithResult(evaluation, { userAnswer, userFileName: undefined });
                 } catch (e) {
-                    console.error('Submit short-answer failed', e);
+                    console.error('Submit failed', e);
                 } finally {
                     setSubmitting(prev => ({ ...prev, [task.id]: false }));
                 }
@@ -250,21 +191,10 @@ export function useCourse(course: Course, onUpdateCourse: (course: Course) => vo
             setSubmitting(prev => ({ ...prev, [task.id]: true }));
             (async () => {
                 try {
-                    const resp = await DefaultService.submitTask({
-                        taskId: task.id,
-                        requestBody: { type: task.type, selectedOptionId: userAnswer } as any,
-                    });
-                    const updatedTask = {
-                        ...task,
-                        userAnswer,
-                        evaluation: mapEvaluation(resp.evaluation),
-                        completed: true,
-                        userFileName: undefined,
-                    } as Task;
-                    const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
-                    onUpdateCourse({ ...course, tasks: updatedTasks, completed: computeCourseCompleted(updatedTasks) });
+                    const evaluation = await tasksApi.submitMultipleChoice(task.id, userAnswer);
+                    updateTaskWithResult(evaluation, { userAnswer, userFileName: undefined });
                 } catch (e) {
-                    console.error('Submit multiple-choice failed', e);
+                    console.error('Submit failed', e);
                 } finally {
                     setSubmitting(prev => ({ ...prev, [task.id]: false }));
                 }

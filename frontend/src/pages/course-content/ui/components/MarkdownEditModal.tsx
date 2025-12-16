@@ -34,7 +34,11 @@ const EditorColumn = (props: EditorColumnProps) => {
   return (
     <Col span={12} style={props.styles.columnLeft}>
       <Flex style={props.styles.header}>
-        <Typography.Text type="secondary" style={{ fontSize: '0.85rem' }}>Markdown</Typography.Text>
+        <Typography.Text
+            type="secondary"
+            style={{ fontSize: '0.85rem' }}>
+            Markdown
+        </Typography.Text>
       </Flex>
       <Flex style={{ flex: 1, minHeight: 0 }}>
         <Input.TextArea
@@ -73,7 +77,11 @@ const PreviewColumn = (props: PreviewColumnProps) => {
   return (
     <Col span={12} style={props.styles.columnRight}>
       <Flex style={props.styles.header}>
-        <Typography.Text type="secondary" style={{ fontSize: '0.85rem' }}>Preview</Typography.Text>
+        <Typography.Text
+            type="secondary"
+            style={{ fontSize: '0.85rem' }}>
+            Preview
+        </Typography.Text>
       </Flex>
       <div
         ref={props.previewRef}

@@ -1,5 +1,11 @@
 export interface TaskOption { id: string; label: string }
 
+export interface TaskEvaluation {
+    isCorrect: boolean;
+    mistakes: string[];
+    score?: number;
+}
+
 export interface Task {
     id: string;
     question: string;
@@ -10,13 +16,7 @@ export interface Task {
     userAnswer?: string;
     userAnswers?: string[];
     userFileName?: string;
-    feedback?: string;
-    evaluation?: {
-        isCorrect: boolean;
-        mistakes: string[];
-        score?: number;
-        explanation?: string;
-    };
+    evaluation?: TaskEvaluation;
     completed: boolean;
 }
 
