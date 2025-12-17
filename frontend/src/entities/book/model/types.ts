@@ -13,9 +13,12 @@ export type Chapter = {
     progressData?: ProgressData;
 };
 
-export type BookDetail = {
+export type Book = {
     id: string;
     title: string;
     uploadDate: string;
     chapters: Array<Chapter>;
+    progressData?: ProgressData;
+    lastUsedAt?: string | null;
+    generatedCoursesCount?: number;
 };

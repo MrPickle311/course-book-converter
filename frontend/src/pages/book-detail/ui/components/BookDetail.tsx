@@ -2,13 +2,13 @@ import {Button, Card, Flex, Progress, Tag, theme, Typography} from 'antd';
 import {CalendarOutlined, CheckCircleOutlined, DeleteOutlined, ReadOutlined, RightOutlined} from '@ant-design/icons';
 import {useBookDetail} from '../hooks/useBookDetail.ts';
 import {getBookDetailStyles} from '../styles/styles.ts';
-import type {Chapter, BookDetail} from "@/entities/book/model/types.ts";
+import type {Chapter, Book} from "@/entities/book/model/types.ts";
 import {type ReactNode} from "react";
 
 const { useToken } = theme;
 
 export interface BookDetailProps {
-  book: BookDetail;
+  book: Book;
   onGenerateCourse?: (chapterId: string) => Promise<void> | void;
   onOpenGeneratedCourse?: (chapterId: string) => Promise<void> | void;
   onDeleteBook?: (bookId: string) => Promise<void> | void;

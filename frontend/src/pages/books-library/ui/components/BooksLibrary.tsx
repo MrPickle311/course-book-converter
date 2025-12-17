@@ -1,30 +1,30 @@
-import { Card, Input, Progress, Pagination, Tabs, Flex, Typography, Tag, Empty, theme } from 'antd';
-import { ReadOutlined, CheckCircleOutlined, RightOutlined, SearchOutlined, TrophyOutlined, ClockCircleOutlined, BookOutlined } from '@ant-design/icons';
-import type { Course } from "../../../../entities/course/model/types.ts";
-import type { BookDetail } from "@/shared/api/openapi";
-import { useLibrary } from '../hooks/useLibrary.ts';
-import { getLibraryStyles } from '@/pages/books-library/ui/styles/styles.ts';
+import {Card, Empty, Flex, Input, Pagination, Progress, Tabs, Tag, theme, Typography} from 'antd';
+import {
+  BookOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  ReadOutlined,
+  RightOutlined,
+  SearchOutlined,
+  TrophyOutlined
+} from '@ant-design/icons';
+import type {Course} from "@/entities/course/model/types.ts";
+import {useLibrary} from '../hooks/useLibrary.ts';
+import {getLibraryStyles} from '@/pages/books-library/ui/styles/styles.ts';
+import type {Book} from "@/entities/book/model/types.ts";
+import type {LibraryMetricsUI} from "@/entities/metrics/model/types.tsx";
+import type {ReactNode} from "react";
 
 const { useToken } = theme;
 
-interface LibraryMetricsUI {
-  totalBooks: number;
-  completedBooks: number;
-  inProgressBooks: number;
-  failedTasks: number;
-  totalTasks: number;
-  completedTasks: number;
-  overallProgress: number; // 0..1
-}
-
 interface BooksLibraryProps {
-  books: BookDetail[];
+  books: Book[];
   courses: Course[];
-  onOpenBook: (book: BookDetail) => void;
-  metrics?: LibraryMetricsUI;
+  onOpenBook: (book: Book) => void;
+  metrics: LibraryMetricsUI;
 }
 
-export function BooksLibrary({ books, courses, onOpenBook, metrics }: BooksLibraryProps) {
+export function BooksLibrary(props: BooksLibraryProps) {
   const { token } = useToken();
   const styles = getLibraryStyles(token);
 
@@ -39,10 +39,101 @@ export function BooksLibrary({ books, courses, onOpenBook, metrics }: BooksLibra
     page,
     setPage,
     totalPages,
-    BOOKS_PER_PAGE
-  } = useLibrary(books, courses, metrics);
+    pageSize
+  } = useLibrary(props.books, props.courses, props.metrics);
 
   const overallProgress = stats.overallProgressPct;
+
+  interface MetricsCardProps {
+    text: string,
+    statsValue: string,
+    iconColor: string,
+    icon?: ReactNode
+    bottomWidget?: ReactNode
+  }
+
+  const MatricsCard = (props: MetricsCardProps) => {
+    return (
+        <Card style={styles.card} size="small">
+          <Flex align="center" justify="space-between">
+            <Flex vertical gap={4}>
+              <Typography.Text type="secondary">
+                {props.text}
+              </Typography.Text>
+              <Typography.Text style={{ ...styles.statValue, color: props.iconColor }}>
+                {props.statsValue}
+              </Typography.Text>
+            </Flex>
+            {props?.icon}
+          </Flex>
+          {props?.bottomWidget}
+        </Card>
+    )
+  }
+
+  function generateBookOutline(book: Book) {
+    const statsForBook = bookStats.get(book.id)!;
+    const progress = statsForBook.totalTasks > 0 ? (statsForBook.completedTasks / statsForBook.totalTasks) * 100 : 0;
+    return (
+        <Card
+            key={book.id}
+            hoverable
+            onClick={() => props.onOpenBook(book)}
+            title={
+              <Flex align="center" justify="space-between" gap={12}>
+                <Flex align="center" gap={12}>
+                  <Flex
+                      align="center"
+                      justify="center"
+                      style={styles.bookCardIconWrapper}
+                  >
+                    <ReadOutlined style={styles.bookCardIcon}/>
+                  </Flex>
+                  <Flex vertical>
+                    <Typography.Text strong style={styles.bookCardTitle}>{book.title}</Typography.Text>
+                    <Typography.Text type="secondary" style={styles.bookCardSubtitle}>
+                      {statsForBook.totalCourses} generated course{statsForBook.totalCourses !== 1 ? 's' : ''} •
+                      Uploaded{' '}
+                      {new Date(book.uploadDate).toLocaleDateString()}
+                    </Typography.Text>
+                  </Flex>
+                </Flex>
+                <Flex align="center" gap={12}>
+                  <Tag color={statsForBook.isCompleted ? 'success' : statsForBook.isInProgress ? 'processing' : 'default'}>
+                    {statsForBook.isCompleted ? 'Completed' : statsForBook.isInProgress ? 'In Progress' : 'Not Started'}
+                  </Tag>
+                  <RightOutlined style={{fontSize: 20, color: token.colorTextQuaternary}}/>
+                </Flex>
+              </Flex>
+            }
+        >
+          <Flex align="center" gap={16} style={styles.cardMeta}>
+            <Flex align="center" gap={6}>
+              <CheckCircleOutlined style={{fontSize: 16}}/>
+              <Typography.Text type="secondary">
+                {statsForBook.completedTasks}/{statsForBook.totalTasks} tasks
+              </Typography.Text>
+            </Flex>
+            {statsForBook.failedTasks > 0 && (
+                <Flex
+                    align="center"
+                    gap={6}
+                    style={{color: token.colorError}}>
+                  <Typography.Text
+                      type="danger">
+                    • {statsForBook.failedTasks} failed
+                  </Typography.Text>
+                </Flex>
+            )}
+          </Flex>
+          <Progress
+              percent={Math.round(progress)}
+              size="small"
+              status={statsForBook.failedTasks > 0 ? 'exception' : 'active'}
+          />
+        </Card>
+    );
+  }
 
   return (
     <Flex vertical gap={24} style={styles.container}>
@@ -64,75 +155,42 @@ export function BooksLibrary({ books, courses, onOpenBook, metrics }: BooksLibra
       </Flex>
 
       <Flex wrap gap={16}>
-        <Card style={styles.card} size="small">
-          <Flex align="center" justify="space-between">
-            <Flex vertical gap={4}>
-              <Typography.Text type="secondary">
-                Total Books
-              </Typography.Text>
-              <Typography.Text style={styles.statValue}>
-                {stats.total}
-              </Typography.Text>
-            </Flex>
-            <BookOutlined style={{ fontSize: 32, color: token.colorLink }} />
-          </Flex>
-        </Card>
 
-        <Card style={styles.card} size="small">
-          <Flex align="center" justify="space-between">
-            <Flex vertical gap={4}>
-              <Typography.Text type="secondary">
-                Completed
-              </Typography.Text>
-              <Typography.Text style={{ ...styles.statValue, color: token.colorSuccess }}>
-                {stats.completed}
-              </Typography.Text>
-            </Flex>
-            <CheckCircleOutlined style={{ fontSize: 32, color: token.colorSuccess }} />
-          </Flex>
-        </Card>
+        <MatricsCard
+          statsValue={stats.total.toString()}
+          text={"Total books"}
+          iconColor={token.colorText}
+          icon={<BookOutlined style={{ fontSize: 32, color: token.colorSuccess }} />}
+        />
 
-        <Card style={styles.card} size="small">
-          <Flex align="center" justify="space-between">
-            <Flex vertical gap={4}>
-              <Typography.Text type="secondary">
-                In Progress
-              </Typography.Text>
-              <Typography.Text style={{ ...styles.statValue, color: token.colorWarning }}>
-                {stats.inProgress}
-              </Typography.Text>
-            </Flex>
-            <ClockCircleOutlined style={{ fontSize: 32, color: token.colorWarning }} />
-          </Flex>
-        </Card>
+        <MatricsCard
+            statsValue={stats.completed.toString()}
+            text={"Completed"}
+            iconColor={token.colorSuccess}
+            icon={<CheckCircleOutlined style={{ fontSize: 32, color: token.colorSuccess }} />}
+        />
 
-        <Card style={styles.card} size="small">
-          <Flex align="center" justify="space-between">
-            <Flex vertical gap={4}>
-              <Typography.Text type="secondary">
-                Failed Tasks
-              </Typography.Text>
-              <Typography.Text style={{ ...styles.statValue, color: token.colorError }}>
-                {stats.failedTasks}
-              </Typography.Text>
-            </Flex>
-          </Flex>
-        </Card>
+        <MatricsCard
+            statsValue={stats.inProgress.toString()}
+            text={"In Progress"}
+            iconColor={token.colorWarning}
+            icon={<ClockCircleOutlined style={{ fontSize: 32, color: token.colorWarning }} />}
+        />
 
-        <Card style={styles.card} size="small">
-          <Flex align="center" justify="space-between">
-            <Flex vertical gap={4}>
-              <Typography.Text type="secondary">
-                Overall Progress
-              </Typography.Text>
-              <Typography.Text style={styles.statValue}>
-                {Math.round(overallProgress)}%
-              </Typography.Text>
-            </Flex>
-            <TrophyOutlined style={{ fontSize: 32, color: '#a855f7' }} />
-          </Flex>
-          <Progress percent={overallProgress} size="small" showInfo={false} />
-        </Card>
+        <MatricsCard
+            statsValue={stats.failedTasks.toString()}
+            text={"Failed Tasks"}
+            iconColor={token.colorError}
+        />
+
+        <MatricsCard
+            statsValue={Math.round(overallProgress) + '%'}
+            text={"Overall Progress"}
+            iconColor={token.colorText}
+            icon={<TrophyOutlined style={{ fontSize: 32, color: '#a855f7' }} />}
+            bottomWidget={<Progress percent={overallProgress} size="small" showInfo={false} />}
+        />
+
       </Flex>
 
       <Tabs
@@ -163,68 +221,16 @@ export function BooksLibrary({ books, courses, onOpenBook, metrics }: BooksLibra
         ) : (
           <Flex vertical gap={24}>
             {filteredBooks
-              .slice((page - 1) * BOOKS_PER_PAGE, page * BOOKS_PER_PAGE)
-              .map((book) => {
-                const statsForBook = bookStats.get(book.id)!;
-                const progress = statsForBook.totalTasks > 0 ? (statsForBook.completedTasks / statsForBook.totalTasks) * 100 : 0;
-                return (
-                  <Card
-                    key={book.id}
-                    hoverable
-                    onClick={() => onOpenBook(book)}
-                    title={
-                      <Flex align="center" justify="space-between" gap={12}>
-                        <Flex align="center" gap={12}>
-                          <Flex
-                            align="center"
-                            justify="center"
-                            style={styles.bookCardIconWrapper}
-                          >
-                            <ReadOutlined style={styles.bookCardIcon} />
-                          </Flex>
-                          <Flex vertical>
-                            <Typography.Text strong style={styles.bookCardTitle}>{book.title}</Typography.Text>
-                            <Typography.Text type="secondary" style={styles.bookCardSubtitle}>
-                              {statsForBook.totalCourses} generated course{statsForBook.totalCourses !== 1 ? 's' : ''} • Uploaded{' '}
-                              {new Date(book.uploadDate).toLocaleDateString()}
-                            </Typography.Text>
-                          </Flex>
-                        </Flex>
-                        <Flex align="center" gap={12}>
-                          <Tag
-                            color={statsForBook.isCompleted ? 'success' : statsForBook.isInProgress ? 'processing' : 'default'}
-                          >
-                            {statsForBook.isCompleted ? 'Completed' : statsForBook.isInProgress ? 'In Progress' : 'Not Started'}
-                          </Tag>
-                          <RightOutlined style={{ fontSize: 20, color: token.colorTextQuaternary }} />
-                        </Flex>
-                      </Flex>
-                    }
-                  >
-                    <Flex align="center" gap={16} style={styles.cardMeta}>
-                      <Flex align="center" gap={6}>
-                        <CheckCircleOutlined style={{ fontSize: 16 }} />
-                        <Typography.Text type="secondary">
-                          {statsForBook.completedTasks}/{statsForBook.totalTasks} tasks
-                        </Typography.Text>
-                      </Flex>
-                      {statsForBook.failedTasks > 0 && (
-                        <Flex align="center" gap={6} style={{ color: token.colorError }}>
-                          <Typography.Text type="danger">• {statsForBook.failedTasks} failed</Typography.Text>
-                        </Flex>
-                      )}
-                    </Flex>
-                    <Progress percent={Math.round(progress)} size="small" status={statsForBook.failedTasks > 0 ? 'exception' : 'active'} />
-                  </Card>
-                );
-              })}
+              .slice((page - 1) * pageSize, page * pageSize)
+              .map((book) => generateBookOutline(book))
+            }
 
             {totalPages > 1 && (
               <Flex justify="center" style={styles.paginationContainer}>
                 <Pagination
                   current={page}
                   total={filteredBooks.length}
-                  pageSize={BOOKS_PER_PAGE}
+                  pageSize={pageSize}
                   onChange={(p) => setPage(p)}
                   showSizeChanger={false}
                 />
