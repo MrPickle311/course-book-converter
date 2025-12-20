@@ -176,7 +176,9 @@ function AppContent() {
   const handleFileUpload = async (file: File) => {
     const form = { file } as any;
     const resp: ProcessPdfResponse = await DefaultService.processPdf({ formData: form });
-    if (!resp?.success || !resp.data) return;
+    if (!resp?.success || !resp.data) {
+      return;
+    }
     const { uploadId, chapters } = resp.data;
     const newBook: Book = {
       id: uploadId,

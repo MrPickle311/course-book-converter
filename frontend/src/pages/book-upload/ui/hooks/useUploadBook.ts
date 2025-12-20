@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 
 export function useUploadBook(onFileUpload: (file: File) => void) {
     const [isDragOver, setIsDragOver] = useState(false);
@@ -36,22 +36,14 @@ export function useUploadBook(onFileUpload: (file: File) => void) {
     };
 
     const handleUpload = () => {
-        if (!selectedFile) return;
+        if (!selectedFile) {
+            return;
+        }
 
         setIsProcessing(true);
         setUploadProgress(0);
-
-        // Simulate upload progress
-        const interval = setInterval(() => {
-            setUploadProgress(prev => {
-                if (prev >= 100) {
-                    clearInterval(interval);
-                    onFileUpload(selectedFile);
-                    return 100;
-                }
-                return prev + 10;
-            });
-        }, 200);
+        onFileUpload(selectedFile);
+        setUploadProgress(100);
     };
 
     const handleRemoveFile = () => {
