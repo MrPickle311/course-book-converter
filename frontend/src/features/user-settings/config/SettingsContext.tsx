@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
 type PageSize = 50 | 100;
 type ImageSize = 'small' | 'medium' | 'large';
@@ -14,7 +14,9 @@ const SettingsContext = createContext<SettingsContextType | null>(null);
 
 export const useSettings = () => {
   const ctx = useContext(SettingsContext);
-  if (!ctx) throw new Error('useSettings must be used within SettingsProvider');
+  if (!ctx) {
+    throw new Error('useSettings must be used within SettingsProvider');
+  }
   return ctx;
 };
 
@@ -22,7 +24,7 @@ interface SettingsProviderProps {
   children: React.ReactNode;
 }
 
-export const SettingsProvider = ({ children }: SettingsProviderProps) => {
+export const SettingsProvider = (props: SettingsProviderProps) => {
   const [pageSize, setPageSizeState] = useState<PageSize>(() => {
     const stored = Number(localStorage.getItem('pageSize')) as PageSize;
     return stored === 50 || stored === 100 ? stored : 100;
@@ -33,11 +35,11 @@ export const SettingsProvider = ({ children }: SettingsProviderProps) => {
     return stored === 'small' || stored === 'medium' || stored === 'large' ? stored : 'small';
   });
 
-  useEffect(() => {
+  useEffect(function handlePageSizeChange ()  {
     localStorage.setItem('pageSize', String(pageSize));
   }, [pageSize]);
 
-  useEffect(() => {
+  useEffect(function changeImageSizeChange ()  {
     localStorage.setItem('imageSize', imageSize);
     if (typeof document !== 'undefined') {
       document.documentElement.setAttribute('data-image-size', imageSize);
@@ -54,7 +56,7 @@ export const SettingsProvider = ({ children }: SettingsProviderProps) => {
 
   return (
     <SettingsContext.Provider value={{ pageSize, setPageSize, imageSize, setImageSize }}>
-      {children}
+      {props.children}
     </SettingsContext.Provider>
   );
 };

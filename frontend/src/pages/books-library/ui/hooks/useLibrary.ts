@@ -1,5 +1,5 @@
 import {useEffect, useMemo, useState} from 'react';
-import {useSettings} from '@/shared/lib/context/SettingsContext.tsx';
+import {useSettings} from '@/features/user-settings/config/SettingsContext.tsx';
 import type {Course} from '@/entities/course/model/types.ts';
 import type {Book} from "@/entities/book/model/types.ts";
 import type {LibraryMetricsUI} from "@/entities/metrics/model/types.tsx";

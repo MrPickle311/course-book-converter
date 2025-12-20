@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { DefaultService, OpenAPI, type ProcessPdfResponse, type GenerateCourseRequest, type BookDetail as ApiBookDetail, type Chapter as ApiChapter } from '@/shared/api/openapi';
 import { AuthProvider, useAuth } from '../../shared/lib/context/AuthContext.tsx';
-import { ThemeProvider, useTheme } from '../../shared/lib/context/ThemeContext.tsx';
-import { SettingsProvider } from '../../shared/lib/context/SettingsContext.tsx';
+import { ThemeProvider, useTheme } from '@/features/user-settings/config/ThemeContext.tsx';
+import { SettingsProvider } from '@/features/user-settings/config/SettingsContext.tsx';
 import AuthForm from '@/pages/auth/ui/components/AuthForm.tsx';
 import { UploadBook } from '@/pages/book-upload/ui/components/UploadBook.tsx';
 import { type Course } from '@/entities/course/model/types.ts';
