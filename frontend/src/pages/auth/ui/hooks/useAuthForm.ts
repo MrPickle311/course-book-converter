@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAuth } from '@/shared/contexts/AuthContext.tsx';
+import { useAuth } from '@/shared/lib/context/AuthContext.tsx';
 
 export function useAuthForm() {
     const { login, register, isLoading } = useAuth();

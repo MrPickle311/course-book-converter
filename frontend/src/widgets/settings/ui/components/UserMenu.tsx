@@ -1,6 +1,6 @@
 import {Drawer, Flex, Radio, Switch, Typography} from 'antd';
-import {useTheme} from '@/shared/contexts/ThemeContext.tsx';
-import {useSettings} from '@/shared/contexts/SettingsContext.tsx';
+import {useTheme} from '@/shared/lib/context/ThemeContext.tsx';
+import {useSettings} from '@/shared/lib/context/SettingsContext.tsx';
 import {SettingOutlined} from '@ant-design/icons';
 
 const Text = Typography.Text;

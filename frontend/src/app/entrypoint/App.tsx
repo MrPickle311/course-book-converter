@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { DefaultService, OpenAPI, type ProcessPdfResponse, type GenerateCourseRequest, type BookDetail as ApiBookDetail, type Chapter as ApiChapter } from '@/shared/api/openapi';
-import { AuthProvider, useAuth } from '../../shared/contexts/AuthContext.tsx';
-import { ThemeProvider, useTheme } from '../../shared/contexts/ThemeContext.tsx';
-import { SettingsProvider } from '../../shared/contexts/SettingsContext.tsx';
-import { AuthForm } from '@/pages/auth/ui/components/AuthForm.tsx';
+import { AuthProvider, useAuth } from '../../shared/lib/context/AuthContext.tsx';
+import { ThemeProvider, useTheme } from '../../shared/lib/context/ThemeContext.tsx';
+import { SettingsProvider } from '../../shared/lib/context/SettingsContext.tsx';
+import AuthForm from '@/pages/auth/ui/components/AuthForm.tsx';
 import { UploadBook } from '@/pages/book-upload/ui/components/UploadBook.tsx';
 import { type Course } from '@/entities/course/model/types.ts';
 import { CourseContent } from '@/pages/course-content/ui/components/CourseContent.tsx';

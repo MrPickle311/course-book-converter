@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react';
-import {useAuth} from '@/shared/contexts/AuthContext.tsx';
+import {useAuth} from '@/shared/lib/context/AuthContext.tsx';
 
 export const useGoogleSignIn = () => {
     const { loginWithGoogle, isLoading } = useAuth();

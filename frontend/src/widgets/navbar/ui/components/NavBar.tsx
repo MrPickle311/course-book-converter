@@ -1,6 +1,6 @@
 import {Avatar, Button, Flex, Layout, Typography} from "antd";
 import {LogoutButton} from "@/shared/ui/components/LogoutButton.tsx";
-import {useAuth} from "@/shared/contexts/AuthContext.tsx";
+import {useAuth} from "@/shared/lib/context/AuthContext.tsx";
 import {ArrowLeftOutlined, ReadOutlined, UserOutlined} from "@ant-design/icons";
 
 const { Header } = Layout;
@@ -25,7 +25,8 @@ export const NavBar = (props: NavBarProps) => {
 
     const { user, logout } = useAuth();
 
-    return (<Header
+    return (
+    <Header
         style={{
             position: 'fixed',
             top: 0,
@@ -84,10 +85,10 @@ export const NavBar = (props: NavBarProps) => {
                             style={{ backgroundColor: 'var(--primary)' }}
                             icon={<UserOutlined />}
                         >
-                            {getInitials(user.name)}
+                            {getInitials(user?.name || '')}
                         </Avatar>
                         <Typography.Text strong style={{ fontSize: '0.875rem' }}>
-                            {user.name.split(' ')[0]}
+                            {user?.name.split(' ')[0] || ''}
                         </Typography.Text>
                     </Flex>
                 </Button>
