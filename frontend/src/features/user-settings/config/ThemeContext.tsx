@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
 type Theme = 'light' | 'dark';
 
@@ -23,20 +23,19 @@ interface ThemeProviderProps {
 
 export const ThemeProvider = ({ children }: ThemeProviderProps) => {
   const [theme, setTheme] = useState<Theme>(() => {
-    // Check localStorage first, then system preference
     const stored = localStorage.getItem('theme') as Theme;
-    if (stored) return stored;
+    if (stored) {
+      return stored;
+    }
     
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
 
-  useEffect(() => {
-    // Apply theme to document root
+  useEffect(function applyTheme() {
     const root = document.documentElement;
     root.classList.remove('light', 'dark');
     root.classList.add(theme);
     
-    // Store in localStorage
     localStorage.setItem('theme', theme);
   }, [theme]);
 
