@@ -1,6 +1,6 @@
 import {createContext, type ReactNode, useContext, useEffect, useState} from 'react';
 
-interface User {
+export interface User {
   id: string;
   email: string;
   name: string;
@@ -18,7 +18,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock users database (in a real app, this would be handled by your backend)
 const mockUsers: Array<User & { password: string }> = [
   {
     id: '1',
@@ -40,8 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check for existing authentication on app load
-  useEffect(() => {
+  useEffect(function tryLoadUserFromLocalStorage()  {
     const savedUser = localStorage.getItem('pdf_course_user');
     if (savedUser) {
       try {
@@ -55,11 +53,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
+  function fakeCall(resolve: (value: (PromiseLike<unknown> | unknown)) => void) {
+    return setTimeout(resolve, 1000);
+  }
+
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
 
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => fakeCall(resolve));
 
     const foundUser = mockUsers.find(u => u.email === email && u.password === password);
 
@@ -84,17 +85,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (name: string, email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
 
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => fakeCall(resolve));
 
-    // Check if user already exists
-    const existingUser = mockUsers.find(u => u.email === email);
-    if (existingUser) {
+    const foundUserWithGivenEmail = mockUsers.find(u => u.email === email);
+    if (foundUserWithGivenEmail) {
       setIsLoading(false);
       return { success: false, error: 'An account with this email already exists' };
     }
 
-    // Create new user
     const newUser = {
       id: Date.now().toString(),
       name,
@@ -122,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => fakeCall(resolve));
 
       const payload = JSON.parse(atob(googleCredential.credential.split('.')[1]));
 
