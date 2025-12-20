@@ -105,33 +105,35 @@ export function UploadBook(props: UploadBookProps) {
         </Flex>
     </Flex>;
 
+    const ProcessingWindow = () =>
+    <Flex vertical gap={16} align="center">
+        <FilePdfOutlined style={styles.iconFile}/>
+        <Flex vertical gap={8} align="center">
+            <Typography.Text>{selectedFile?.name || ''}</Typography.Text>
+            <Typography.Text style={styles.smallMutedText}>
+                {(selectedFile?.size || 0 / 1024 / 1024).toFixed(2)} MB
+            </Typography.Text>
+            {!isProcessing ? <DeleteButton/> : <ProcessingInformation/>}
+        </Flex>
+    </Flex>;
+
     return (
     <Flex vertical gap={32} style={styles.container}>
       <Introduction/>
       <Card>
-        <div //TODO: remove this DIV
+        <Flex
+          vertical
+          align="center"
+          justify="center"
           style={styles.dropZone}
-          role="button"
-          aria-label="Upload PDF by drag-and-drop or choose a file"
-          title="Upload PDF by drag-and-drop or choose a file"
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
+          aria-label="Upload PDF by drag-and-drop or choose a file"
+          title="Upload PDF by drag-and-drop or choose a file"
         >
-          {!selectedFile ? <UploadWindow/>
-           : (
-            <Flex vertical gap={16} align="center">
-              <FilePdfOutlined style={styles.iconFile} />
-              <Flex vertical gap={8} align="center">
-                <Typography.Text>{selectedFile.name}</Typography.Text>
-                <Typography.Text style={styles.smallMutedText}>
-                  {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                </Typography.Text>
-                {!isProcessing ? <DeleteButton/> : <ProcessingInformation/>}
-              </Flex>
-            </Flex>
-          )}
-        </div>
+          {!selectedFile ? <UploadWindow />: <ProcessingWindow />}
+        </Flex>
       </Card>
       <FlowSteps/>
     </Flex>
