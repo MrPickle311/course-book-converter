@@ -14,7 +14,7 @@ import type { Book } from "@/entities/book";
 import type { Metrics } from "@/entities/metrics";
 import type { ReactNode } from "react";
 import { useQuery } from '@tanstack/react-query';
-import { booksApi } from '@/pages/book-detail/api/bookApi.ts';
+import { booksApi } from '@/entities/book';
 import { LoadingPage } from "@/shared/ui";
 import { useNavigate } from 'react-router-dom';
 import { useSettings } from "@/features/user-settings";
@@ -29,7 +29,6 @@ export function BooksLibrary() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['books', 1, settingsPageSize],
-    //TODO: fix contract broke, this component uses api from book-detail
     queryFn: () => booksApi.getBooksList(1, settingsPageSize)
   });
 

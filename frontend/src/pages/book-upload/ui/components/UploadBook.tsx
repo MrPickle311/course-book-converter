@@ -1,10 +1,10 @@
-import { Button, Card, Flex, Progress, Spin, Steps, theme, Typography } from 'antd';
-import { CheckCircleOutlined, CloudUploadOutlined, DeleteOutlined, FilePdfOutlined } from '@ant-design/icons';
-import { useUploadBook } from '../hooks/useUploadBook.ts';
-import { getUploadBookStyles } from '../styles/styles.ts';
-import { uploadApi } from "@/pages/book-upload/api/uploadApi.ts";
-import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
+import {Button, Card, Flex, Progress, Spin, Steps, theme, Typography} from 'antd';
+import {CheckCircleOutlined, CloudUploadOutlined, DeleteOutlined, FilePdfOutlined} from '@ant-design/icons';
+import {useUploadBook} from '../hooks/useUploadBook.ts';
+import {getUploadBookStyles} from '../styles/styles.ts';
+import {useNavigate} from 'react-router-dom';
+import {useQueryClient} from '@tanstack/react-query';
+import {uploadApi} from "@/pages/book-upload/api/uploadApi.ts";
 
 const { useToken } = theme;
 

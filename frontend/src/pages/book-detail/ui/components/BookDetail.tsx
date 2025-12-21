@@ -7,8 +7,8 @@ import { type ReactNode } from "react";
 import { LoadingPage } from "@/shared/ui";
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { booksApi } from '@/pages/book-detail/api/bookApi.ts';
-import { coursesApi } from '@/pages/course-content/api/coursesApi.ts';
+import { booksApi } from '@/entities/book';
+import { coursesApi } from '@/entities/course';
 
 const { useToken } = theme;
 const Text = Typography.Text;
@@ -39,7 +39,6 @@ export function BookDetail() {
   }
 
   const onGenerateCourse = async (chapterId: string) => {
-    //TODO: contract broke, books page uses sth from courses page
     await coursesApi.generateCourse(chapterId, book.id);
     await queryClient.invalidateQueries({ queryKey: ['book', id] });
   };

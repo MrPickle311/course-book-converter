@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Course, Task, TaskEvaluation } from '@/entities/course';
-import { tasksApi } from '../../api/tasksApi.ts';
+import { tasksApi } from '@/entities/course';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export function useCourse(course: Course) {
