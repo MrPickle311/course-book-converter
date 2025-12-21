@@ -1,5 +1,5 @@
 import { DefaultService as defaultService, type TaskEvaluation as TaskEvaluationDto, TaskSubmissionRequest } from '@/shared/api/openapi';
-import type { Task, TaskEvaluation } from '@/entities/course/model/types.ts';
+import type { Task, TaskEvaluation } from '@/entities/course';
 
 const mapEvaluation = (raw: TaskEvaluationDto | undefined): TaskEvaluation | undefined => {
     if (!raw) return undefined;

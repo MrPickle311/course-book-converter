@@ -1,4 +1,4 @@
-import {DefaultService, type GenerateCourseRequest} from "@/shared/api/openapi";
+import { DefaultService, type GenerateCourseRequest } from "@/shared/api/openapi";
 
 export const coursesApi = {
 
@@ -11,6 +11,6 @@ export const coursesApi = {
     },
 
     getCourseNotes: async (bookId: string, chapterId: string): Promise<string> => {
-        return DefaultService.getChapterNotes({uploadId: bookId, chapterId});
+        return DefaultService.getChapterNotes({ uploadId: bookId, chapterId });
     }
 }

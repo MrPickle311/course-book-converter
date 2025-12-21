@@ -1,5 +1,5 @@
-import {useEffect, useState} from 'react';
-import {useAuth} from '@/shared/lib/context/AuthContext.tsx';
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/shared/lib';
 
 export const useGoogleSignIn = () => {
     const { loginWithGoogle, isLoading } = useAuth();
@@ -49,7 +49,7 @@ export const useGoogleSignIn = () => {
         return `${header}.${payload}.${signature}`;
     };
 
-    return  {
+    return {
         handleDemoGoogleSignIn,
         isLoading,
         isGoogleLoading

@@ -1,4 +1,4 @@
-import {Card, Empty, Flex, Input, Pagination, Progress, Tabs, Tag, theme, Typography} from 'antd';
+import { Card, Empty, Flex, Input, Pagination, Progress, Tabs, Tag, theme, Typography } from 'antd';
 import {
   BookOutlined,
   CheckCircleOutlined,
@@ -8,16 +8,16 @@ import {
   SearchOutlined,
   TrophyOutlined
 } from '@ant-design/icons';
-import {useLibrary} from '../hooks/useLibrary.ts';
-import {getLibraryStyles} from '@/pages/books-library/ui/styles/styles.ts';
-import type {Book} from "@/entities/book/model/types.ts";
-import type {Metrics} from "@/entities/metrics/model/types.tsx";
-import type {ReactNode} from "react";
-import {useQuery} from '@tanstack/react-query';
-import {booksApi} from '@/pages/book-detail/api/bookApi.ts';
-import {LoadingPage} from "@/shared/ui/components/LoadingPage.tsx";
-import {useNavigate} from 'react-router-dom';
-import {useSettings} from "@/features/user-settings/config/SettingsContext.tsx";
+import { useLibrary } from '../hooks/useLibrary.ts';
+import { getLibraryStyles } from '@/pages/books-library/ui/styles/styles.ts';
+import type { Book } from "@/entities/book";
+import type { Metrics } from "@/entities/metrics";
+import type { ReactNode } from "react";
+import { useQuery } from '@tanstack/react-query';
+import { booksApi } from '@/pages/book-detail/api/bookApi.ts';
+import { LoadingPage } from "@/shared/ui";
+import { useNavigate } from 'react-router-dom';
+import { useSettings } from "@/features/user-settings";
 
 const { useToken } = theme;
 
@@ -29,6 +29,7 @@ export function BooksLibrary() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['books', 1, settingsPageSize],
+    //TODO: fix contract broke, this component uses api from book-detail
     queryFn: () => booksApi.getBooksList(1, settingsPageSize)
   });
 

@@ -1,6 +1,6 @@
-import {DefaultService} from "@/shared/api/openapi";
-import type {Book} from "@/entities/book/model/types.ts";
-import type {Metrics} from "@/entities/metrics/model/types.tsx";
+import { DefaultService } from "@/shared/api/openapi";
+import type { Book } from "@/entities/book";
+import type { Metrics } from "@/entities/metrics";
 
 export const booksApi = {
 
@@ -13,7 +13,7 @@ export const booksApi = {
         return detail as unknown as Book;
     },
 
-    getBooksList: async (page: number, pageSize: number): Promise<{metrics: Metrics, books: Book[]}> => {
+    getBooksList: async (page: number, pageSize: number): Promise<{ metrics: Metrics, books: Book[] }> => {
         const res = await DefaultService.getBooksList({ page, pageSize });
         return {
             metrics: res.data.metrics as unknown as Metrics,

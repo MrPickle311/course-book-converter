@@ -1,6 +1,6 @@
 import { Alert, Button, Checkbox, Flex, Input, Space, Typography, Upload, theme } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
-import type { Task } from "@/entities/course/model/types.ts";
+import type { Task } from "@/entities/course";
 import { getCourseStyles } from "@/pages/course-content/ui/styles/courseContentStyles.ts";
 import type { CSSProperties } from "react";
 

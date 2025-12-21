@@ -1,8 +1,8 @@
-import {useEffect, useMemo, useState} from 'react';
-import {useSettings} from '@/features/user-settings/config/SettingsContext.tsx';
-import type {Course} from '@/entities/course/model/types.ts';
-import type {Book} from "@/entities/book/model/types.ts";
-import type {Metrics} from "@/entities/metrics/model/types.tsx";
+import { useEffect, useMemo, useState } from 'react';
+import { useSettings } from '@/features/user-settings';
+import type { Course } from '@/entities/course';
+import type { Book } from "@/entities/book";
+import type { Metrics } from "@/entities/metrics";
 
 export function useLibrary(books: Book[], courses: Course[], metrics: Metrics) {
     const { pageSize } = useSettings();
@@ -77,15 +77,15 @@ export function useLibrary(books: Book[], courses: Course[], metrics: Metrics) {
     }, [totalPages, page]);
 
     const stats = useMemo(() => {
-            return {
-                total: metrics.totalBooks,
-                completed: metrics.completedBooks,
-                inProgress: metrics.inProgressBooks,
-                totalTasks: metrics.totalTasks,
-                completedTasks: metrics.completedTasks,
-                failedTasks: metrics.failedTasks,
-                overallProgressPct: Math.round((metrics.overallProgressFraction || 0) * 100),
-            }
+        return {
+            total: metrics.totalBooks,
+            completed: metrics.completedBooks,
+            inProgress: metrics.inProgressBooks,
+            totalTasks: metrics.totalTasks,
+            completedTasks: metrics.completedTasks,
+            failedTasks: metrics.failedTasks,
+            overallProgressPct: Math.round((metrics.overallProgressFraction || 0) * 100),
+        }
     }, [metrics, filteredBooks, bookStats, courses]);
 
     return {

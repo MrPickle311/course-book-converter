@@ -2,10 +2,10 @@ import { Suspense, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { coursesApi } from '../../api/coursesApi.ts';
 import { CourseContent } from './CourseContent.tsx';
-import type { Course } from '@/entities/course/model/types.ts';
-import { LoadingPage } from '@/shared/ui/components/LoadingPage.tsx';
+import type { Course } from '@/entities/course';
+import { LoadingPage } from '@/shared/ui';
 import { booksApi } from '@/pages/book-detail/api/bookApi.ts';
-import { useAuth } from '@/shared/lib/context/AuthContext.tsx';
+import { useAuth } from '@/shared/lib';
 import { useQuery } from '@tanstack/react-query';
 
 export function CoursePage() {
@@ -15,6 +15,7 @@ export function CoursePage() {
 
     const { data: book, isLoading: loadingBook } = useQuery({
         queryKey: ['book', bookId],
+        //TODO: fix contract broke, this component uses api from book-detail
         queryFn: () => booksApi.getBookDetails(bookId!),
         enabled: !!bookId
     });

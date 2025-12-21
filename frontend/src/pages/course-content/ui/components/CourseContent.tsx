@@ -6,7 +6,7 @@ import rehypeHighlight from 'rehype-highlight'
 import ReactMarkdown from 'react-markdown'
 import { MdxStyles } from '../styles/MdxStyles.tsx';
 import { MarkdownEditModal } from './MarkdownEditModal.tsx';
-import type { Course, Task } from "@/entities/course/model/types.ts";
+import type { Course, Task } from "@/entities/course";
 import { useCourse } from '../hooks/useCourse.ts';
 import { getCourseStyles } from "../styles/courseContentStyles.ts";
 import { TaskItem } from "./Task.tsx";

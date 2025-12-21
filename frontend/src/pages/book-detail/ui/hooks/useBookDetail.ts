@@ -1,6 +1,6 @@
-import {useMemo, useState} from 'react';
-import type {Book, Chapter} from "@/entities/book/model/types.ts";
-import {booksApi} from "@/pages/book-detail/api/bookApi.ts";
+import { useMemo, useState } from 'react';
+import type { Book, Chapter } from "@/entities/book";
+import { booksApi } from "@/pages/book-detail/api/bookApi.ts";
 
 export function useBookDetail(book: Book) {
     const [generating, setGenerating] = useState<Set<string>>(new Set());

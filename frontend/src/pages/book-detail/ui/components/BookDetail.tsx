@@ -2,9 +2,9 @@ import { Button, Card, Flex, Progress, Tag, theme, Typography } from 'antd';
 import { CalendarOutlined, CheckCircleOutlined, DeleteOutlined, ReadOutlined, RightOutlined } from '@ant-design/icons';
 import { useBookDetail } from '../hooks/useBookDetail.ts';
 import { getBookDetailStyles } from '../styles/styles.ts';
-import type { Chapter, Book } from "@/entities/book/model/types.ts";
+import type { Chapter, Book } from "@/entities/book";
 import { type ReactNode } from "react";
-import { LoadingPage } from "@/shared/ui/components/LoadingPage.tsx";
+import { LoadingPage } from "@/shared/ui";
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { booksApi } from '@/pages/book-detail/api/bookApi.ts';
@@ -39,6 +39,7 @@ export function BookDetail() {
   }
 
   const onGenerateCourse = async (chapterId: string) => {
+    //TODO: contract broke, books page uses sth from courses page
     await coursesApi.generateCourse(chapterId, book.id);
     await queryClient.invalidateQueries({ queryKey: ['book', id] });
   };

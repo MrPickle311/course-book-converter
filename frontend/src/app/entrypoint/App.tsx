@@ -1,20 +1,19 @@
-import React, {useState} from 'react';
-import {BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate} from 'react-router-dom';
-import {AuthProvider, useAuth} from '../../shared/lib/context/AuthContext.tsx';
-import {ThemeProvider, useTheme} from '@/features/user-settings/config/ThemeContext.tsx';
-import {SettingsProvider} from '@/features/user-settings/config/SettingsContext.tsx';
-import AuthForm from '@/pages/auth/ui/components/AuthForm.tsx';
-import {UploadBook} from '@/pages/book-upload/ui/components/UploadBook.tsx';
-import {BooksLibrary} from '@/pages/books-library/ui/components/BooksLibrary.tsx';
-import {BookDetail} from '@/pages/book-detail/ui/components/BookDetail.tsx';
-import {CoursePage} from '@/pages/course-content/ui/components/CoursePage.tsx';
-import {ConfigProvider, Layout} from 'antd';
-import {createAppTheme} from '../styles/appTheme.ts';
-import {NavBar} from "@/widgets/navbar/ui/components/NavBar.tsx";
-import {UserMenu} from "@/widgets/settings/ui/components/UserMenu.tsx";
-import {configureApi} from "@/shared/config/api/apiConfig.ts";
-import {LoadingPage} from "@/shared/ui/components/LoadingPage.tsx";
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+import React, { useState } from 'react';
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from '@/shared/lib';
+import { ThemeProvider, useTheme, SettingsProvider } from '@/features/user-settings';
+import { AuthForm } from '@/pages/auth';
+import { UploadBook } from '@/pages/book-upload';
+import { BooksLibrary } from '@/pages/books-library';
+import { BookDetail } from '@/pages/book-detail';
+import { CoursePage } from '@/pages/course-content';
+import { ConfigProvider, Layout } from 'antd';
+import { createAppTheme } from '../styles/appTheme.ts';
+import { NavBar } from "@/widgets/navbar";
+import { UserMenu } from "@/widgets/settings";
+import { configureApi } from "@/shared/config";
+import { LoadingPage } from "@/shared/ui";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const { Content } = Layout;
 
