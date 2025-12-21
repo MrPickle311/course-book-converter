@@ -26,7 +26,7 @@ export const getUploadBookStyles = (token: GlobalToken, isDragOver: boolean) => 
         cursor: 'pointer',
         maxWidth: 520,
         margin: '0 auto',
-        backgroundColor: isDragOver ? token.colorPrimaryBg : token.colorFillAlter, // Using colorFillAlter for 'card' bg approx
+        backgroundColor: isDragOver ? token.colorPrimaryBg : token.colorFillAlter,
     } as CSSProperties,
     iconLarge: {
         fontSize: 48,

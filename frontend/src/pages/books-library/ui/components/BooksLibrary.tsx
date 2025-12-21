@@ -8,25 +8,43 @@ import {
   SearchOutlined,
   TrophyOutlined
 } from '@ant-design/icons';
-import type {Course} from "@/entities/course/model/types.ts";
 import {useLibrary} from '../hooks/useLibrary.ts';
 import {getLibraryStyles} from '@/pages/books-library/ui/styles/styles.ts';
 import type {Book} from "@/entities/book/model/types.ts";
 import type {Metrics} from "@/entities/metrics/model/types.tsx";
 import type {ReactNode} from "react";
+import {useQuery} from '@tanstack/react-query';
+import {booksApi} from '@/pages/book-detail/api/bookApi.ts';
+import {LoadingPage} from "@/shared/ui/components/LoadingPage.tsx";
+import {useNavigate} from 'react-router-dom';
+import {useSettings} from "@/features/user-settings/config/SettingsContext.tsx";
 
 const { useToken } = theme;
 
-interface BooksLibraryProps {
-  books: Book[];
-  courses: Course[];
-  onOpenBook: (book: Book) => void;
-  metrics: Metrics;
-}
-
-export function BooksLibrary(props: BooksLibraryProps) {
+export function BooksLibrary() {
   const { token } = useToken();
   const styles = getLibraryStyles(token);
+  const navigate = useNavigate();
+  const { pageSize: settingsPageSize } = useSettings();
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['books', 1, settingsPageSize],
+    queryFn: () => booksApi.getBooksList(1, settingsPageSize)
+  });
+
+  const books = data?.books || [];
+  const metrics = data?.metrics || {
+    total: 0,
+    completed: 0,
+    inProgress: 0,
+    failedTasks: 0,
+    overallProgressPct: 0,
+    totalBooks: 0,
+    completedBooks: 0,
+    inProgressBooks: 0,
+    totalTasks: 0,
+    completedTasks: 0
+  } as any as Metrics;
 
   const {
     searchQuery,
@@ -40,7 +58,11 @@ export function BooksLibrary(props: BooksLibraryProps) {
     setPage,
     totalPages,
     pageSize
-  } = useLibrary(props.books, props.courses, props.metrics);
+  } = useLibrary(books, [], metrics);
+
+  if (isLoading) {
+    return <LoadingPage />;
+  }
 
   const overallProgress = stats.overallProgressPct;
 
@@ -54,84 +76,88 @@ export function BooksLibrary(props: BooksLibraryProps) {
 
   const MatricsCard = (props: MetricsCardProps) => {
     return (
-        <Card style={styles.card} size="small">
-          <Flex align="center" justify="space-between">
-            <Flex vertical gap={4}>
-              <Typography.Text type="secondary">
-                {props.text}
-              </Typography.Text>
-              <Typography.Text style={{ ...styles.statValue, color: props.iconColor }}>
-                {props.statsValue}
-              </Typography.Text>
-            </Flex>
-            {props?.icon}
+      <Card style={styles.card} size="small">
+        <Flex align="center" justify="space-between">
+          <Flex vertical gap={4}>
+            <Typography.Text type="secondary">
+              {props.text}
+            </Typography.Text>
+            <Typography.Text style={{ ...styles.statValue, color: props.iconColor }}>
+              {props.statsValue}
+            </Typography.Text>
           </Flex>
-          {props?.bottomWidget}
-        </Card>
+          {props?.icon}
+        </Flex>
+        {props?.bottomWidget}
+      </Card>
     )
   }
+
+  const handleOpenBook = (book: Book) => {
+    navigate(`/book/${book.id}`);
+  };
 
   function generateBookOutline(book: Book) {
     const statsForBook = bookStats.get(book.id)!;
     const progress = statsForBook.totalTasks > 0 ? (statsForBook.completedTasks / statsForBook.totalTasks) * 100 : 0;
     return (
-        <Card
-            key={book.id}
-            hoverable
-            onClick={() => props.onOpenBook(book)}
-            title={
-              <Flex align="center" justify="space-between" gap={12}>
-                <Flex align="center" gap={12}>
-                  <Flex
-                      align="center"
-                      justify="center"
-                      style={styles.bookCardIconWrapper}
-                  >
-                    <ReadOutlined style={styles.bookCardIcon}/>
-                  </Flex>
-                  <Flex vertical>
-                    <Typography.Text strong style={styles.bookCardTitle}>{book.title}</Typography.Text>
-                    <Typography.Text type="secondary" style={styles.bookCardSubtitle}>
-                      {statsForBook.totalCourses} generated course{statsForBook.totalCourses !== 1 ? 's' : ''} •
-                      Uploaded{' '}
-                      {new Date(book.uploadDate).toLocaleDateString()}
-                    </Typography.Text>
-                  </Flex>
-                </Flex>
-                <Flex align="center" gap={12}>
-                  <Tag color={statsForBook.isCompleted ? 'success' : statsForBook.isInProgress ? 'processing' : 'default'}>
-                    {statsForBook.isCompleted ? 'Completed' : statsForBook.isInProgress ? 'In Progress' : 'Not Started'}
-                  </Tag>
-                  <RightOutlined style={{fontSize: 20, color: token.colorTextQuaternary}}/>
-                </Flex>
+      <Card
+        key={book.id}
+        hoverable
+        onClick={() => handleOpenBook(book)}
+        title={
+          <Flex align="center" justify="space-between" gap={12}>
+            <Flex align="center" gap={12}>
+              <Flex
+                align="center"
+                justify="center"
+                style={styles.bookCardIconWrapper}
+              >
+                <ReadOutlined style={styles.bookCardIcon} />
               </Flex>
-            }
-        >
-          <Flex align="center" gap={16} style={styles.cardMeta}>
-            <Flex align="center" gap={6}>
-              <CheckCircleOutlined style={{fontSize: 16}}/>
-              <Typography.Text type="secondary">
-                {statsForBook.completedTasks}/{statsForBook.totalTasks} tasks
+              <Flex vertical>
+                <Typography.Text strong style={styles.bookCardTitle}>{book.title}</Typography.Text>
+                <Typography.Text type="secondary" style={styles.bookCardSubtitle}>
+                  {statsForBook.totalCourses} generated course{statsForBook.totalCourses !== 1 ? 's' : ''} •
+                  Uploaded{' '}
+                  {new Date(book.uploadDate).toLocaleDateString()}
+                </Typography.Text>
+              </Flex>
+            </Flex>
+            <Flex align="center" gap={12}>
+              <Tag color={statsForBook.isCompleted ? 'success' : statsForBook.isInProgress ? 'processing' : 'default'}>
+                {statsForBook.isCompleted ? 'Completed' : statsForBook.isInProgress ? 'In Progress' : 'Not Started'}
+              </Tag>
+              <RightOutlined style={{ fontSize: 20, color: token.colorTextQuaternary }} />
+            </Flex>
+          </Flex>
+        }
+      >
+        <Flex align="center" gap={16} style={styles.cardMeta}>
+          <Flex align="center" gap={6}>
+            <CheckCircleOutlined style={{ fontSize: 16 }} />
+            <Typography.Text type="secondary">
+              {statsForBook.completedTasks}/{statsForBook.totalTasks} tasks
+            </Typography.Text>
+          </Flex>
+          {statsForBook.failedTasks > 0 && (
+            <Flex
+              align="center"
+              gap={6}
+              style={{ color: token.colorError }}>
+              <Typography.Text
+                type="danger">
+                • {statsForBook.failedTasks} failed
               </Typography.Text>
             </Flex>
-            {statsForBook.failedTasks > 0 && (
-                <Flex
-                    align="center"
-                    gap={6}
-                    style={{color: token.colorError}}>
-                  <Typography.Text
-                      type="danger">
-                    • {statsForBook.failedTasks} failed
-                  </Typography.Text>
-                </Flex>
-            )}
-          </Flex>
-          <Progress
-              percent={Math.round(progress)}
-              size="small"
-              status={statsForBook.failedTasks > 0 ? 'exception' : 'active'}
-          />
-        </Card>
+          )}
+        </Flex>
+        <Progress
+          percent={Math.round(progress)}
+          size="small"
+          status={statsForBook.failedTasks > 0 ? 'exception' : 'active'}
+        />
+      </Card>
     );
   }
 
@@ -164,31 +190,31 @@ export function BooksLibrary(props: BooksLibraryProps) {
         />
 
         <MatricsCard
-            statsValue={stats.completed.toString()}
-            text={"Completed"}
-            iconColor={token.colorSuccess}
-            icon={<CheckCircleOutlined style={{ fontSize: 32, color: token.colorSuccess }} />}
+          statsValue={stats.completed.toString()}
+          text={"Completed"}
+          iconColor={token.colorSuccess}
+          icon={<CheckCircleOutlined style={{ fontSize: 32, color: token.colorSuccess }} />}
         />
 
         <MatricsCard
-            statsValue={stats.inProgress.toString()}
-            text={"In Progress"}
-            iconColor={token.colorWarning}
-            icon={<ClockCircleOutlined style={{ fontSize: 32, color: token.colorWarning }} />}
+          statsValue={stats.inProgress.toString()}
+          text={"In Progress"}
+          iconColor={token.colorWarning}
+          icon={<ClockCircleOutlined style={{ fontSize: 32, color: token.colorWarning }} />}
         />
 
         <MatricsCard
-            statsValue={stats.failedTasks.toString()}
-            text={"Failed Tasks"}
-            iconColor={token.colorError}
+          statsValue={stats.failedTasks.toString()}
+          text={"Failed Tasks"}
+          iconColor={token.colorError}
         />
 
         <MatricsCard
-            statsValue={Math.round(overallProgress) + '%'}
-            text={"Overall Progress"}
-            iconColor={token.colorText}
-            icon={<TrophyOutlined style={{ fontSize: 32, color: '#a855f7' }} />}
-            bottomWidget={<Progress percent={overallProgress} size="small" showInfo={false} />}
+          statsValue={Math.round(overallProgress) + '%'}
+          text={"Overall Progress"}
+          iconColor={token.colorText}
+          icon={<TrophyOutlined style={{ fontSize: 32, color: '#a855f7' }} />}
+          bottomWidget={<Progress percent={overallProgress} size="small" showInfo={false} />}
         />
 
       </Flex>

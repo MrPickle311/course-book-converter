@@ -47,6 +47,6 @@ export const getEditorStyles = (token: GlobalToken) => ({
         overflow: 'auto',
         minHeight: 0,
         padding: 12,
-        scrollbarWidth: 'none', // FireFox
+        scrollbarWidth: 'none',
     } as CSSProperties,
 });

@@ -1,15 +1,32 @@
 import { useState, useEffect } from 'react';
 import type { Course, Task, TaskEvaluation } from '@/entities/course/model/types.ts';
 import { tasksApi } from '../../api/tasksApi.ts';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-export function useCourse(course: Course, onUpdateCourse: (course: Course) => void) {
+export function useCourse(course: Course) {
     const [activeTab, setActiveTab] = useState('notes');
     const [taskAnswers, setTaskAnswers] = useState<Record<string, string | string[] | File | null>>({});
     const [submitting, setSubmitting] = useState<Record<string, boolean>>({});
     const [editOpen, setEditOpen] = useState(false);
+    const [localTasks, setLocalTasks] = useState<Task[]>([]);
 
-    const completedTasks = course.tasks.filter(task => task.completed).length;
-    const progressPercentage = course.tasks.length > 0 ? (completedTasks / course.tasks.length) * 100 : 0;
+    const queryClient = useQueryClient();
+    const { data: fetchedTasks } = useQuery({
+        queryKey: ['course', course.bookId, course.chapterId, 'tasks'],
+        queryFn: () => tasksApi.getChapterTasks(course.bookId, course.chapterId),
+        enabled: !!course.bookId && !!course.chapterId,
+        refetchOnWindowFocus: false
+    });
+
+    useEffect(function setLocalTasksWhenFetched() {
+        if (fetchedTasks) {
+            setLocalTasks(fetchedTasks);
+        }
+    }, [fetchedTasks]);
+
+    const tasks = localTasks;
+    const completedTasks = tasks.filter(task => task.completed).length;
+    const progressPercentage = tasks.length > 0 ? (completedTasks / tasks.length) * 100 : 0;
 
     const isTaskCorrect = (task: Task): boolean | null => {
         if (!task.completed) {
@@ -30,48 +47,9 @@ export function useCourse(course: Course, onUpdateCourse: (course: Course) => vo
         return null;
     };
 
-    const isTaskFailed = (task: Task): boolean => {
-        if (!task.completed) {
-            return false;
-        }
-        return !isTaskCorrect(task);
+    const updateLocalTasks = (newTasks: Task[]) => {
+        setLocalTasks(newTasks);
     };
-
-    const computeCourseCompleted = (tasks: Task[]): boolean => {
-        if (tasks.length === 0) {
-            return false;
-        }
-        const allCompleted = tasks.every(t => t.completed);
-        if (!allCompleted) {
-            return false;
-        }
-        return !tasks.some(t => isTaskFailed(t));
-    };
-
-    useEffect(function updateTasks() {
-        (async () => {
-            try {
-                const mapped = await tasksApi.getChapterTasks(course.bookId, course.chapterId);
-                const updatedCourse = {
-                    ...course,
-                    tasks: mapped,
-                    completed: computeCourseCompleted(mapped)
-                };
-
-                const prevCompleted = course.tasks.filter(t => t.completed).length;
-                const newCompleted = mapped.filter(t => t.completed).length;
-                if (mapped.length !== course.tasks.length || prevCompleted !== newCompleted) {
-                    onUpdateCourse(updatedCourse);
-                } else {
-                    onUpdateCourse(updatedCourse);
-                }
-
-            } catch (e) {
-                console.error('Failed to load tasks', e);
-            }
-        })();
-    }, [activeTab, course.bookId, course.chapterId]);
-
 
     const openFilePicker = (taskId: string) => {
         const input = document.getElementById(`file-input-${taskId}`) as HTMLInputElement | null;
@@ -106,13 +84,8 @@ export function useCourse(course: Course, onUpdateCourse: (course: Course) => vo
             delete next[task.id];
             return next;
         });
-        const updatedTasks = course.tasks.map(t => t.id === task.id ? resetTask : t);
-        const updatedCourse = {
-            ...course,
-            tasks: updatedTasks,
-            completed: computeCourseCompleted(updatedTasks)
-        };
-        onUpdateCourse(updatedCourse);
+        const updatedTasks = tasks.map(t => t.id === task.id ? resetTask : t);
+        updateLocalTasks(updatedTasks);
     };
 
     const handleSubmitTask = (task: Task) => {
@@ -125,88 +98,54 @@ export function useCourse(course: Course, onUpdateCourse: (course: Course) => vo
                 evaluation,
                 completed: true,
             } as Task;
-            const updatedTasks = course.tasks.map(t => t.id === task.id ? updatedTask : t);
-            onUpdateCourse({ ...course, tasks: updatedTasks, completed: computeCourseCompleted(updatedTasks) });
+            const updatedTasks = tasks.map(t => t.id === task.id ? updatedTask : t);
+            updateLocalTasks(updatedTasks);
+            queryClient.setQueryData(['course', course.bookId, course.chapterId, 'tasks'], updatedTasks);
+        };
+
+        const executeSubmit = async (apiCall: () => Promise<TaskEvaluation | undefined>, updatePayload: Partial<Task>) => {
+            setSubmitting(prev => ({ ...prev, [task.id]: true }));
+            try {
+                const evaluation = await apiCall();
+                updateTaskWithResult(evaluation, updatePayload);
+            } catch (e) {
+                console.error('Submit failed', e);
+            } finally {
+                setSubmitting(prev => ({ ...prev, [task.id]: false }));
+            }
         };
 
         if (task.type === 'multiple-select') {
             const list = (answer as string[] | undefined) || [];
-            if (list.length === 0) {
-                return;
-            }
-            setSubmitting(prev => ({ ...prev, [task.id]: true }));
-            (async () => {
-                try {
-                    const evaluation = await tasksApi.submitMultiSelect(task.id, list);
-                    updateTaskWithResult(evaluation, { userAnswers: list });
-                } catch (e) {
-                    console.error('Submit failed', e);
-                } finally {
-                    setSubmitting(prev => ({ ...prev, [task.id]: false }));
-                }
-            })();
+            if (list.length === 0) return;
+            executeSubmit(() => tasksApi.submitMultiSelect(task.id, list), { userAnswers: list });
             return;
         }
 
         if (task.type === 'upload-pdf') {
             const file = answer as File | undefined;
-            if (!file) {
-                return;
-            }
-            setSubmitting(prev => ({ ...prev, [task.id]: true }));
-            (async () => {
-                try {
-                    const evaluation = await tasksApi.submitPdfUpload(task.id, file);
-                    updateTaskWithResult(evaluation, { userFileName: file.name });
-                } catch (e) {
-                    console.error('Submit failed', e);
-                } finally {
-                    setSubmitting(prev => ({ ...prev, [task.id]: false }));
-                }
-            })();
+            if (!file) return;
+            executeSubmit(() => tasksApi.submitPdfUpload(task.id, file), { userFileName: file.name });
             return;
         }
 
         const userAnswer = (answer as string | undefined) || '';
-        if (!userAnswer) {
-            return;
-        }
+        if (!userAnswer) return;
 
         if (task.type === 'short-answer' || task.type === 'code') {
-            setSubmitting(prev => ({ ...prev, [task.id]: true }));
-            (async () => {
-                try {
-                    const evaluation = await tasksApi.submitTextAnswer(task.id, userAnswer);
-                    updateTaskWithResult(evaluation, { userAnswer, userFileName: undefined });
-                } catch (e) {
-                    console.error('Submit failed', e);
-                } finally {
-                    setSubmitting(prev => ({ ...prev, [task.id]: false }));
-                }
-            })();
+            executeSubmit(() => tasksApi.submitTextAnswer(task.id, userAnswer), { userAnswer, userFileName: undefined });
             return;
         }
 
         if (task.type === 'multiple-choice') {
-            setSubmitting(prev => ({ ...prev, [task.id]: true }));
-            (async () => {
-                try {
-                    const evaluation = await tasksApi.submitMultipleChoice(task.id, userAnswer);
-                    updateTaskWithResult(evaluation, { userAnswer, userFileName: undefined });
-                } catch (e) {
-                    console.error('Submit failed', e);
-                } finally {
-                    setSubmitting(prev => ({ ...prev, [task.id]: false }));
-                }
-            })();
+            executeSubmit(() => tasksApi.submitMultipleChoice(task.id, userAnswer), { userAnswer, userFileName: undefined });
             return;
         }
     };
 
-    const handleNotesSave = (value: string) => {
-        const updatedCourse = { ...course, notes: value };
-        onUpdateCourse(updatedCourse);
+    const handleNotesSave = () => {
         setEditOpen(false);
+        queryClient.invalidateQueries({ queryKey: ['course', course.bookId, course.chapterId, 'notes'] });
     };
 
     return {
@@ -224,6 +163,7 @@ export function useCourse(course: Course, onUpdateCourse: (course: Course) => vo
         openFilePicker,
         completedTasks,
         progressPercentage,
-        isTaskCorrect
+        isTaskCorrect,
+        tasks
     };
 }

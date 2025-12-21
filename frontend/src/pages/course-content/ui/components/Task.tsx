@@ -93,8 +93,12 @@ const MultipleChoiceTask = (props: MultipleChoiceProps) => {
                                 id={`${props.task.id}-mc-${index}`}
                                 checked={isSelected}
                                 onChange={(e) => {
-                                    if (props.task.completed) return;
-                                    if (e.target.checked) props.onChange(option.id);
+                                    if (props.task.completed) {
+                                        return;
+                                    }
+                                    if (e.target.checked) {
+                                        props.onChange(option.id);
+                                    }
                                 }}
                                 disabled={props.task.completed || props.isSubmitting}
                             />
