@@ -1,5 +1,5 @@
 
-export interface LibraryMetricsUI {
+export interface Metrics {
     totalBooks: number;
     completedBooks: number;
     inProgressBooks: number;

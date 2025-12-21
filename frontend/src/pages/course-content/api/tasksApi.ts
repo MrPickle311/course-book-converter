@@ -30,8 +30,7 @@ export const tasksApi = {
                 userAnswers: st.userAnswers,
                 userFileName: st.userFileName,
                 evaluation: st.evaluation ? mapEvaluation(st.evaluation) : undefined,
-                completed: Boolean(st.completed),
-                feedback: undefined
+                completed: st.completed
             } as Task;
         });
     },

@@ -12,7 +12,7 @@ import type {Course} from "@/entities/course/model/types.ts";
 import {useLibrary} from '../hooks/useLibrary.ts';
 import {getLibraryStyles} from '@/pages/books-library/ui/styles/styles.ts';
 import type {Book} from "@/entities/book/model/types.ts";
-import type {LibraryMetricsUI} from "@/entities/metrics/model/types.tsx";
+import type {Metrics} from "@/entities/metrics/model/types.tsx";
 import type {ReactNode} from "react";
 
 const { useToken } = theme;
@@ -21,7 +21,7 @@ interface BooksLibraryProps {
   books: Book[];
   courses: Course[];
   onOpenBook: (book: Book) => void;
-  metrics: LibraryMetricsUI;
+  metrics: Metrics;
 }
 
 export function BooksLibrary(props: BooksLibraryProps) {

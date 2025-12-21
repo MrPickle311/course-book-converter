@@ -4,6 +4,7 @@ import {useBookDetail} from '../hooks/useBookDetail.ts';
 import {getBookDetailStyles} from '../styles/styles.ts';
 import type {Chapter, Book} from "@/entities/book/model/types.ts";
 import {type ReactNode} from "react";
+import {LoadingPage} from "@/shared/ui/components/LoadingPage.tsx";
 
 const { useToken } = theme;
 
@@ -17,13 +18,17 @@ export interface BookDetailProps {
 export function BookDetail(props: BookDetailProps) {
   const { token } = useToken();
   const styles = getBookDetailStyles(token);
-
   const {
     stats,
     generating,
     handleDelete,
     handleGenerate
   } = useBookDetail(props.book);
+
+
+  if (!props.book.chapters) {
+    return <LoadingPage/>;
+  }
 
   const BookDetailsHeader = () =>
   <Card

@@ -2,9 +2,9 @@ import {useEffect, useMemo, useState} from 'react';
 import {useSettings} from '@/features/user-settings/config/SettingsContext.tsx';
 import type {Course} from '@/entities/course/model/types.ts';
 import type {Book} from "@/entities/book/model/types.ts";
-import type {LibraryMetricsUI} from "@/entities/metrics/model/types.tsx";
+import type {Metrics} from "@/entities/metrics/model/types.tsx";
 
-export function useLibrary(books: Book[], courses: Course[], metrics: LibraryMetricsUI) {
+export function useLibrary(books: Book[], courses: Course[], metrics: Metrics) {
     const { pageSize } = useSettings();
     const [searchQuery, setSearchQuery] = useState('');
     const [activeView, setActiveView] = useState<'all' | 'in-progress' | 'completed'>('all');

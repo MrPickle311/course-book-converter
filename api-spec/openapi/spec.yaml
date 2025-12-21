@@ -434,10 +434,6 @@ components:
       properties:
         title:
           type: string
-        objectives:
-          type: array
-          items:
-            type: string
         content:
           type: string
         tasks:

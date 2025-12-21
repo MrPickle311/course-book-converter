@@ -1,6 +1,6 @@
 import {useMemo, useState} from 'react';
 import type {Book, Chapter} from "@/entities/book/model/types.ts";
-import {booksDetailsApi} from "@/pages/book-detail/api/bookDetailsApi.ts";
+import {booksApi} from "@/pages/book-detail/api/bookApi.ts";
 
 export function useBookDetail(book: Book) {
     const [generating, setGenerating] = useState<Set<string>>(new Set());
@@ -26,7 +26,7 @@ export function useBookDetail(book: Book) {
             if (onDeleteBook) {
                 await onDeleteBook(book.id);
             } else {
-                await booksDetailsApi.deleteBook(book)
+                await booksApi.deleteBook(book)
                 goToMainPage()
             }
         } catch (e) {

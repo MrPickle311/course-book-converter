@@ -6,19 +6,19 @@ export const createAppTheme = (isDarkMode: boolean): ThemeConfig => {
     const darkTokens = {
         colorText: '#e5e7eb',
         colorTextHeading: '#f8fafc',
-        colorBgLayout: '#0f172a', // Slate 900
-        colorBgContainer: '#1e293b', // Slate 800
-        colorBgElevated: '#334155', // Slate 700
+        colorBgLayout: '#0f172a',
+        colorBgContainer: '#1e293b',
+        colorBgElevated: '#334155',
         colorLink: '#60a5fa',
-        colorBorder: '#334155', // Slate 700
+        colorBorder: '#334155',
         colorBorderSecondary: '#1e293b',
     };
 
     const lightTokens = {
-        colorBgLayout: '#f8fafc', // Slate 50
+        colorBgLayout: '#f8fafc',
         colorBgContainer: '#ffffff',
-        colorText: '#0f172a', // Slate 900
-        colorTextSecondary: '#64748b', // Slate 500
+        colorText: '#0f172a',
+        colorTextSecondary: '#64748b',
     };
 
     return {
