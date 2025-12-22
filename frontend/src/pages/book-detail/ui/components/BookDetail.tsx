@@ -1,7 +1,7 @@
 import { Button, Card, Flex, Progress, Tag, theme, Typography } from 'antd';
 import { CalendarOutlined, CheckCircleOutlined, DeleteOutlined, ReadOutlined, RightOutlined } from '@ant-design/icons';
 import { useBookDetail } from '../hooks/useBookDetail.ts';
-import { getBookDetailStyles } from '../styles/styles.ts';
+import { useAppStyles } from '@/shared/ui/theme/AppStyles.ts';
 import type { Chapter, Book } from "@/entities/book";
 import { type ReactNode } from "react";
 import { LoadingPage } from "@/shared/ui";
@@ -17,7 +17,7 @@ export function BookDetail() {
   const { id } = useParams<'id'>();
   const navigate = useNavigate();
   const { token } = useToken();
-  const styles = getBookDetailStyles(token);
+  const styles = useAppStyles(token);
   const queryClient = useQueryClient();
 
   const { data: book, isLoading } = useQuery({
@@ -55,18 +55,18 @@ export function BookDetail() {
         <Flex
           align="center"
           justify="center"
-          style={styles.headerIconWrapper}
+          style={styles.iconWrapper}
         >
-          <ReadOutlined style={styles.headerIcon} />
+          <ReadOutlined style={{ fontSize: 24, color: token.colorPrimary }} />
         </Flex>
         <Flex vertical>
-          <Typography.Title level={4} style={styles.headerTitle}>{book.title}</Typography.Title>
-          <Text type="secondary" style={styles.headerDate}>
+          <Typography.Title level={4} style={styles.sectionTitle}>{book.title}</Typography.Title>
+          <Text type="secondary" style={styles.textSecondary}>
             Uploaded {new Date(book.uploadDate).toLocaleDateString()}
           </Text>
         </Flex>
       </Flex>}
-      extra={<div style={styles.deleteButtonContainer}>
+      extra={<div style={{ marginLeft: 'auto' }}>
         <Button
           danger
           size="small"
@@ -77,21 +77,21 @@ export function BookDetail() {
         </Button>
       </div>}
     >
-      <Flex wrap gap={16} style={styles.statsContainer}>
-        <Text type="secondary" style={styles.statLabel}>
+      <Flex wrap gap={16} style={{ marginBottom: 16 }}>
+        <Text type="secondary" style={styles.textSecondary}>
           Generated courses:{' '}
           <Text strong>{stats.generatedChaptersCount}</Text>
         </Text>
-        <Text type="secondary" style={styles.statLabel}>
+        <Text type="secondary" style={styles.textSecondary}>
           Completed:{' '}
           <Text strong>{stats.completedCourses}</Text>
         </Text>
-        <Text type="secondary" style={styles.statLabel}>
+        <Text type="secondary" style={styles.textSecondary}>
           Tasks:{' '}
           <Text strong>
             {stats.completedTasks}/{stats.totalTasks}
           </Text>
-          {stats.failedTasks > 0 && <span style={styles.failedText}> • {stats.failedTasks} failed</span>}
+          {stats.failedTasks > 0 && <span style={{ color: token.colorError }}> • {stats.failedTasks} failed</span>}
         </Text>
       </Flex>
       <Progress percent={Math.round(stats.progress)} size="small" status="active" />
@@ -108,14 +108,14 @@ export function BookDetail() {
         <Flex align="center" justify="space-between">
           <Flex vertical gap={8} style={{ flex: 1 }}>
             <Flex align="center" gap={8}>
-              <Typography.Title level={5} style={styles.chapterTitle}>
+              <Typography.Title level={5} style={{ margin: 0 }}>
                 {chapter.title}
               </Typography.Title>
               <Tag color={isCourseCompleted ? 'success' : 'default'} style={{ fontSize: '0.75rem' }}>
                 {isCourseCompleted ? 'Completed' : 'In Progress'}
               </Tag>
             </Flex>
-            <Flex align="center" gap={16} style={styles.chapterMeta}>
+            <Flex align="center" gap={16} style={styles.textSecondary}>
               <Flex align="center" gap={6}>
                 <CalendarOutlined style={{ fontSize: 12 }} />
                 <Text
@@ -141,10 +141,10 @@ export function BookDetail() {
       <Card key={chapter.chapterId} size="small">
         <Flex align="center" justify="space-between">
           <Flex vertical gap={4}>
-            <Typography.Title level={5} style={styles.chapterTitle}>
+            <Typography.Title level={5} style={{ margin: 0 }}>
               {chapter.title}
             </Typography.Title>
-            <Text type="secondary" style={styles.chapterPage}>
+            <Text type="secondary" style={{ fontSize: '0.75rem', color: token.colorTextSecondary }}>
               Page {chapter.startPage}
             </Text>
           </Flex>
@@ -175,7 +175,7 @@ export function BookDetail() {
   }
 
   return (
-    <Flex vertical gap={24} style={styles.container}>
+    <Flex vertical gap={24} style={styles.pageContainer}>
       <BookDetailsHeader />
       <Flex vertical gap={16}>
         {book.chapters?.map(c => renderChapter(c))}

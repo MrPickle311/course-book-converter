@@ -1,7 +1,7 @@
 import { Alert, Button, Checkbox, Flex, Input, Space, Typography, Upload, theme } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import type { Task } from "@/entities/course";
-import { getCourseStyles } from "@/pages/course-content/ui/styles/courseContentStyles.ts";
+import { useAppStyles } from '@/shared/ui/theme/AppStyles.ts';
 import type { CSSProperties } from "react";
 
 const { useToken } = theme;
@@ -44,10 +44,10 @@ const TaskFeedback = ({ task, onRetake, styles }: { task: Task; onRetake: () => 
             />
 
             {!isCorrect && mistakes && mistakes.length > 0 && (
-                <Flex vertical gap={8} style={styles.feedbackBox}>
+                <Flex vertical gap={8} style={styles.taskFeedbackBox}>
                     <Typography.Text strong>Feedback:</Typography.Text>
                     <Flex vertical gap={4} style={{ fontSize: '0.875rem', marginTop: 8 }}>
-                        {mistakes.map((m, idx) => (
+                        {mistakes.map((m: string, idx: number) => (
                             <Flex key={idx} align="flex-start" gap={8}>
                                 <span>•</span>
                                 <span>{m}</span>
@@ -68,7 +68,7 @@ const TaskFeedback = ({ task, onRetake, styles }: { task: Task; onRetake: () => 
 
 const MultipleChoiceTask = (props: MultipleChoiceProps) => {
     const { token } = useToken();
-    const styles = getCourseStyles(token);
+    const styles = useAppStyles(token);
 
     return (
         <Flex vertical gap={16}>
@@ -116,7 +116,7 @@ const MultipleChoiceTask = (props: MultipleChoiceProps) => {
 
 const MultipleSelectTask = (props: MultipleSelectProps) => {
     const { token } = useToken();
-    const styles = getCourseStyles(token);
+    const styles = useAppStyles(token);
     const safeValue = Array.isArray(props.responseIds) ? props.responseIds : [];
 
     const handleToggle = (optionId: string) => {
@@ -166,7 +166,7 @@ const MultipleSelectTask = (props: MultipleSelectProps) => {
 
 const ShortAnswerTask = (props: ShortAnswerProps) => {
     const { token } = useToken();
-    const styles = getCourseStyles(token);
+    const styles = useAppStyles(token);
 
     return (
         <Flex vertical gap={16}>
@@ -190,7 +190,7 @@ const ShortAnswerTask = (props: ShortAnswerProps) => {
 
 const UploadPdfTask = (props: UploadProps) => {
     const { token } = useToken();
-    const styles = getCourseStyles(token);
+    const styles = useAppStyles(token);
 
     const displayFileName = props.task.completed ? props.task.userFileName : props.responseFile?.name;
 
@@ -214,7 +214,7 @@ const UploadPdfTask = (props: UploadProps) => {
             </Upload>
 
             {displayFileName && (
-                <Flex style={styles.infoTone}>
+                <Flex style={styles.infoBox}>
                     <p style={{ fontSize: '0.875rem', fontWeight: 500, margin: 0 }}>
                         <strong>{props.task.completed ? 'Uploaded file:' : 'Selected:'}</strong> {displayFileName}
                     </p>

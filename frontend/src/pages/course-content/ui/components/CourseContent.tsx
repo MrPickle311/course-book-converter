@@ -8,7 +8,7 @@ import { MdxStyles } from '../styles/MdxStyles.tsx';
 import { MarkdownEditModal } from './MarkdownEditModal.tsx';
 import type { Course, Task } from "@/entities/course";
 import { useCourse } from '../hooks/useCourse.ts';
-import { getCourseStyles } from "../styles/courseContentStyles.ts";
+import { useAppStyles } from '@/shared/ui/theme/AppStyles.ts';
 import { TaskItem } from "./Task.tsx";
 
 export interface CourseContentProps {
@@ -17,7 +17,7 @@ export interface CourseContentProps {
 
 export function CourseContent(props: CourseContentProps) {
   const { token } = theme.useToken();
-  const styles = getCourseStyles(token);
+  const styles = useAppStyles(token);
 
   const {
     activeTab,
@@ -70,7 +70,7 @@ export function CourseContent(props: CourseContentProps) {
           <Flex
             align="center"
             gap={8}
-            style={styles.headerMeta}
+            style={styles.textSecondary}
           >
             <BookOutlined style={{ width: 16, height: 16 }} />
             <span>{props.course.bookTitle}</span>
@@ -80,14 +80,14 @@ export function CourseContent(props: CourseContentProps) {
             <Tag color={props.course.completed ? "success" : "processing"}>
               {props.course.completed ? "Completed" : "In Progress"}
             </Tag>
-            <span style={styles.headerMeta}>
+            <span style={styles.textSecondary}>
               Created: {new Date(props.course.createdDate).toLocaleDateString()}
             </span>
           </Flex>
         </Flex>
         <Flex align="center" gap={8}>
           {props.course.completed && (
-            <Flex align="center" gap={8} style={styles.successText}>
+            <Flex align="center" gap={8} style={{ fontSize: '0.875rem', color: token.colorSuccess }}>
               <TrophyOutlined style={{ fontSize: 20 }} />
               <span>Course Completed!</span>
             </Flex>
@@ -107,7 +107,7 @@ export function CourseContent(props: CourseContentProps) {
       <Flex vertical gap={16}>
         <Flex align="center" justify="space-between">
           <h3>Progress Overview</h3>
-          <span style={styles.progressText}>
+          <span style={styles.textSecondary}>
             {completedTasks} of {tasks.length} tasks completed
           </span>
         </Flex>
@@ -141,13 +141,21 @@ export function CourseContent(props: CourseContentProps) {
             <Flex
               align="center"
               justify="center"
-              style={styles.taskIndexCircle}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 9999,
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                backgroundColor: token.colorFillSecondary,
+                color: token.colorText,
+              }}
             >
               {index + 1}
             </Flex>
           </Flex>
           <Flex vertical gap={4} justify="center">
-            <Typography.Text strong style={styles.taskQuestion}>{task.question}</Typography.Text>
+            <Typography.Text strong style={{ fontSize: '1rem' }}>{task.question}</Typography.Text>
           </Flex>
         </Flex>
         {submitting[task.id] ? (
@@ -235,7 +243,7 @@ export function CourseContent(props: CourseContentProps) {
       ]} />;
 
   return (
-    <Flex vertical gap={24} style={styles.container}>
+    <Flex vertical gap={24} style={styles.pageContainer}>
       <CourseHeader />
       <ProgressOverview />
       <MainContent />

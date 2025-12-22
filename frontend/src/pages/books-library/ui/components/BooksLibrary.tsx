@@ -9,7 +9,7 @@ import {
   TrophyOutlined
 } from '@ant-design/icons';
 import { useLibrary } from '../hooks/useLibrary.ts';
-import { getLibraryStyles } from '@/pages/books-library/ui/styles/styles.ts';
+import { useAppStyles } from '@/shared/ui/theme/AppStyles.ts';
 import type { Book } from "@/entities/book";
 import type { Metrics } from "@/entities/metrics";
 import type { ReactNode } from "react";
@@ -23,7 +23,7 @@ const { useToken } = theme;
 
 export function BooksLibrary() {
   const { token } = useToken();
-  const styles = getLibraryStyles(token);
+  const styles = useAppStyles(token);
   const navigate = useNavigate();
   const { pageSize: settingsPageSize } = useSettings();
 
@@ -76,13 +76,13 @@ export function BooksLibrary() {
 
   const MatricsCard = (props: MetricsCardProps) => {
     return (
-      <Card style={styles.card} size="small">
+      <Card style={{ ...styles.card, width: '19%' }} size="small" >
         <Flex align="center" justify="space-between">
           <Flex vertical gap={4}>
             <Typography.Text type="secondary">
               {props.text}
             </Typography.Text>
-            <Typography.Text style={{ ...styles.statValue, color: props.iconColor }}>
+            <Typography.Text style={{ fontSize: '1.75rem', fontWeight: 600, color: props.iconColor }}>
               {props.statsValue}
             </Typography.Text>
           </Flex>
@@ -111,13 +111,13 @@ export function BooksLibrary() {
               <Flex
                 align="center"
                 justify="center"
-                style={styles.bookCardIconWrapper}
+                style={styles.iconWrapperSmall}
               >
-                <ReadOutlined style={styles.bookCardIcon} />
+                <ReadOutlined style={{ fontSize: 20, color: token.colorPrimary }} />
               </Flex>
               <Flex vertical>
-                <Typography.Text strong style={styles.bookCardTitle}>{book.title}</Typography.Text>
-                <Typography.Text type="secondary" style={styles.bookCardSubtitle}>
+                <Typography.Text strong style={{ fontSize: '1.1rem' }}>{book.title}</Typography.Text>
+                <Typography.Text type="secondary" style={{ fontSize: '0.875rem' }}>
                   {statsForBook.totalCourses} generated course{statsForBook.totalCourses !== 1 ? 's' : ''} •
                   Uploaded{' '}
                   {new Date(book.uploadDate).toLocaleDateString()}
@@ -133,7 +133,7 @@ export function BooksLibrary() {
           </Flex>
         }
       >
-        <Flex align="center" gap={16} style={styles.cardMeta}>
+        <Flex align="center" gap={16} style={styles.textSecondary}>
           <Flex align="center" gap={6}>
             <CheckCircleOutlined style={{ fontSize: 16 }} />
             <Typography.Text type="secondary">
@@ -162,10 +162,10 @@ export function BooksLibrary() {
   }
 
   return (
-    <Flex vertical gap={24} style={styles.container}>
+    <Flex vertical gap={24} style={styles.pageContainer}>
       <Flex vertical gap={16}>
         <Flex align="center" justify="space-between">
-          <Typography.Title level={2} style={styles.title}>
+          <Typography.Title level={2} style={styles.headerTitle}>
             My Books
           </Typography.Title>
         </Flex>
@@ -180,7 +180,7 @@ export function BooksLibrary() {
         />
       </Flex>
 
-      <Flex wrap gap={16}>
+      <Flex wrap justify="space-evenly" gap={1}>
 
         <MatricsCard
           statsValue={stats.total.toString()}
@@ -252,7 +252,7 @@ export function BooksLibrary() {
             }
 
             {totalPages > 1 && (
-              <Flex justify="center" style={styles.paginationContainer}>
+              <Flex justify="center" style={{ marginTop: 16 }}>
                 <Pagination
                   current={page}
                   total={filteredBooks.length}

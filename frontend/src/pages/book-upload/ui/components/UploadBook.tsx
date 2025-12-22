@@ -1,10 +1,10 @@
-import {Button, Card, Flex, Progress, Spin, Steps, theme, Typography} from 'antd';
-import {CheckCircleOutlined, CloudUploadOutlined, DeleteOutlined, FilePdfOutlined} from '@ant-design/icons';
-import {useUploadBook} from '../hooks/useUploadBook.ts';
-import {getUploadBookStyles} from '../styles/styles.ts';
-import {useNavigate} from 'react-router-dom';
-import {useQueryClient} from '@tanstack/react-query';
-import {uploadApi} from "@/pages/book-upload/api/uploadApi.ts";
+import { Button, Card, Flex, Progress, Spin, Steps, theme, Typography } from 'antd';
+import { CheckCircleOutlined, CloudUploadOutlined, DeleteOutlined, FilePdfOutlined } from '@ant-design/icons';
+import { useUploadBook } from '../hooks/useUploadBook.ts';
+import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { uploadApi } from "@/pages/book-upload/api/uploadApi.ts";
+import { useAppStyles } from '@/shared/ui/theme/AppStyles.ts';
 
 const { useToken } = theme;
 
@@ -39,14 +39,14 @@ export function UploadBook() {
         handleRemoveFile
     } = useUploadBook(handleFileUploadCallback);
 
-    const styles = getUploadBookStyles(token, isDragOver);
+    const styles = useAppStyles(token);
 
     const Introduction = () =>
-        <Flex vertical align="center" gap={16} style={styles.header}>
-            <Typography.Title level={2} style={styles.title}>
+        <Flex vertical align="center" gap={16} style={{ textAlign: 'center' }}>
+            <Typography.Title level={2} style={{ marginBottom: 0 }}>
                 Turn a PDF book into a course with notes and tasks
             </Typography.Title>
-            <Typography.Text style={styles.mutedText}>Convert PDFs into interactive study material in minutes.</Typography.Text>
+            <Typography.Text style={styles.textSecondary}>Convert PDFs into interactive study material in minutes.</Typography.Text>
         </Flex>
 
     const FlowSteps = () =>
@@ -63,10 +63,10 @@ export function UploadBook() {
 
     const UploadWindow = () =>
         <Flex vertical gap={16} align="center">
-            <CloudUploadOutlined style={styles.iconLarge} />
+            <CloudUploadOutlined style={{ fontSize: 48, color: token.colorTextTertiary }} />
             <Flex vertical gap={8}>
                 <Typography.Text>Drag and drop your PDF book here</Typography.Text>
-                <Typography.Text style={styles.smallMutedText}>or</Typography.Text>
+                <Typography.Text style={{ fontSize: '0.875rem', color: token.colorTextSecondary }}>or</Typography.Text>
                 <label htmlFor="file-upload" style={{ cursor: 'pointer' }}>
                     <Button>Choose File</Button>
                     <input
@@ -78,7 +78,7 @@ export function UploadBook() {
                     />
                 </label>
             </Flex>
-            <Typography.Text style={styles.extraSmallMutedText}>
+            <Typography.Text style={{ fontSize: '0.75rem', color: token.colorTextSecondary }}>
                 Only PDF files are supported
             </Typography.Text>
         </Flex>
@@ -94,8 +94,8 @@ export function UploadBook() {
 
     const ProcessingCompleteDialog = () =>
         <Flex align="center" gap={8}>
-            <CheckCircleOutlined style={styles.successIcon} />
-            <Typography.Text style={styles.smallMutedText}>
+            <CheckCircleOutlined style={{ fontSize: 16, color: token.colorSuccess }} />
+            <Typography.Text style={{ fontSize: '0.875rem', color: token.colorTextSecondary }}>
                 Processing complete!
             </Typography.Text>
         </Flex>;
@@ -104,13 +104,13 @@ export function UploadBook() {
     const ProcessingInProgressDialog = () =>
         <Flex align="center" gap={8}>
             <Spin size="small" />
-            <Typography.Text style={styles.smallMutedText}>
+            <Typography.Text style={{ fontSize: '0.875rem', color: token.colorTextSecondary }}>
                 Processing PDF...
             </Typography.Text>
         </Flex>;
 
     const ProcessingInformation = () =>
-        <Flex vertical gap={16} align="center" style={styles.processingContainer}>
+        <Flex vertical gap={16} align="center" style={{ width: '100%', minWidth: 300 }}>
             <Flex vertical gap={8} align="center" style={{ width: '100%' }}>
                 {uploadProgress < 100 ? <ProcessingInProgressDialog /> : <ProcessingCompleteDialog />}
                 <Progress percent={uploadProgress} status={uploadProgress === 100 ? 'success' : 'active'} />
@@ -119,10 +119,10 @@ export function UploadBook() {
 
     const ProcessingWindow = () =>
         <Flex vertical gap={16} align="center">
-            <FilePdfOutlined style={styles.iconFile} />
+            <FilePdfOutlined style={{ fontSize: 48, color: token.colorPrimary }} />
             <Flex vertical gap={8} align="center">
                 <Typography.Text>{selectedFile?.name || ''}</Typography.Text>
-                <Typography.Text style={styles.smallMutedText}>
+                <Typography.Text style={{ fontSize: '0.875rem', color: token.colorTextSecondary }}>
                     {(selectedFile?.size || 0 / 1024 / 1024).toFixed(2)} MB
                 </Typography.Text>
                 {!isProcessing ? <DeleteButton /> : <ProcessingInformation />}
@@ -130,14 +130,14 @@ export function UploadBook() {
         </Flex>;
 
     return (
-        <Flex vertical gap={32} style={styles.container}>
+        <Flex vertical gap={32} style={styles.narrowContainer}>
             <Introduction />
-            <Card>
+            <Card style={styles.card}>
                 <Flex
                     vertical
                     align="center"
                     justify="center"
-                    style={styles.dropZone}
+                    style={styles.dropZone(isDragOver)}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
