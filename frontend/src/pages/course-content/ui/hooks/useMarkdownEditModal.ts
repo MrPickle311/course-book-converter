@@ -10,9 +10,9 @@ interface UseMarkdownEditorProps {
     onSave: (value: string) => void;
 }
 
-export const useMarkdownEditor = ({ open, initialValue, onClose, onSave }: UseMarkdownEditorProps) => {
-    const [value, setValue] = useState(initialValue);
-    const [renderValue, setRenderValue] = useState(initialValue);
+export const useMarkdownEditor = (props: UseMarkdownEditorProps) => {
+    const [value, setValue] = useState(props.initialValue);
+    const [renderValue, setRenderValue] = useState(props.initialValue);
     const textareaRef = useRef<TextAreaRef | null>(null);
     const previewRef = useRef<HTMLDivElement | null>(null);
     const lastScrollRatioRef = useRef(0);
@@ -32,11 +32,11 @@ export const useMarkdownEditor = ({ open, initialValue, onClose, onSave }: UseMa
     const deferredRenderValue = useDeferredValue(renderValue);
 
     useEffect(function syncStateWhenOpening() {
-        if (open) {
-            setValue(initialValue);
-            setRenderValue(initialValue);
+        if (props.open) {
+            setValue(props.initialValue);
+            setRenderValue(props.initialValue);
         }
-    }, [open, initialValue]);
+    }, [props.open, props.initialValue]);
 
     const schedulePreviewUpdate = (next: string, delay = 120) => {
         if (debounceRef.current) {
@@ -64,16 +64,16 @@ export const useMarkdownEditor = ({ open, initialValue, onClose, onSave }: UseMa
         const onKey = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
                 e.preventDefault();
-                onClose();
+                props.onClose();
             }
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
                 e.preventDefault();
-                onSave(value);
+                props.onSave(value);
             }
         };
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
-    }, [open, onClose, onSave, value]);
+    }, [open, props.onClose, props.onSave, value]);
 
     useEffect(function cleanupPreviewUpdate() {
         if (!open) {

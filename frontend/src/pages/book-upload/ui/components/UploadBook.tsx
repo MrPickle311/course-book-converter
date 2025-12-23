@@ -12,6 +12,7 @@ export function UploadBook() {
     const { token } = useToken();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const styles = useAppStyles(token);
 
     const handleFileUploadCallback = async (file: File) => {
         try {
@@ -38,8 +39,6 @@ export function UploadBook() {
         handleUpload,
         handleRemoveFile
     } = useUploadBook(handleFileUploadCallback);
-
-    const styles = useAppStyles(token);
 
     const Introduction = () =>
         <Flex vertical align="center" gap={16} style={{ textAlign: 'center' }}>

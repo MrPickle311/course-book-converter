@@ -8,6 +8,8 @@ import { LoadingPage } from '@/shared/ui';
 import { useAuth } from '@/shared/lib';
 import { useQuery } from '@tanstack/react-query';
 
+const ONE_HOUR = 1000 * 60 * 60;
+
 export function CoursePage() {
     const { bookId, chapterId } = useParams<{ bookId: string; chapterId: string }>();
     const navigate = useNavigate();
@@ -18,8 +20,6 @@ export function CoursePage() {
         queryFn: () => booksApi.getBookDetails(bookId!),
         enabled: !!bookId
     });
-
-    const ONE_HOUR = 1000 * 60 * 60;
 
     const { data: notes, isLoading: loadingNotes } = useQuery({
         queryKey: ['course', bookId, chapterId, 'notes'],

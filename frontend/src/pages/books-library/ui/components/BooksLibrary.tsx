@@ -32,7 +32,6 @@ export function BooksLibrary() {
     queryFn: () => booksApi.getBooksList(1, settingsPageSize)
   });
 
-  const books = data?.books || [];
   const metrics = data?.metrics || {
     total: 0,
     completed: 0,
@@ -58,7 +57,7 @@ export function BooksLibrary() {
     setPage,
     totalPages,
     pageSize
-  } = useLibrary(books, [], metrics);
+  } = useLibrary(data?.books || [], [], metrics);
 
   if (isLoading) {
     return <LoadingPage />;
