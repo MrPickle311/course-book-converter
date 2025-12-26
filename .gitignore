@@ -123,7 +123,7 @@ dmypy.json
 .pyre/
 
 # FastAPI specific
-uploads/
+./uploads/
 *.db
 *.sqlite
 
@@ -161,3 +161,7 @@ build/
 
 # API spec generated files
 generated/
+/e2e/playwright-report/index.html
+/e2e/test-results/.last-run.json
+!frontend/src/shared/lib/utils.ts
+!frontend/src/shared/lib/

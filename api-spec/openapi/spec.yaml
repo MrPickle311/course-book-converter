@@ -1,4 +1,5 @@
 openapi: 3.0.3
+
 info:
   title: Book to Course Converter API
   version: 0.1.0
@@ -10,6 +11,7 @@ paths:
       summary: Process uploaded PDF
       operationId: processPdf
       description: Accepts a PDF file and returns structure info with chapters and uploadId.
+      tags: ['upload']
       requestBody:
         required: true
         content:
@@ -32,6 +34,7 @@ paths:
     post:
       summary: Generate course module from chapter
       operationId: generateCourse
+      tags: ['course']
       requestBody:
         required: true
         content:
@@ -39,16 +42,13 @@ paths:
             schema:
               $ref: '#/components/schemas/GenerateCourseRequest'
       responses:
-        '200':
+        '202':
           description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GenerateCourseResponse'
   /api/v1/books:
     get:
       summary: List books (paginated)
       operationId: getBooksList
+      tags: ['books']
       parameters:
         - in: query
           name: page
@@ -56,13 +56,15 @@ paths:
             type: integer
             minimum: 1
             default: 1
+          required: true
         - in: query
           name: pageSize
           schema:
             type: integer
             minimum: 1
-            maximum: 200
+            maximum: 50
             default: 20
+          required: true
         - in: query
           name: search
           schema:
@@ -79,6 +81,7 @@ paths:
     get:
       summary: Get book by uploadId (with table of contents)
       operationId: getBookById
+      tags: ['books']
       parameters:
         - in: path
           name: uploadId
@@ -95,6 +98,7 @@ paths:
     delete:
       summary: Delete book by uploadId
       operationId: deleteBook
+      tags: ['books']
       parameters:
         - in: path
           name: uploadId
@@ -108,6 +112,7 @@ paths:
     post:
       summary: Submit a task answer (non-file)
       operationId: submitTask
+      tags: ['tasks']
       parameters:
         - in: path
           name: taskId
@@ -131,6 +136,7 @@ paths:
     post:
       summary: Submit a task file (upload)
       operationId: submitTaskFile
+      tags: ['tasks']
       parameters:
         - in: path
           name: taskId
@@ -159,6 +165,7 @@ paths:
     get:
       summary: Get generated MDX notes bundle for a chapter
       operationId: getChapterNotes
+      tags: ['course']
       parameters:
         - in: path
           name: uploadId
@@ -183,6 +190,7 @@ paths:
     get:
       summary: Get tasks for a chapter with current user state
       operationId: getChapterTasks
+      tags: ['tasks']
       parameters:
         - in: path
           name: uploadId
@@ -207,6 +215,7 @@ paths:
     get:
       summary: Get generated image asset for a chapter
       operationId: getChapterImage
+      tags: ['course']
       parameters:
         - in: path
           name: uploadId
@@ -237,6 +246,7 @@ paths:
                 format: binary
         '404':
           description: Not Found
+
 components:
   schemas:
     TaskType:
@@ -377,30 +387,12 @@ components:
           type: boolean
         progressData:
           $ref: '#/components/schemas/ProgressData'
-    ProcessPdfData:
+    ProcessPdfResponse:
       type: object
       properties:
         uploadId:
           type: string
-        pageCount:
-          type: integer
-        wordCount:
-          type: integer
-        chapters:
-          type: array
-          items:
-            $ref: '#/components/schemas/Chapter'
-      required: [uploadId, pageCount, wordCount, chapters]
-    ProcessPdfResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-        message:
-          type: string
-        data:
-          $ref: '#/components/schemas/ProcessPdfData'
-      required: [success, data]
+      required: [uploadId]
     GenerateCourseRequest:
       type: object
       properties:
@@ -429,18 +421,6 @@ components:
           type: array
           items:
             type: string
-    GenerateCourseResponse:
-      type: object
-      properties:
-        title:
-          type: string
-        content:
-          type: string
-        tasks:
-          type: array
-          items:
-            $ref: '#/components/schemas/CourseTask'
-      required: [data]
     BookSummary:
       type: object
       properties:
@@ -511,8 +491,6 @@ components:
     PaginatedBooksResponse:
       type: object
       properties:
-        success:
-          type: boolean
         data:
           $ref: '#/components/schemas/PaginatedBooks'
       required: [success, data]
