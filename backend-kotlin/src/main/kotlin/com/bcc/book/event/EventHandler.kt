@@ -1,9 +1,9 @@
 package com.bcc.book.event
 
 import com.bcc.book.persistence.Book
-import com.bcc.book.Chapter
+import com.bcc.book.spi.Chapter
 import com.bcc.book.service.BookService
-import com.bcc.uploads.FileUploadProcessedEvent
+import com.bcc.uploads.spi.FileUploadProcessedEvent
 import org.springframework.modulith.events.ApplicationModuleListener
 import org.springframework.stereotype.Component
 import java.time.Instant

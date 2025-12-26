@@ -1,6 +1,6 @@
 package com.bcc.course.service
 
-import com.bcc.uploads.UploadsApi
+import com.bcc.uploads.spi.UploadsApi
 import org.slf4j.LoggerFactory
 import org.springframework.ai.chat.client.ChatClient
 import org.springframework.ai.chat.client.ChatClient.PromptUserSpec

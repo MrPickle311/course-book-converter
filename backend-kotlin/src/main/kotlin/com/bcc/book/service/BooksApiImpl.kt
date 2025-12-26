@@ -1,7 +1,7 @@
 package com.bcc.book.service
 
-import com.bcc.book.BooksApi
-import com.bcc.book.Chapter
+import com.bcc.book.spi.BooksApi
+import com.bcc.book.spi.Chapter
 import com.bcc.book.persistence.BookRepository
 import org.springframework.stereotype.Service
 

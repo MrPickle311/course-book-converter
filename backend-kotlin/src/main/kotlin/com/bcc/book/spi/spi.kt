@@ -1,5 +1,7 @@
-package com.bcc.book
+package com.bcc.book.spi
 
+import org.springframework.modulith.NamedInterface
+import org.springframework.modulith.PackageInfo
 import java.util.*
 
 data class Chapter(
@@ -15,3 +17,7 @@ interface BooksApi {
     fun getChapter(chapterId: String): Chapter?
 
 }
+
+@PackageInfo
+@NamedInterface("spi")
+class ModuleMetadata {}

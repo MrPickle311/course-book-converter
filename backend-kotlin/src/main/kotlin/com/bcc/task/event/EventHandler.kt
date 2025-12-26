@@ -1,10 +1,10 @@
 package com.bcc.task.event
 
-import com.bcc.book.BookDeletedEvent
-import com.bcc.book.BooksApi
-import com.bcc.course.CourseCreatedEvent
+import com.bcc.book.spi.BookDeletedEvent
+import com.bcc.book.spi.BooksApi
+import com.bcc.course.spi.CourseCreatedEvent
 import com.bcc.task.service.TaskService
-import com.bcc.uploads.UploadsApi
+import com.bcc.uploads.spi.UploadsApi
 import org.slf4j.LoggerFactory
 import org.springframework.modulith.events.ApplicationModuleListener
 import org.springframework.stereotype.Component

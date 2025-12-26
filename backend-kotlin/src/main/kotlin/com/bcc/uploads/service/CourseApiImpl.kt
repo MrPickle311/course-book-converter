@@ -1,6 +1,6 @@
 package com.bcc.uploads.service
 
-import com.bcc.course.CourseApi
+import com.bcc.course.spi.CourseApi
 import org.springframework.stereotype.Service
 
 @Service

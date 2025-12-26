@@ -1,7 +1,9 @@
-package com.bcc.uploads
+package com.bcc.uploads.spi
 
 import org.springframework.ai.model.Media
 import org.springframework.core.io.FileSystemResource
+import org.springframework.modulith.NamedInterface
+import org.springframework.modulith.PackageInfo
 
 data class ChapterSummary(
     val title: String,
@@ -36,3 +38,7 @@ interface UploadsApi{
     fun getImagesForChapter(uploadId: String, chapterId: String): List<FileSystemResource>
     fun deleteImages(images: List<FileSystemResource>)
 }
+
+@PackageInfo
+@NamedInterface("spi")
+class ModuleMetadata {}

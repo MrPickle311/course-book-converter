@@ -1,9 +1,9 @@
 package com.bcc.uploads.event
 
-import com.bcc.book.BooksApi
-import com.bcc.course.CourseCreatedEvent
-import com.bcc.uploads.CourseContentUpdatedCreatedEvent
-import com.bcc.uploads.CourseFilesCreatedEvent
+import com.bcc.book.spi.BooksApi
+import com.bcc.course.spi.CourseCreatedEvent
+import com.bcc.uploads.spi.CourseContentUpdatedCreatedEvent
+import com.bcc.uploads.spi.CourseFilesCreatedEvent
 import com.bcc.uploads.service.PdfProcessor
 import com.bcc.uploads.service.UploadService
 import org.apache.pdfbox.pdmodel.PDDocument

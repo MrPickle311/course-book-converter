@@ -1,11 +1,11 @@
 package com.bcc.task.service
 
 import com.bcc.api.model.*
-import com.bcc.task.TasksMetrics
-import com.bcc.task.CourseTaskDto
-import com.bcc.task.TasksApi
+import com.bcc.task.spi.TasksMetrics
+import com.bcc.task.spi.CourseTaskDto
+import com.bcc.task.spi.TasksApi
 import com.bcc.task.persistence.*
-import com.bcc.uploads.UploadsApi
+import com.bcc.uploads.spi.UploadsApi
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.ObjectMapper

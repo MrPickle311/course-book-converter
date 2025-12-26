@@ -1,6 +1,6 @@
 package com.bcc.book.persistence
 
-import com.bcc.book.Chapter
+import com.bcc.book.spi.Chapter
 import com.vladmihalcea.hibernate.type.json.JsonType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
@@ -14,7 +14,6 @@ import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import java.time.Instant
 import java.time.LocalDate
-import java.util.*
 
 @Entity
 @Table(name = "books")

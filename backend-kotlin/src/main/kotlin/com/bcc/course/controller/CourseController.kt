@@ -2,13 +2,8 @@ package com.bcc.course.controller
 
 import com.bcc.api.CourseApi
 import com.bcc.api.model.GenerateCourseRequest
-import com.bcc.book.BooksApi
-import com.bcc.course.CourseCreatedEvent
+import com.bcc.book.spi.BooksApi
 import com.bcc.course.event.CourseCreationStartedEvent
-import com.bcc.course.persistence.Course
-import com.bcc.course.persistence.CourseRepository
-import com.bcc.course.service.CourseGeneratorService
-import com.bcc.uploads.UploadsApi
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.core.io.ByteArrayResource

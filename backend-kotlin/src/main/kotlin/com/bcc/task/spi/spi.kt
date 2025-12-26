@@ -1,8 +1,10 @@
-package com.bcc.task
+package com.bcc.task.spi
 
 import com.bcc.api.model.ProgressData
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
+import org.springframework.modulith.NamedInterface
+import org.springframework.modulith.PackageInfo
 import java.util.*
 
 data class TasksMetrics(
@@ -24,3 +26,6 @@ interface TasksApi {
     fun deleteTasksByBookId(bookId: String): List<UUID>
     fun getChapterProgress(bookId: String, chapterId: String): ProgressData?
 }
+@PackageInfo
+@NamedInterface("spi")
+class ModuleMetadata {}

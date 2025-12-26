@@ -1,7 +1,7 @@
 package com.bcc.uploads.service
 
-import com.bcc.book.BooksApi
-import com.bcc.uploads.UploadsApi
+import com.bcc.book.spi.BooksApi
+import com.bcc.uploads.spi.UploadsApi
 import org.apache.pdfbox.multipdf.PageExtractor
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.springframework.ai.model.Media

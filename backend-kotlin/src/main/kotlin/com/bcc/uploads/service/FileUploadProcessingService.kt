@@ -1,7 +1,7 @@
 package com.bcc.uploads.service
 
-import com.bcc.uploads.ChapterSummary
-import com.bcc.uploads.ProcessingSummary
+import com.bcc.uploads.spi.ChapterSummary
+import com.bcc.uploads.spi.ProcessingSummary
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
 import org.apache.pdfbox.multipdf.Splitter

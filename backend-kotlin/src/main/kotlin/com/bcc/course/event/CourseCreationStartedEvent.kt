@@ -1,6 +1,6 @@
 package com.bcc.course.event
 
-import com.bcc.book.Chapter
+import com.bcc.book.spi.Chapter
 
 data class CourseCreationStartedEvent (
     val uploadId: String,

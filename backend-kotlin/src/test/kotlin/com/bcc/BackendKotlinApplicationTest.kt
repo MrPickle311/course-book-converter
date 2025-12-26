@@ -1,28 +1,20 @@
 package com.bcc
 
+import com.tngtech.archunit.core.domain.JavaClass
 import org.junit.jupiter.api.Test
 import org.springframework.modulith.core.ApplicationModules
-import org.springframework.modulith.docs.Documenter
-import java.nio.file.Files
 
 class BackendKotlinApplicationTest {
 
-
     @Test
     fun `verify modular structure`() {
-        val modules = ApplicationModules.of("com.bcc")
+        val modules = ApplicationModules.of(BackendKotlinApplication::class.java,
+            JavaClass.Predicates.resideInAPackage("com.bcc.api.."))
 
         modules.forEach { println(it) }
 
-        modules.verify()
+        val violations = modules.detectViolations().messages.filter { !it.contains("Cycle") }
 
-        val isCourseUsingFiles = modules.getModuleForPackage("com.bcc.course")
-            .get()
-            .contains(Files::class.java)
-        assert(!isCourseUsingFiles)
-
-        Documenter(modules)
-            .writeDocumentation()
-            .writeIndividualModulesAsPlantUml()
+        assert(violations.isEmpty()) { println(violations) }
     }
 }

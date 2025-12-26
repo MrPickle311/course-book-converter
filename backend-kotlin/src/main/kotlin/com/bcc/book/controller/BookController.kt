@@ -2,13 +2,13 @@ package com.bcc.book.controller
 
 import com.bcc.api.BooksApi
 import com.bcc.api.model.*
-import com.bcc.book.BookDeletedEvent
+import com.bcc.book.spi.BookDeletedEvent
 import com.bcc.book.persistence.Book
 import com.bcc.book.persistence.BookRepository
-import com.bcc.book.Chapter
+import com.bcc.book.spi.Chapter
 import com.bcc.book.service.BookService
-import com.bcc.course.CourseApi
-import com.bcc.task.TasksApi
+import com.bcc.course.spi.CourseApi
+import com.bcc.task.spi.TasksApi
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.PageRequest

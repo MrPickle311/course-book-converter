@@ -1,6 +1,6 @@
 package com.bcc.uploads.service
 
-import com.bcc.uploads.FileUploadProcessedEvent
+import com.bcc.uploads.spi.FileUploadProcessedEvent
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.text.PDFTextStripper
 import org.slf4j.LoggerFactory
