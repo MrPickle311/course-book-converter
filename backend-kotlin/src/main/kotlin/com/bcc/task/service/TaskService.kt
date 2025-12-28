@@ -9,6 +9,8 @@ import com.bcc.uploads.spi.UploadsApi
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.text.PDFTextStripper
 import org.slf4j.LoggerFactory
@@ -30,7 +32,7 @@ class TaskService(
     private val chatClientBuilder: ChatClient.Builder,
     private val taskRepository: TaskRepository,
     private val chatClient: ChatClient = chatClientBuilder.build(),
-    private val objectMapper: ObjectMapper,
+    private val objectMapper: ObjectMapper = jacksonObjectMapper(),
     private val uploadsApi: UploadsApi
 ) : TasksApi {
     private val logger = LoggerFactory.getLogger(TaskService::class.java)
@@ -46,89 +48,96 @@ class TaskService(
     }
 
     fun getChapterTasks(uploadId: String, chapterId: String): ChapterTasksResponse {
-        val defs = taskRepository.findByBookIdAndChapterId(uploadId, chapterId)
-        val items = defs.map { def ->
-            val definition = when (def.type) {
+        val tasks = taskRepository.findByBookIdAndChapterId(uploadId, chapterId)
+        logger.info("Extracted tasks $tasks")
+        val result = tasks.map { task ->
+            val definition = when (task.type) {
                 "multiple-choice" -> {
-                    val defObj: MultipleChoiceTaskDefinition? = def.definition?.let {
+                    val defObj: MultipleChoiceTaskDefinition? = task.definition?.let {
                         runCatching {
-                            objectMapper.convertValue(
-                                it,
+                            objectMapper.readValue(
+                                it as String,
                                 MultipleChoiceTaskDefinition::class.java
                             )
                         }.getOrNull()
                     }
+                    logger.info("Extracted definition $defObj")
                     TaskDefinitionMultipleChoice()
-                        .id(def.id.toString())
+                        .id(task.id.toString())
                         .type(TaskDefinitionMultipleChoice.TypeEnum.MULTIPLE_CHOICE)
-                        .question(def.question)
+                        .question(task.question)
                         .options((defObj?.options ?: emptyList()).map { o ->
                             TaskOption().id(o.id.toString()).label(o.label ?: "")
                         })
                         .correctAnswerId(defObj?.correctOption?.id?.toString())
                 }
                 "multiple-select" -> {
-                    val defObj: MultiselectTaskDefinition? = def.definition?.let {
-                        runCatching { objectMapper.convertValue(it, MultiselectTaskDefinition::class.java) }.getOrNull()
+                    val defObj: MultiselectTaskDefinition? = task.definition?.let {
+                         objectMapper.readValue(it as String, MultiselectTaskDefinition::class.java)
                     }
+                    logger.info("Extracted definition $defObj")
                     TaskDefinitionMultipleSelect()
-                        .id(def.id.toString())
+                        .id(task.id.toString())
                         .type(TaskDefinitionMultipleSelect.TypeEnum.MULTIPLE_SELECT)
-                        .question(def.question)
+                        .question(task.question)
                         .options((defObj?.options ?: emptyList()).map { o ->
                             TaskOption().id(o.id.toString()).label(o.label ?: "")
                         })
                         .correctAnswerIds((defObj?.correctOptions ?: emptyList()).map { it.id.toString() })
                 }
                 "upload-pdf" -> TaskDefinitionUploadPdf()
-                    .id(def.id.toString())
+                    .id(task.id.toString())
                     .type(TaskDefinitionUploadPdf.TypeEnum.UPLOAD_PDF)
-                    .question(def.question)
+                    .question(task.question)
 
                 else -> TaskDefinitionShortAnswer()
-                    .id(def.id.toString())
+                    .id(task.id.toString())
                     .type(TaskDefinitionShortAnswer.TypeEnum.SHORT_ANSWER)
-                    .question(def.question)
+                    .question(task.question)
             }
-            val state = when (def.type) {
+            val state = when (task.type) {
                 "multiple-choice" -> {
-                    val st: MultipleChoiceTaskState? = def.state?.let {
-                        runCatching { objectMapper.convertValue(it, MultipleChoiceTaskState::class.java) }.getOrNull()
+                    val state: MultipleChoiceTaskState? = task.state?.let {
+                        runCatching { objectMapper.readValue(it as String, MultipleChoiceTaskState::class.java) }.getOrNull()
                     }
+                    logger.info("Extracted state $state")
                     TaskState()
-                        .userAnswer(st?.selectedOption?.id?.toString())
-                        .evaluation(toApiEvaluation(st?.evaluation))
-                        .completed(st != null)
+                        .userAnswer(state?.selectedOption?.id?.toString())
+                        .evaluation(toApiEvaluation(state?.evaluation))
+                        .completed(state != null)
                 }
 
                 "multiple-select" -> {
-                    val st: MultiselectTaskState? = def.state?.let {
-                        runCatching { objectMapper.convertValue(it, MultiselectTaskState::class.java) }.getOrNull()
+                    val state: MultiselectTaskState? = task.state?.let {
+                        runCatching { objectMapper.readValue(it as String, MultiselectTaskState::class.java) }.getOrNull()
                     }
+                    logger.info("Extracted state $state")
                     TaskState()
-                        .userAnswers((st?.selectedOptions ?: emptyList()).map { it.id.toString() })
-                        .evaluation(toApiEvaluation(st?.evaluation))
-                        .completed(st != null)
+                        .userAnswers((state?.selectedOptions ?: emptyList()).map { it.id.toString() })
+                        .evaluation(toApiEvaluation(state?.evaluation))
+                        .completed(state != null)
                 }
 
                 "upload-pdf" -> {
-                    val st: FileUploadTaskState? = def.state?.let {
-                        runCatching { objectMapper.convertValue(it, FileUploadTaskState::class.java) }.getOrNull()
+                    val state: FileUploadTaskState? = task.state?.let {
+                        runCatching { objectMapper.readValue(it as String, FileUploadTaskState::class.java) }.getOrNull()
                     }
+                    logger.info("Extracted state $state")
                     TaskState()
-                        .userFileName(st?.fileName)
-                        .evaluation(toApiEvaluation(st?.evaluation))
-                        .completed(st != null)
+                        .userFileName(state?.fileName)
+                        .evaluation(toApiEvaluation(state?.evaluation))
+                        .completed(state != null)
                 }
 
                 else -> {
-                    val st: ShortAnswerTaskState? = def.state?.let {
-                        runCatching { objectMapper.convertValue(it, ShortAnswerTaskState::class.java) }.getOrNull()
+                    val state: ShortAnswerTaskState? = task.state?.let {
+                        runCatching { objectMapper.readValue(it as String, ShortAnswerTaskState::class.java) }.getOrNull()
                     }
+                    logger.info("Extracted state $state")
                     TaskState()
-                        .userAnswer(st?.textAnswer)
-                        .evaluation(toApiEvaluation(st?.evaluation))
-                        .completed(st != null)
+                        .userAnswer(state?.textAnswer)
+                        .evaluation(toApiEvaluation(state?.evaluation))
+                        .completed(state != null)
                 }
             }
             TaskWithState()
@@ -137,7 +146,7 @@ class TaskService(
         }
         return ChapterTasksResponse()
             .success(true)
-            .tasks(items)
+            .tasks(result)
     }
 
     override fun getChapterProgress(uploadId: String, chapterId: String): ProgressData {

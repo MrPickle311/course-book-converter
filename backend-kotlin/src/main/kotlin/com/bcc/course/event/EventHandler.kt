@@ -1,20 +1,20 @@
 package com.bcc.course.event
 
 import com.bcc.book.spi.BookDeletedEvent
-import com.bcc.course.spi.CourseCreatedEvent
 import com.bcc.course.persistence.Course
 import com.bcc.course.persistence.CourseRepository
 import com.bcc.course.service.CourseGeneratorService
 import com.bcc.course.service.ImageFilterService
+import com.bcc.course.spi.CourseCreatedEvent
 import com.bcc.uploads.spi.CourseContentUpdatedCreatedEvent
 import com.bcc.uploads.spi.CourseFilesCreatedEvent
 import com.bcc.uploads.spi.UploadsApi
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.modulith.events.ApplicationModuleListener
-import org.springframework.stereotype.Component
+import org.springframework.stereotype.Service
 
-@Component
+@Service("CourseEventHandler")
 class EventHandler(
     private val courseRepository: CourseRepository,
     private val imageFilterService: ImageFilterService,

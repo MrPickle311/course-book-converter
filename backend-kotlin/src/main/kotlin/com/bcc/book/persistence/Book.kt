@@ -1,12 +1,12 @@
 package com.bcc.book.persistence
 
 import com.bcc.book.spi.Chapter
-import com.vladmihalcea.hibernate.type.json.JsonType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.Id
 import jakarta.persistence.Table
-import org.hibernate.annotations.Type
+import org.hibernate.annotations.JdbcTypeCode
+import org.hibernate.type.SqlTypes
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
@@ -32,7 +32,7 @@ data class Book(
     @Column(name = "last_used_at")
     var lastUsedAt: Instant = Instant.now(),
 
-    @Type(JsonType::class)
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "table_of_contents", columnDefinition = "jsonb")
     var chapters: List<Chapter> = emptyList(),
 )

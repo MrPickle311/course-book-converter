@@ -2,9 +2,9 @@ package com.bcc.task.persistence
 
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.vladmihalcea.hibernate.type.json.JsonType
 import jakarta.persistence.*
-import org.hibernate.annotations.Type
+import org.hibernate.annotations.JdbcTypeCode
+import org.hibernate.type.SqlTypes
 import org.springframework.data.jpa.repository.JpaRepository
 import java.time.Instant
 import java.util.*
@@ -38,39 +38,39 @@ data class Task(
     @Column(name = "created_at", nullable = false)
     var createdAt: Instant = Instant.now(),
 
-    @Type(JsonType::class)
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "task_definition", columnDefinition = "jsonb")
     var definition: Any? = null,
 
-    @Type(JsonType::class)
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "task_state", columnDefinition = "jsonb")
     var state: Any? = null,
 )
 
-data class Option(
-    var id: UUID = UUID.randomUUID(),
-    var label: String? = null,
+data class Option @JsonCreator constructor(
+    @param:JsonProperty("id") var id: UUID = UUID.randomUUID(),
+    @param:JsonProperty("label") var label: String? = null,
 )
 
-data class MultiselectTaskDefinition(
-    var options: List<Option> = arrayListOf(),
-    var correctOptions: List<Option> = arrayListOf(),
+data class MultiselectTaskDefinition @JsonCreator constructor(
+    @param:JsonProperty("options") var options: List<Option> = arrayListOf(),
+    @param:JsonProperty("correctOptions") var correctOptions: List<Option> = arrayListOf(),
 )
 
-data class MultiselectTaskState(
-    var selectedOptions: List<Option> = arrayListOf(),
-    var evaluation: Evaluation? = null,
+data class MultiselectTaskState @JsonCreator constructor(
+    @param:JsonProperty("selectedOptions") var selectedOptions: List<Option> = arrayListOf(),
+    @param:JsonProperty("evaluation") var evaluation: Evaluation? = null,
 )
 
 
-data class MultipleChoiceTaskDefinition(
-    var options: List<Option>,
-    var correctOption: Option,
+data class MultipleChoiceTaskDefinition @JsonCreator constructor(
+    @param:JsonProperty("options") var options: List<Option>,
+    @param:JsonProperty("correctOption") var correctOption: Option,
 )
 
-data class MultipleChoiceTaskState(
-    var selectedOption: Option,
-    var evaluation: Evaluation? = null,
+data class MultipleChoiceTaskState @JsonCreator constructor(
+    @param:JsonProperty("selectedOption") var selectedOption: Option,
+    @param:JsonProperty("evaluation") var evaluation: Evaluation? = null,
 )
 
 data class Evaluation @JsonCreator constructor(
@@ -79,14 +79,14 @@ data class Evaluation @JsonCreator constructor(
     @param:JsonProperty("score") var score: Double = 0.0
 )
 
-data class ShortAnswerTaskState(
-    var evaluation: Evaluation,
-    var textAnswer: String? = null,
+data class ShortAnswerTaskState @JsonCreator constructor(
+    @param:JsonProperty("evaluation") var evaluation: Evaluation,
+    @param:JsonProperty("textAnswer") var textAnswer: String? = null,
 )
 
-data class FileUploadTaskState(
-    var evaluation: Evaluation,
-    var fileName: String? = null
+data class FileUploadTaskState @JsonCreator constructor(
+    @param:JsonProperty var evaluation: Evaluation,
+    @param:JsonProperty var fileName: String? = null
 )
 
 interface TaskRepository : JpaRepository<Task, UUID> {

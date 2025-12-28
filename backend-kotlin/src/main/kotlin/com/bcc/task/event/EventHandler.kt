@@ -7,11 +7,11 @@ import com.bcc.task.service.TaskService
 import com.bcc.uploads.spi.UploadsApi
 import org.slf4j.LoggerFactory
 import org.springframework.modulith.events.ApplicationModuleListener
-import org.springframework.stereotype.Component
+import org.springframework.stereotype.Service
 import java.nio.file.Files
 import java.nio.file.Path
 
-@Component
+@Service("TasksEventHandler")
 class EventHandler(
     private val taskService: TaskService,
     private val booksApi: BooksApi,

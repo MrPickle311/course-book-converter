@@ -1,5 +1,7 @@
 package com.bcc.config
 
+import com.fasterxml.jackson.databind.DeserializationConfig
+import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import org.springframework.context.annotation.Bean
@@ -27,6 +29,8 @@ class AppConfig(private val appProperties: AppProperties) {
     @Bean
     @Primary
     fun objectMapper(): ObjectMapper {
-        return ObjectMapper().registerModule(KotlinModule.Builder().build())
+        return ObjectMapper()
+            .registerModule(KotlinModule.Builder().build())
+            .configure(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT, true)
     }
 }

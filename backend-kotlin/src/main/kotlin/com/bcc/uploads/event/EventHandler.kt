@@ -18,7 +18,7 @@ import java.awt.image.RenderedImage
 import java.nio.file.Files
 import javax.imageio.ImageIO
 
-@Service
+@Service("UploadsEventHandler")
 class EventHandler(
     private val pdfProcessor: PdfProcessor,
     private val uploadService: UploadService,

@@ -1,15 +1,15 @@
 package com.bcc.book.event
 
 import com.bcc.book.persistence.Book
-import com.bcc.book.spi.Chapter
 import com.bcc.book.service.BookService
+import com.bcc.book.spi.Chapter
 import com.bcc.uploads.spi.FileUploadProcessedEvent
 import org.springframework.modulith.events.ApplicationModuleListener
-import org.springframework.stereotype.Component
+import org.springframework.stereotype.Service
 import java.time.Instant
 import java.time.LocalDate
 
-@Component
+@Service("BookEventHandler")
 class EventHandler(
     private val bookService: BookService,
 ) {
