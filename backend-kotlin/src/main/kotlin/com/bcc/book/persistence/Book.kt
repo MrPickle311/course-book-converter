@@ -3,6 +3,8 @@ package com.bcc.book.persistence
 import com.bcc.book.spi.Chapter
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
 import jakarta.persistence.Id
 import jakarta.persistence.Table
 import org.hibernate.annotations.JdbcTypeCode
@@ -14,6 +16,11 @@ import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import java.time.Instant
 import java.time.LocalDate
+
+enum class BookState(string: String) {
+    GENERATING("GENERATING"),
+    GENERATED("GENERATED")
+}
 
 @Entity
 @Table(name = "books")
@@ -35,6 +42,9 @@ data class Book(
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "table_of_contents", columnDefinition = "jsonb")
     var chapters: List<Chapter> = emptyList(),
+
+    @Enumerated(EnumType.STRING)
+    var bookState: BookState = BookState.GENERATING
 )
 
 interface BookRepository : JpaRepository<Book, String> {

@@ -1,6 +1,6 @@
 package com.bcc.uploads.spi
 
-import org.springframework.ai.model.Media
+import org.springframework.ai.content.Media
 import org.springframework.core.io.FileSystemResource
 import org.springframework.modulith.NamedInterface
 import org.springframework.modulith.PackageInfo
@@ -31,6 +31,11 @@ data class CourseContentUpdatedCreatedEvent(
     val uploadId: String,
     val chapterId: String,
     val notes: String
+)
+
+data class FileCreatedEvent(
+    val fileName: String,
+    val uploadId: String
 )
 
 interface UploadsApi{

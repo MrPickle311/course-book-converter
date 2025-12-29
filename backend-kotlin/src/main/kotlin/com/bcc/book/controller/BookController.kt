@@ -47,6 +47,7 @@ class BookController(
                 .uploadDate(b.uploadDate.toString())
                 .lastUsedAt(b.lastUsedAt.toString())
                 .progressData(progress)
+                .status(BookSummary.StatusEnum.valueOf(b.bookState.toString()))
                 .generatedCoursesCount(generatedCount)
         }
         val meta = PaginationMeta()

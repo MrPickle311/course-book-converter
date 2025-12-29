@@ -26,6 +26,7 @@ class PdfProcessor(
             logger.info("Processed PDF in {} ms", Duration.ofNanos(System.nanoTime() - startNs).toMillis())
 
             val result = tableOfContentService.extractTableOfContent(doc)
+            logger.info("Extracted table of contents for $uploadId")
             eventPublisher.publishEvent(FileUploadProcessedEvent(uploadId, result))
         }
     }

@@ -6,11 +6,14 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
 import org.apache.pdfbox.multipdf.Splitter
 import org.apache.pdfbox.pdmodel.PDDocument
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDDocumentOutline
 import org.apache.pdfbox.text.PDFTextStripper
 import org.slf4j.LoggerFactory
 import org.springframework.ai.chat.client.ChatClient
 import org.springframework.ai.chat.client.entity
 import org.springframework.stereotype.Service
+import java.io.IOException
+
 
 private data class TableOfContentItem @JsonCreator constructor(
     @param:JsonProperty("title") val title: String,
@@ -24,7 +27,7 @@ private data class TableOfContentResult @JsonCreator constructor(
     @param:JsonProperty("complete") val complete: Boolean,
     @param:JsonProperty("items") val items: List<TableOfContentItem>
 ) {
-    fun toProcessingSummary(): ProcessingSummary = ProcessingSummary( "",items.map { it.toChapterSummary() })
+    fun toProcessingSummary(): ProcessingSummary = ProcessingSummary("", items.map { it.toChapterSummary() })
 }
 
 private data class FirstRelevantPageResult @JsonCreator constructor(
@@ -36,6 +39,48 @@ fun interface TableOfContentService {
     fun extractTableOfContent(doc: PDDocument): ProcessingSummary
 }
 
+private class PdfBoxTableOfContentExtractor {
+
+    @JvmRecord
+    private data class TempChapter(val title: String?, val startPage: Int)
+
+    @Throws(IOException::class)
+    fun extractRootChapters(document: PDDocument): List<TableOfContentItem> {
+        val chapters: MutableList<TableOfContentItem> = ArrayList()
+
+        val outline: PDDocumentOutline = document.getDocumentCatalog().getDocumentOutline()
+        val totalPages: Int = document.numberOfPages
+
+        var currentItem = outline.firstChild
+        val rawChapters: MutableList<TempChapter> = ArrayList()
+
+        while (currentItem != null) {
+            val page = currentItem.findDestinationPage(document)
+            if (page != null) {
+                val pageIndex: Int = document.pages.indexOf(page)
+                rawChapters.add(TempChapter(currentItem.title, pageIndex))
+            }
+
+            currentItem = currentItem.nextSibling
+        }
+
+        for (i in rawChapters.indices) {
+            val current: TempChapter = rawChapters.get(i)
+            val start: Int = current.startPage
+            val end: Int
+
+            if (i < rawChapters.size - 1) {
+                end = rawChapters.get(i + 1).startPage
+            } else {
+                end = totalPages
+            }
+
+            chapters.add(TableOfContentItem(current.title ?: "A chapter from page $start to $end", start, end))
+        }
+        return chapters
+    }
+}
+
 @Service
 class TableOfContentServiceImpl(
     private val chatClientBuilder: ChatClient.Builder,
@@ -43,60 +88,72 @@ class TableOfContentServiceImpl(
     private val bookTitleProvider: BookTitleProvider
 ) : TableOfContentService {
     private val logger = LoggerFactory.getLogger(TableOfContentServiceImpl::class.java)
+    private val pdfBoxTableOfContentExtractor = PdfBoxTableOfContentExtractor()
 
     override fun extractTableOfContent(doc: PDDocument): ProcessingSummary {
-        val totalPages = doc.numberOfPages
         val stripper = PDFTextStripper()
-        val splitter = Splitter();
-        var pagesToSend = minOf(10, totalPages)
-        var lastResult: TableOfContentResult
-        var pages: String
-        splitter.setStartPage(1)
-        while (true) {
-            splitter.setEndPage(pagesToSend)
-            stripper.resources
-            pages = splitter.split(doc)
-                .map { stripper.getText(it) }
-                .toString()
-            lastResult = findTableOfContents(pages)
-            logger.info("AI ToC complete={} pagesSent={}", lastResult.complete, pagesToSend)
-            if (lastResult.complete || pagesToSend >= totalPages) {
-                break
-            }
-            pagesToSend = minOf(pagesToSend + 10, totalPages)
-        }
-
-        val fileTitle = bookTitleProvider.getBookTitle(pages)
-
-        var firstRelevantPage: FirstRelevantPageResult
-        while (true) {
-            splitter.setEndPage(pagesToSend)
-            pages = splitter.split(doc)
-                .map { stripper.getText(it) }
-                .mapIndexed { pageNumber, pageContent ->
-                    "$pageNumber :  \n${if (pageContent.isEmpty()) "<EMPTY_PAGE>" else "<PAGE_CONTENT>\n\n" + pageContent + "<\\PAGE_CONTENT>\n\n"}\n"
+        val splitter = Splitter()
+        if (doc.documentCatalog.documentOutline != null) {
+            logger.info("Proceeding with pdfbox during table of content extraction")
+            val chapters = pdfBoxTableOfContentExtractor.extractRootChapters(doc)
+            var result = TableOfContentResult(
+                true,
+                chapters
+            ).toProcessingSummary()
+            result.bookTitle = bookTitleProvider.getBookTitle(stripper.getText(doc))
+            return result
+        } else {
+            val totalPages = doc.numberOfPages
+            var pagesToSend = minOf(10, totalPages)
+            var lastResult: TableOfContentResult
+            var pages: String
+            splitter.setStartPage(1)
+            logger.info("Starting table of content extraction")
+            while (true) {
+                splitter.setEndPage(pagesToSend)
+                pages = splitter.split(doc)
+                    .map { stripper.getText(it) }
+                    .toString()
+                lastResult = findTableOfContents(pages)
+                logger.info("AI ToC complete={} pagesSent={}", lastResult.complete, pagesToSend)
+                if (lastResult.complete || pagesToSend >= totalPages) {
+                    break
                 }
-                .toString()
-            firstRelevantPage = findFirstRelevantPage(lastResult, pages)
-            if (firstRelevantPage.complete || pagesToSend >= totalPages) {
-                break
+                pagesToSend = minOf(pagesToSend + 10, totalPages)
             }
-            pagesToSend = minOf(pagesToSend + 10, totalPages)
-        }
 
-        var bias = 0;
-        if (lastResult.items[0].startPage > 0) {
-            bias = -1 * lastResult.items[0].startPage;
-        }
+            val fileTitle = bookTitleProvider.getBookTitle(pages)
 
-        for (i in 0 until lastResult.items.size) {
-            lastResult.items[i].endPage += firstRelevantPage.page + bias
-            lastResult.items[i].startPage += firstRelevantPage.page + bias
-        }
+            var firstRelevantPage: FirstRelevantPageResult
+            while (true) {
+                splitter.setEndPage(pagesToSend)
+                pages = splitter.split(doc)
+                    .map { stripper.getText(it) }
+                    .mapIndexed { pageNumber, pageContent ->
+                        "$pageNumber :  \n${if (pageContent.isEmpty()) "<EMPTY_PAGE>" else "<PAGE_CONTENT>\n\n" + pageContent + "<\\PAGE_CONTENT>\n\n"}\n"
+                    }
+                    .toString()
+                firstRelevantPage = findFirstRelevantPage(lastResult, pages)
+                if (firstRelevantPage.complete || pagesToSend >= totalPages) {
+                    break
+                }
+                pagesToSend = minOf(pagesToSend + 10, totalPages)
+            }
 
-        val result =  lastResult.toProcessingSummary()
-        result.bookTitle = fileTitle
-        return result
+            var bias = 0;
+            if (lastResult.items[0].startPage > 0) {
+                bias = -1 * lastResult.items[0].startPage;
+            }
+
+            for (i in 0 until lastResult.items.size) {
+                lastResult.items[i].endPage += firstRelevantPage.page + bias
+                lastResult.items[i].startPage += firstRelevantPage.page + bias
+            }
+
+            val result = lastResult.toProcessingSummary()
+            result.bookTitle = fileTitle
+            return result
+        }
     }
 
     private fun findFirstRelevantPage(tableOfContents: TableOfContentResult, pages: String): FirstRelevantPageResult {

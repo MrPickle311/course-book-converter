@@ -6,6 +6,7 @@ import com.bcc.uploads.spi.CourseContentUpdatedCreatedEvent
 import com.bcc.uploads.spi.CourseFilesCreatedEvent
 import com.bcc.uploads.service.PdfProcessor
 import com.bcc.uploads.service.UploadService
+import com.bcc.uploads.spi.FileCreatedEvent
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.PDResources
 import org.apache.pdfbox.pdmodel.graphics.form.PDFormXObject
@@ -29,17 +30,20 @@ class EventHandler(
 
     @ApplicationModuleListener
     fun on(event: FileCreatedEvent) {
+        log.info("File created: $event")
         pdfProcessor.process(event.uploadId)
     }
 
     @ApplicationModuleListener
     fun on(event: CourseContentUpdatedCreatedEvent) {
+        log.info("Course content updated: $event")
         val chapterFile = uploadService.getChapterPath(event.uploadId, event.chapterId).toFile()
         chapterFile.writeText(event.notes)
     }
 
     @ApplicationModuleListener
     fun on(event: CourseCreatedEvent) {
+        log.info("Course created: $event")
 
         val chapter = booksApi.getChapter(event.chapterId)
         if (chapter == null) {

@@ -49,7 +49,7 @@ class E2EChatMockConfig {
             f.isAccessible = true
             @Suppress("UNCHECKED_CAST")
             val msgs = f.get(prompt) as? List<Message>
-            msgs?.joinToString("\n") { it.content ?: "" } ?: prompt.toString()
+            msgs?.joinToString("\n") { it.text ?: "" } ?: prompt.toString()
         } catch (_: Throwable) {
             prompt.toString()
         }

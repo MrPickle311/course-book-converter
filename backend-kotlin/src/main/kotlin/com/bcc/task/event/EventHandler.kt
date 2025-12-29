@@ -21,6 +21,7 @@ class EventHandler(
 
     @ApplicationModuleListener
     fun on(event: CourseCreatedEvent) {
+        log.info("On course created $event")
         val chapter = booksApi.getChapter(event.chapterId)
 
         if (chapter == null) {
@@ -41,6 +42,7 @@ class EventHandler(
 
     @ApplicationModuleListener
     fun on(event: BookDeletedEvent) {
+        log.info("Book deleted $event")
         val tasksIds = taskService.deleteTasksByBookId(event.id)
         runCatching {
             val path = Path.of("uploads").resolve("${event.id}.pdf")
@@ -48,6 +50,7 @@ class EventHandler(
             Files.deleteIfExists(Path.of("uploads/notes").resolve(event.id))
             tasksIds.forEach { Files.deleteIfExists(Path.of("uploads/tasks").resolve(it.toString())) }
         }
+        log.info("Tasks for book removed $event")
     }
 
 }

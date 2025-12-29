@@ -10,6 +10,7 @@ import org.springframework.core.io.ByteArrayResource
 import org.springframework.core.io.Resource
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.RestController
 import java.nio.file.Files
 import java.nio.file.Path
@@ -21,6 +22,7 @@ class CourseController(
 ) : CourseApi {
     private val logger = LoggerFactory.getLogger(CourseController::class.java)
 
+    @Transactional
     override fun generateCourse(
         generateCourseRequest: GenerateCourseRequest
     ): ResponseEntity<Void> {

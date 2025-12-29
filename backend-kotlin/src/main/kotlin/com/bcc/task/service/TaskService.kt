@@ -1,23 +1,22 @@
 package com.bcc.task.service
 
 import com.bcc.api.model.*
-import com.bcc.task.spi.TasksMetrics
+import com.bcc.task.persistence.*
 import com.bcc.task.spi.CourseTaskDto
 import com.bcc.task.spi.TasksApi
-import com.bcc.task.persistence.*
+import com.bcc.task.spi.TasksMetrics
 import com.bcc.uploads.spi.UploadsApi
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.text.PDFTextStripper
 import org.slf4j.LoggerFactory
 import org.springframework.ai.chat.client.ChatClient
 import org.springframework.ai.chat.messages.SystemMessage
 import org.springframework.ai.chat.messages.UserMessage
-import org.springframework.ai.model.Media
+import org.springframework.ai.content.Media
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
@@ -286,7 +285,7 @@ class TaskService(
         )
         val user = UserMessage(
             "Question: \n$question\n\n" +
-                    "Answer:\n$answer\n\n",
+                    "Answer:\n$answer\n\n" +
             pdfMedia
         )
         return chatClient
@@ -456,8 +455,8 @@ class TaskService(
         val user = UserMessage(
             buildString {
                 append("Chapter Title: \"${chapterTitle}\"\n")
-            },
-            chapterContent
+                append(chapterContent)
+            }
         )
         val result = chatClient
             .prompt()

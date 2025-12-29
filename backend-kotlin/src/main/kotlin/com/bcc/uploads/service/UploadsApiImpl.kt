@@ -4,7 +4,7 @@ import com.bcc.book.spi.BooksApi
 import com.bcc.uploads.spi.UploadsApi
 import org.apache.pdfbox.multipdf.PageExtractor
 import org.apache.pdfbox.pdmodel.PDDocument
-import org.springframework.ai.model.Media
+import org.springframework.ai.content.Media
 import org.springframework.core.io.ByteArrayResource
 import org.springframework.core.io.FileSystemResource
 import org.springframework.http.MediaType

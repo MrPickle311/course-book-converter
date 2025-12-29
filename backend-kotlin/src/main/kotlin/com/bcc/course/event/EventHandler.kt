@@ -26,17 +26,21 @@ class EventHandler(
 
     @ApplicationModuleListener
     fun on(event: BookDeletedEvent) {
+        log.info("Book deleted $event")
         courseRepository.deleteByBookId(event.id)
+        log.info("Coruse for book removed $event")
     }
 
     @ApplicationModuleListener
     fun on(event: CourseCreationStartedEvent) {
+        log.info("Course creation started $event")
 
         val start = event.chapter.startPage
         val end = event.chapter.endPage
 
         val title = event.chapter.title
         val pdfMedia = uploadsApi.getChapterContent(event.uploadId, event.chapter.id)
+        log.info("Got chapter pdf media for ${event.uploadId}")
 
         if (pdfMedia == null) {
             log.warn("Could not find content for given chapter ${event.uploadId} for this book: ${event.uploadId}")
@@ -62,6 +66,7 @@ class EventHandler(
 
     @ApplicationModuleListener
     fun on(event: CourseFilesCreatedEvent){
+        log.info("Course files created $event")
         imageFilterService.filterMarkdownImages(event.uploadId, event.chapterId, event.notes)
 
         val newContent = addBasePathToImages(

@@ -6,7 +6,7 @@ import org.springframework.ai.chat.client.ChatClient
 import org.springframework.ai.chat.client.ChatClient.PromptUserSpec
 import org.springframework.ai.chat.messages.SystemMessage
 import org.springframework.ai.chat.messages.UserMessage
-import org.springframework.ai.model.Media
+import org.springframework.ai.content.Media
 import org.springframework.core.io.FileSystemResource
 import org.springframework.stereotype.Service
 import org.springframework.util.MimeTypeUtils
@@ -84,13 +84,13 @@ class CourseGeneratorService(
         val user = UserMessage(
             buildString {
                 append("Chapter Title: \"${chapterTitle}\"\n")
-            },
-            chapterContent
+                append(chapterContent)
+            }
         )
         return chatClient
             .prompt()
             .messages(listOf(system, user))
             .call()
-            .chatResponse()!!.result.output.content
+            .chatResponse()!!.result.output.text ?: ""
     }
 }
