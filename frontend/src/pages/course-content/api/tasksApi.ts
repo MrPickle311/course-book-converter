@@ -1,4 +1,4 @@
-import { DefaultService as defaultService, type TaskEvaluation as TaskEvaluationDto, TaskSubmissionRequest } from '@/shared/api/openapi';
+import { TasksService as tasksService, type TaskEvaluation as TaskEvaluationDto, TaskSubmissionRequest } from '@/shared/api/openapi';
 import type { Task, TaskEvaluation } from '@/entities/course';
 
 const mapEvaluation = (raw: TaskEvaluationDto | undefined): TaskEvaluation | undefined => {
@@ -12,7 +12,7 @@ const mapEvaluation = (raw: TaskEvaluationDto | undefined): TaskEvaluation | und
 
 export const tasksApi = {
     getChapterTasks: async (bookId: string, chapterId: string): Promise<Task[]> => {
-        const res = await defaultService.getChapterTasks({ uploadId: bookId, chapterId });
+        const res = await tasksService.getChapterTasks({ uploadId: bookId, chapterId });
         const items = res?.tasks || [];
         return items.map((tw: any) => {
             const def = tw.definition;
@@ -36,7 +36,7 @@ export const tasksApi = {
     },
 
     submitMultiSelect: async (taskId: string, selectedOptionIds: string[]): Promise<TaskEvaluation | undefined> => {
-        const resp = await defaultService.submitTask({
+        const resp = await tasksService.submitTask({
             taskId,
             requestBody: { type: TaskSubmissionRequest.type.MULTIPLE_SELECT, selectedOptionIds },
         });
@@ -44,7 +44,7 @@ export const tasksApi = {
     },
 
     submitPdfUpload: async (taskId: string, file: File): Promise<TaskEvaluation | undefined> => {
-        const resp = await defaultService.submitTaskFile({
+        const resp = await tasksService.submitTaskFile({
             taskId,
             formData: { file }
         });
@@ -52,7 +52,7 @@ export const tasksApi = {
     },
 
     submitTextAnswer: async (taskId: string, textAnswer: string): Promise<TaskEvaluation | undefined> => {
-        const resp = await defaultService.submitTask({
+        const resp = await tasksService.submitTask({
             taskId,
             requestBody: {
                 type: TaskSubmissionRequest.type.SHORT_ANSWER,
@@ -63,7 +63,7 @@ export const tasksApi = {
     },
 
     submitMultipleChoice: async (taskId: string, selectedOptionId: string): Promise<TaskEvaluation | undefined> => {
-        const resp = await defaultService.submitTask({
+        const resp = await tasksService.submitTask({
             taskId,
             requestBody: { type: TaskSubmissionRequest.type.MULTIPLE_CHOICE, selectedOptionId },
         });

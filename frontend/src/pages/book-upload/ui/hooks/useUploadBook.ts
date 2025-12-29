@@ -1,4 +1,9 @@
 import React, { useState } from 'react';
+import type { RcFile, UploadChangeParam } from "antd/es/upload";
+import type { UploadFile, UploadProps } from "antd/lib";
+import type { GetProp } from "antd";
+
+type FileType = Parameters<GetProp<UploadProps, 'beforeUpload'>>[0];
 
 export function useUploadBook(onFileUpload: (file: File) => void) {
     const [isDragOver, setIsDragOver] = useState(false);
@@ -28,22 +33,27 @@ export function useUploadBook(onFileUpload: (file: File) => void) {
         }
     };
 
-    const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
+    const handleFileInputChange = (file: RcFile) => {
         if (file && file.type === 'application/pdf') {
             setSelectedFile(file);
         }
     };
 
-    const handleUpload = () => {
+    const handleUpload = async () => {
         if (!selectedFile) {
             return;
         }
 
         setIsProcessing(true);
         setUploadProgress(0);
-        onFileUpload(selectedFile);
-        setUploadProgress(100);
+        try {
+            await onFileUpload(selectedFile);
+            setUploadProgress(100);
+        } catch (error) {
+            console.error('Upload failed in hook', error);
+            setIsProcessing(false);
+            setUploadProgress(0);
+        }
     };
 
     const handleRemoveFile = () => {

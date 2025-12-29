@@ -1,23 +1,22 @@
-import { Card, Empty, Flex, Input, Pagination, Progress, Tabs, Tag, theme, Typography } from 'antd';
+import {Card, Empty, Flex, Input, Pagination, Progress, Spin, Tabs, Tag, theme, Typography} from 'antd';
 import {
   BookOutlined,
   CheckCircleOutlined,
-  ClockCircleOutlined,
+  ClockCircleOutlined, LoadingOutlined,
   ReadOutlined,
   RightOutlined,
   SearchOutlined,
   TrophyOutlined
 } from '@ant-design/icons';
-import { useLibrary } from '../hooks/useLibrary.ts';
-import { useAppStyles } from '@/shared/ui/theme/AppStyles.ts';
-import type { Book } from "@/entities/book";
-import type { Metrics } from "@/entities/metrics";
-import type { ReactNode } from "react";
-import { useQuery } from '@tanstack/react-query';
-import { booksApi } from '@/entities/book';
-import { LoadingPage } from "@/shared/ui";
-import { useNavigate } from 'react-router-dom';
-import { useSettings } from "@/features/user-settings";
+import {useLibrary} from '../hooks/useLibrary.ts';
+import {useAppStyles} from '@/shared/ui/theme/AppStyles.ts';
+import {type Book, booksApi, BookStatus} from "@/entities/book";
+import type {Metrics} from "@/entities/metrics";
+import type {ReactNode} from "react";
+import {useQuery} from '@tanstack/react-query';
+import {LoadingPage} from "@/shared/ui";
+import {useNavigate} from 'react-router-dom';
+import {useSettings} from "@/features/user-settings";
 
 const { useToken } = theme;
 
@@ -96,9 +95,22 @@ export function BooksLibrary() {
     navigate(`/book/${book.id}`);
   };
 
-  function generateBookOutline(book: Book) {
+  function renderBookOutline(book: Book) {
+    if (book.status == BookStatus.GENERATING){
+      return <Card
+          key={book.id}
+          title={book.title}
+      >
+        <Flex align="center" justify="flex-start" gap={12}>
+          Generating
+          <Spin indicator={<LoadingOutlined spin />} size="large" />
+        </Flex>
+      </Card>
+    }
+
     const statsForBook = bookStats.get(book.id)!;
     const progress = statsForBook.totalTasks > 0 ? (statsForBook.completedTasks / statsForBook.totalTasks) * 100 : 0;
+
     return (
       <Card
         key={book.id}
@@ -247,7 +259,7 @@ export function BooksLibrary() {
           <Flex vertical gap={24}>
             {filteredBooks
               .slice((page - 1) * pageSize, page * pageSize)
-              .map((book) => generateBookOutline(book))
+              .map((book) => renderBookOutline(book))
             }
 
             {totalPages > 1 && (

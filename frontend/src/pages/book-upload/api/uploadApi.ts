@@ -1,14 +1,12 @@
-import { DefaultService, type ProcessPdfResponse } from "@/shared/api/openapi";
-import type { Chapter } from "@/entities/book";
+import {UploadService, type ProcessPdfResponse} from "@/shared/api/openapi";
 
 export const uploadApi = {
 
-    processPdf: async (file: Blob): Promise<{ isSuccess: boolean, chapters: Chapter[], bookId: string }> => {
-        const resp: ProcessPdfResponse = await DefaultService.processPdf({ formData: { file } });
+    processPdf: async (file: Blob): Promise<{  bookId: string }> => {
+        console.log(file)
+        const resp: ProcessPdfResponse = await UploadService.processPdf({ formData: { file } });
         return {
-            isSuccess: resp.success,
-            chapters: resp.data.chapters,
-            bookId: resp.data.uploadId
+            bookId: resp.uploadId
         }
     }
 }

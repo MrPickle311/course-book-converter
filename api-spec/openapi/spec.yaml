@@ -435,11 +435,15 @@ components:
           type: string
           nullable: true
           description: ISO datetime string
+        status:
+          type: string
+          enum: ['GENERATED', 'GENERATING']
         progressData:
           $ref: '#/components/schemas/ProgressData'
         generatedCoursesCount:
           type: integer
           description: Number of generated chapters/courses for this book
+      required: [status, id, title]
     ProgressData:
       type: object
       required: [tasksCompleted, tasksCount, tasksFailed]

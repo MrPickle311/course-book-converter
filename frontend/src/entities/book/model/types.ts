@@ -4,6 +4,11 @@ export type ProgressData = {
     tasksFailed: number;
 };
 
+export enum BookStatus {
+    GENERATED = 'GENERATED',
+    GENERATING = 'GENERATING',
+}
+
 export type Chapter = {
     chapterId: string;
     title: string;
@@ -18,6 +23,7 @@ export type Book = {
     title: string;
     uploadDate: string;
     chapters: Array<Chapter>;
+    status: BookStatus,
     progressData?: ProgressData;
     lastUsedAt?: string | null;
     generatedCoursesCount?: number;

@@ -1,10 +1,11 @@
-import { Button, Card, Flex, Progress, Spin, Steps, theme, Typography } from 'antd';
+import { Button, Card, Flex, Progress, Spin, Steps, theme, Typography, Upload } from 'antd';
 import { CheckCircleOutlined, CloudUploadOutlined, DeleteOutlined, FilePdfOutlined } from '@ant-design/icons';
 import { useUploadBook } from '../hooks/useUploadBook.ts';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { uploadApi } from "@/pages/book-upload/api/uploadApi.ts";
 import { useAppStyles } from '@/shared/ui/theme/AppStyles.ts';
+import type { RcFile } from "antd/es/upload";
 
 const { useToken } = theme;
 
@@ -16,14 +17,14 @@ export function UploadBook() {
 
     const handleFileUploadCallback = async (file: File) => {
         try {
-            const form = { file } as any;
-            const resp = await uploadApi.processPdf(form);
-            if (resp?.isSuccess && resp.bookId) {
+            const resp = await uploadApi.processPdf(file);
+            if (resp.bookId) {
                 await queryClient.invalidateQueries({ queryKey: ['books'] });
-                navigate(`/book/${resp.bookId}`);
             }
+            navigate(`/library`);
         } catch (e) {
             console.error('Upload failed', e);
+            throw e;
         }
     };
 
@@ -67,14 +68,19 @@ export function UploadBook() {
                 <Typography.Text>Drag and drop your PDF book here</Typography.Text>
                 <Typography.Text style={{ fontSize: '0.875rem', color: token.colorTextSecondary }}>or</Typography.Text>
                 <label htmlFor="file-upload" style={{ cursor: 'pointer' }}>
-                    <Button>Choose File</Button>
-                    <input
-                        id="file-upload"
-                        type="file"
-                        accept=".pdf"
-                        style={{ display: 'none' }}
-                        onChange={handleFileInputChange}
-                    />
+                    <Upload
+                        id={"file-upload"}
+                        name={"file"}
+                        accept={".pdf"}
+                        beforeUpload={(file: RcFile) => {
+                            handleFileInputChange(file)
+                            return false;
+                        }}
+                    >
+                        <Button>
+                            Choose File
+                        </Button>
+                    </Upload>
                 </label>
             </Flex>
             <Typography.Text style={{ fontSize: '0.75rem', color: token.colorTextSecondary }}>
@@ -122,7 +128,7 @@ export function UploadBook() {
             <Flex vertical gap={8} align="center">
                 <Typography.Text>{selectedFile?.name || ''}</Typography.Text>
                 <Typography.Text style={{ fontSize: '0.875rem', color: token.colorTextSecondary }}>
-                    {(selectedFile?.size || 0 / 1024 / 1024).toFixed(2)} MB
+                    {((selectedFile?.size || 0) / 1024 / 1024).toFixed(2)} MB
                 </Typography.Text>
                 {!isProcessing ? <DeleteButton /> : <ProcessingInformation />}
             </Flex>
