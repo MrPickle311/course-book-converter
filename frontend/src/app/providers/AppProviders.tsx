@@ -1,9 +1,10 @@
 import React from 'react';
 import { ConfigProvider, App } from 'antd';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider, NotificationProvider } from '@/shared/lib';
+import { AuthProvider } from '@/shared/lib';
 import { ThemeProvider, useTheme, SettingsProvider } from '@/features/user-settings';
 import { createAppTheme } from '../styles/appTheme';
+import {NotificationProvider} from "@/app/providers/NotificationProvider.tsx";
 
 function InnerAppProviders({ children }: { children: React.ReactNode }) {
     const { theme } = useTheme();

@@ -1,14 +1,19 @@
-
-import { Card, Progress, Flex, Tabs, Typography, Tag, theme, Button, Popconfirm, message } from 'antd';
-import { BookOutlined, CheckSquareOutlined, TrophyOutlined, LoadingOutlined, CheckCircleOutlined, CloseCircleOutlined, BorderOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
-import { type Course, type Task, coursesApi } from "@/entities/course";
-import { useCourse } from '../hooks/useCourse.ts';
-import { useNavigate } from 'react-router-dom';
-import { useAppStyles } from '@/shared/ui/theme/AppStyles.ts';
-import { TaskItem } from "./Task.tsx";
-import { RichTextEditor } from "@/shared/ui/RichTextEditor/RichTextEditor.tsx";
-import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import {Button, Card, Flex, Popconfirm, Progress, Tabs, Tag, theme, Typography} from 'antd';
+import {
+    BookOutlined,
+    BorderOutlined,
+    CheckCircleOutlined,
+    CheckSquareOutlined,
+    CloseCircleOutlined,
+    DeleteOutlined,
+    LoadingOutlined,
+    TrophyOutlined
+} from '@ant-design/icons';
+import {type Course, type Task} from "@/entities/course";
+import {useCourse} from '../hooks/useCourse.ts';
+import {useAppStyles} from '@/shared/ui/theme/AppStyles.ts';
+import {TaskItem} from "./Task.tsx";
+import {RichTextEditor} from "@/pages/course-content/ui/components/RichTextEditor.tsx";
 
 export interface CourseContentProps {
   course: Course;
@@ -17,23 +22,6 @@ export interface CourseContentProps {
 export function CourseContent(props: CourseContentProps) {
   const { token } = theme.useToken();
   const styles = useAppStyles(token);
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [deleting, setDeleting] = useState(false);
-
-  const handleDeleteCourse = async () => {
-    setDeleting(true);
-    try {
-      await coursesApi.deleteCourse(props.course.bookId, props.course.chapterId);
-      message.success("Course deleted successfully");
-      queryClient.invalidateQueries({ queryKey: ['book'] });
-      navigate(`/book/${props.course.bookId} `);
-    } catch (e) {
-      console.error(e);
-      message.error("Failed to delete course");
-      setDeleting(false);
-    }
-  };
 
   const {
     activeTab,
@@ -42,6 +30,7 @@ export function CourseContent(props: CourseContentProps) {
     handleTaskAnswer,
     handleSubmitTask,
     handleRetakeTask,
+    handleDeleteCourse,
     submitting,
     saveNotes,
     completedTasks,
@@ -102,7 +91,7 @@ export function CourseContent(props: CourseContentProps) {
             okText="Yes"
             cancelText="No"
           >
-            <Button danger icon={<DeleteOutlined />} loading={deleting}>Delete</Button>
+            <Button danger icon={<DeleteOutlined />}  >Delete</Button>
           </Popconfirm>
         </Flex>
       </Flex>
@@ -185,7 +174,7 @@ export function CourseContent(props: CourseContentProps) {
           <TaskItem
             task={task}
             value={taskAnswers[task.id]}
-            isSubmitting={!!submitting[task.id]}
+            isSubmitting={submitting[task.id]}
             onChange={(val) => handleTaskAnswer(task.id, val)}
             onRetake={() => handleRetakeTask(task)} />
 
@@ -205,8 +194,6 @@ export function CourseContent(props: CourseContentProps) {
     );
   }
 
-  const memoizedNotes = <RichTextEditor content={props.course.notes} onSave={saveNotes} />
-
   const MainContent = () => (
     <Tabs
       type="card"
@@ -221,7 +208,7 @@ export function CourseContent(props: CourseContentProps) {
               Study Notes
             </Flex>
           ),
-          children: memoizedNotes,
+          children: <RichTextEditor content={props.course.notes} onSave={saveNotes} />,
         },
         {
           key: "tasks",

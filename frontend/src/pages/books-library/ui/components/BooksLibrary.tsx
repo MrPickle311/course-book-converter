@@ -1,22 +1,23 @@
-import { Card, Empty, Flex, Input, Pagination, Progress, Spin, Tabs, Tag, theme, Typography } from 'antd';
+import {Card, Empty, Flex, Input, Pagination, Progress, Spin, Tabs, Tag, theme, Typography} from 'antd';
 import {
   BookOutlined,
   CheckCircleOutlined,
-  ClockCircleOutlined, LoadingOutlined,
+  ClockCircleOutlined,
+  LoadingOutlined,
   ReadOutlined,
   RightOutlined,
   SearchOutlined,
   TrophyOutlined
 } from '@ant-design/icons';
-import { useLibrary } from '../hooks/useLibrary.ts';
-import { useAppStyles } from '@/shared/ui/theme/AppStyles.ts';
-import { type Book, booksApi, BookStatus } from "@/entities/book";
-import type { Metrics } from "@/entities/metrics";
-import { type ReactNode, useEffect, useMemo } from "react";
-import { useQuery, useQueryClient} from '@tanstack/react-query';
-import { LoadingPage } from "@/shared/ui";
-import { useNavigate } from 'react-router-dom';
-import { useSettings } from "@/features/user-settings";
+import {useLibrary} from '../hooks/useLibrary.ts';
+import {useAppStyles} from '@/shared/ui/theme/AppStyles.ts';
+import {type Book, booksApi, BookStatus} from "@/entities/book";
+import type {Metrics} from "@/entities/metrics";
+import {type ReactNode} from "react";
+import {useQuery} from '@tanstack/react-query';
+import {LoadingPage} from "@/shared/ui";
+import {useNavigate} from 'react-router-dom';
+import {useSettings} from "@/features/user-settings";
 import {useNotification} from "@/shared/lib";
 
 const { useToken } = theme;
@@ -26,13 +27,8 @@ export function BooksLibrary() {
   const styles = useAppStyles(token);
   const navigate = useNavigate();
   const { pageSize: settingsPageSize } = useSettings();
-  const {lastEvent, isConnected} = useNotification()
-
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    queryClient.invalidateQueries({ queryKey: ['books'] });
-  }, [lastEvent]);
+  // @ts-ignore, this notification is needed for cleaning cache
+  const {lastEvent} = useNotification()
 
   const { data, isLoading } = useQuery({
     queryKey: ['books', 1],
@@ -104,10 +100,10 @@ export function BooksLibrary() {
   };
 
   function renderBookOutline(book: Book) {
-    if (book.status == BookStatus.GENERATING) {
+    if (book.status == BookStatus.GENERATING){
       return <Card
-        key={book.id}
-        title={book.title}
+          key={book.id}
+          title={book.title}
       >
         <Flex align="center" justify="flex-start" gap={12}>
           Generating

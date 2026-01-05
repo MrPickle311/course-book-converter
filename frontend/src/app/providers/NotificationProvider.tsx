@@ -1,15 +1,8 @@
-import { createContext, type ReactNode, useContext, useEffect, useState } from 'react';
-import { App } from 'antd';
-import { API_BASE_URL } from '@/shared/config/api/apiConfig';
-import { useAuth } from '@/shared/lib';
+import {type ReactNode, useEffect, useState} from 'react';
+import {App} from 'antd';
+import {API_BASE_URL} from '@/shared/config/api/apiConfig';
+import {NotificationContext, useAuth} from '@/shared/lib';
 import {useQueryClient} from "@tanstack/react-query";
-
-interface NotificationContextType {
-    lastEvent: string | null;
-    isConnected: boolean;
-}
-
-const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
     const { user } = useAuth();
@@ -32,7 +25,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
         eventSource.addEventListener('notification', (event) => {
             notification.success({
-                message: 'Processing Complete',
+                message: event.data,
                 description: event.data,
                 placement: 'bottomRight',
                 duration: null
@@ -59,12 +52,4 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             {children}
         </NotificationContext.Provider>
     );
-}
-
-export function useNotification() {
-    const context = useContext(NotificationContext);
-    if (context === undefined) {
-        throw new Error('useNotification must be used within a NotificationProvider');
-    }
-    return context;
 }

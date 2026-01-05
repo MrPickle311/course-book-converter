@@ -161,21 +161,25 @@ export function BookDetail() {
     );
   }
 
+  const renderGeneratingChapter = (chapter: Chapter) => {
+    return (
+        <Card
+            key={chapter.chapterId}
+            title={chapter.title}
+        >
+          <Flex align="center" justify="flex-start" gap={12}>
+            Generating
+            <Spin indicator={<LoadingOutlined spin/>} size="large"/>
+          </Flex>
+        </Card>
+    )
+  }
+
   function renderChapter(chapter: Chapter): ReactNode {
     const isGenerating = chapter.status === 'GENERATING' || generating.has(chapter.chapterId);
 
     if (isGenerating) {
-      return (
-        <Card
-          key={chapter.chapterId}
-          title={chapter.title}
-        >
-          <Flex align="center" justify="flex-start" gap={12}>
-            Generating
-            <Spin indicator={<LoadingOutlined spin />} size="large" />
-          </Flex>
-        </Card>
-      )
+      return renderGeneratingChapter(chapter);
     }
 
     if (!chapter.isGenerated && chapter.status !== 'GENERATED') {

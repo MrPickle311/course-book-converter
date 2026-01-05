@@ -2,12 +2,15 @@ import { useState, useEffect } from 'react';
 import  { type Course, coursesApi, type Task, type TaskEvaluation } from '@/entities/course';
 import { tasksApi } from '@/entities/course';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {message} from "antd";
+import {useNavigate} from "react-router-dom";
 
 export function useCourse(course: Course) {
     const [activeTab, setActiveTab] = useState('notes');
     const [taskAnswers, setTaskAnswers] = useState<Record<string, string | string[] | File | null>>({});
     const [submitting, setSubmitting] = useState<Record<string, boolean>>({});
     const [localTasks, setLocalTasks] = useState<Task[]>([]);
+    const navigate = useNavigate();
 
     const queryClient = useQueryClient();
     const { data: fetchedTasks } = useQuery({
@@ -153,6 +156,17 @@ export function useCourse(course: Course) {
         // Let's just invalidate for now, but debounce in UI prevents high freq invalidations.
     };
 
+    const handleDeleteCourse = async () => {
+        try {
+            await coursesApi.deleteCourse(course.bookId, course.chapterId);
+            message.success("Course deleted successfully");
+            navigate(`/book/${course.bookId} `);
+        } catch (e) {
+            console.error(e);
+            message.error("Failed to delete course");
+        }
+    };
+
     return {
         activeTab,
         setActiveTab,
@@ -161,6 +175,7 @@ export function useCourse(course: Course) {
         toggleMultiSelectOption,
         handleSubmitTask,
         handleRetakeTask,
+        handleDeleteCourse,
         submitting,
         saveNotes,
         openFilePicker,

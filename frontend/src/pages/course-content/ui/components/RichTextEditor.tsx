@@ -1,13 +1,17 @@
-import { useEffect, useRef, useState } from "react";
+import {useEffect, useRef, useState} from "react";
+// @ts-ignore
 import "@blocknote/core/fonts/inter.css";
-import { BlockNoteView, type Theme } from "@blocknote/mantine";
+import {BlockNoteView} from "@blocknote/mantine";
+// @ts-ignore
 import "@blocknote/mantine/style.css";
-import { useCreateBlockNote } from "@blocknote/react";
-import { theme } from "antd";
+import {useCreateBlockNote} from "@blocknote/react";
+import {Flex, theme} from "antd";
+// @ts-ignore
 import "highlight.js/styles/github-dark.css";
-import { BlockNoteSchema, createCodeBlockSpec } from "@blocknote/core";
-import { codeBlockOptions } from "@blocknote/code-block";
-import { AntdStickyTableOfContents } from "./StickyTableOfContents";
+import {BlockNoteSchema, createCodeBlockSpec} from "@blocknote/core";
+import {codeBlockOptions} from "@blocknote/code-block";
+import {AntdStickyTableOfContents} from "./StickyTableOfContents";
+import {editorTheme} from "@/pages/course-content/ui/styles/editorStyles.ts";
 
 
 export interface RichTextEditorProps {
@@ -16,7 +20,7 @@ export interface RichTextEditorProps {
     isEditable?: boolean;
 }
 
-export const RichTextEditor = ({ content, onSave, isEditable = true }: RichTextEditorProps) => {
+export const RichTextEditor =(props: RichTextEditorProps) => {
     const { token } = theme.useToken();
     const editor = useCreateBlockNote({
         domAttributes: {
@@ -32,88 +36,46 @@ export const RichTextEditor = ({ content, onSave, isEditable = true }: RichTextE
     });
     const isFirstRender = useRef(true);
     const timeoutRef = useRef<NodeJS.Timeout>(null);
-    const [blocksLoaded, setBlocksLoaded] = useState(false); // To prevent empty flash
+    const [blocksLoaded, setBlocksLoaded] = useState(false);
 
-    useEffect(() => {
-        const loadContent = async () => {
-            if (content && isFirstRender.current) {
-                const blocks = await editor.tryParseMarkdownToBlocks(content);
+    useEffect(function loadContent () {
+            if (props.content && isFirstRender.current) {
+                const blocks = editor.tryParseMarkdownToBlocks(props.content);
                 editor.replaceBlocks(editor.document, blocks);
                 isFirstRender.current = false;
                 setBlocksLoaded(true);
             } else {
                 setBlocksLoaded(true);
             }
-        };
-        loadContent();
-    }, [content, editor]);
+    }, [props.content, editor]);
 
     const handleChange = () => {
         if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
         }
         timeoutRef.current = setTimeout(async () => {
-            const markdown = await editor.blocksToMarkdownLossy(editor.document);
-            onSave(markdown);
+            const markdown = editor.blocksToMarkdownLossy(editor.document);
+            props.onSave(markdown);
         }, 1000);
     };
 
-    const customTheme: Theme = {
-        colors: {
-            editor: {
-                text: token.colorText,
-                background: token.colorBgContainer,
-            },
-            menu: {
-                text: token.colorText,
-                background: token.colorBgElevated,
-            },
-            tooltip: {
-                text: token.colorText,
-                background: token.colorBgElevated,
-            },
-            hovered: {
-                text: token.colorText,
-                background: token.colorFillTertiary,
-            },
-            selected: {
-                text: token.colorTextLightSolid,
-                background: token.colorPrimary,
-            },
-            disabled: {
-                text: token.colorTextDisabled,
-                background: token.colorBgContainerDisabled,
-            },
-            shadow: token.boxShadow,
-            border: token.colorBorder,
-            sideMenu: token.colorTextSecondary,
-            highlights: {
-                gray: {
-                    text: token.colorText,
-                    background: token.colorFillSecondary,
-                }
-            },
-        },
-        borderRadius: token.borderRadius,
-        fontFamily: token.fontFamily,
-    };
 
     return (
         blocksLoaded && (
-            <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', position: 'relative' }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
+            <Flex gap={'24px'} align={'flex-start'}>
+                <Flex flex={1}>
                     <BlockNoteView
                         editor={editor}
-                        editable={isEditable}
-                        theme={customTheme}
+                        editable={props.isEditable}
+                        theme={editorTheme(token)}
                         onChange={handleChange}
                         sideMenu={true}
                         slashMenu={true}
                         data-spellcheck="false"
                     />
-                </div>
+                </Flex>
                 <AntdStickyTableOfContents editor={editor} />
-            </div>
+            </Flex>
         )
     );
 }
