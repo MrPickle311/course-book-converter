@@ -93,6 +93,7 @@ interface TaskRepository : JpaRepository<Task, UUID> {
     fun findByBookIdAndChapterId(bookId: String, chapterId: String): List<Task>
     fun deleteByBookId(bookId: String)
     fun findAllByBookId(bookId: String): MutableList<Task>
+    fun deleteByBookIdAndChapterId(bookId: String, chapterId: String)
 }
 
 

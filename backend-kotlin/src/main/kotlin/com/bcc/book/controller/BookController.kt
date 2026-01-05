@@ -2,11 +2,12 @@ package com.bcc.book.controller
 
 import com.bcc.api.BooksApi
 import com.bcc.api.model.*
-import com.bcc.book.spi.BookDeletedEvent
 import com.bcc.book.persistence.Book
 import com.bcc.book.persistence.BookRepository
-import com.bcc.book.spi.Chapter
 import com.bcc.book.service.BookService
+import com.bcc.book.spi.BookDeletedEvent
+import com.bcc.book.spi.Chapter
+import com.bcc.book.spi.ChapterStatus
 import com.bcc.course.spi.CourseApi
 import com.bcc.task.spi.TasksApi
 import org.slf4j.LoggerFactory
@@ -107,7 +108,8 @@ class BookController(
     override fun getBookById(uploadId: String): ResponseEntity<BookDetail> {
         val book = bookService.findBook(uploadId) ?: return ResponseEntity.notFound().build()
         fun map(item: Chapter): com.bcc.api.model.Chapter {
-            val isGenerated = courseApi.isGeneratedContent(book.uploadId, item.id)
+            val status = item.chapterStatus
+            val isGenerated = status == ChapterStatus.GENERATED
             val progress = if (isGenerated) tasksApi.getChapterProgress(book.uploadId, item.id) else null
             return Chapter()
                 .chapterId(item.id)
@@ -116,6 +118,7 @@ class BookController(
                 .endPage(item.endPage)
                 .progressData(progress)
                 .isGenerated(isGenerated)
+                .status(com.bcc.api.model.Chapter.StatusEnum.valueOf(item.chapterStatus.name))
         }
 
         val detail = BookDetail()

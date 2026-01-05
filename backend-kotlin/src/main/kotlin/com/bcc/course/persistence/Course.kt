@@ -34,5 +34,6 @@ interface CourseRepository : JpaRepository<Course, UUID> {
     fun findByBookIdAndChapterId(bookId: String, chapterId: String): Course?
     fun countByBookId(bookId: String): Long
     fun deleteByBookId(bookId: String)
+    fun deleteByBookIdAndChapterId(bookId: String, chapterId: String)
 }
 

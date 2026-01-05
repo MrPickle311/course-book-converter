@@ -1,15 +1,14 @@
-import { Card, Progress, Flex, Tabs, Typography, Tag, theme, Button } from 'antd';
-import { useMemo } from 'react';
-import { BookOutlined, CheckSquareOutlined, TrophyOutlined, LoadingOutlined, EditOutlined, CheckCircleOutlined, CloseCircleOutlined, BorderOutlined } from '@ant-design/icons';
-import remarkGfm from 'remark-gfm'
-import rehypeHighlight from 'rehype-highlight'
-import ReactMarkdown from 'react-markdown'
-import { MdxStyles } from '../styles/MdxStyles.tsx';
-import { MarkdownEditModal } from './MarkdownEditModal.tsx';
-import type { Course, Task } from "@/entities/course";
+
+import { Card, Progress, Flex, Tabs, Typography, Tag, theme, Button, Popconfirm, message } from 'antd';
+import { BookOutlined, CheckSquareOutlined, TrophyOutlined, LoadingOutlined, CheckCircleOutlined, CloseCircleOutlined, BorderOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { type Course, type Task, coursesApi } from "@/entities/course";
 import { useCourse } from '../hooks/useCourse.ts';
+import { useNavigate } from 'react-router-dom';
 import { useAppStyles } from '@/shared/ui/theme/AppStyles.ts';
 import { TaskItem } from "./Task.tsx";
+import { RichTextEditor } from "@/shared/ui/RichTextEditor/RichTextEditor.tsx";
+import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 export interface CourseContentProps {
   course: Course;
@@ -18,6 +17,23 @@ export interface CourseContentProps {
 export function CourseContent(props: CourseContentProps) {
   const { token } = theme.useToken();
   const styles = useAppStyles(token);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteCourse = async () => {
+    setDeleting(true);
+    try {
+      await coursesApi.deleteCourse(props.course.bookId, props.course.chapterId);
+      message.success("Course deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ['book'] });
+      navigate(`/book/${props.course.bookId} `);
+    } catch (e) {
+      console.error(e);
+      message.error("Failed to delete course");
+      setDeleting(false);
+    }
+  };
 
   const {
     activeTab,
@@ -27,25 +43,12 @@ export function CourseContent(props: CourseContentProps) {
     handleSubmitTask,
     handleRetakeTask,
     submitting,
-    editOpen,
-    setEditOpen,
-    handleNotesSave,
+    saveNotes,
     completedTasks,
     progressPercentage,
     isTaskCorrect,
     tasks
   } = useCourse(props.course);
-
-  const renderBlocks = (notes: string) => {
-    return (
-      <div className="mdx-content">
-        <MdxStyles token={token} />
-        <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
-          {notes}
-        </ReactMarkdown>
-      </div>
-    );
-  };
 
   function isSubmitButtonDisabled(task: Task): boolean | undefined {
     if (task.type === 'multiple-choice' || task.type === 'short-answer' || task.type === 'code') {
@@ -63,7 +66,7 @@ export function CourseContent(props: CourseContentProps) {
     return true;
   }
 
-  const CourseHeader = () =>
+  const CourseHeader = () => (
     <Card>
       <Flex justify="space-between" align="flex-start">
         <Flex vertical gap={8}>
@@ -92,17 +95,21 @@ export function CourseContent(props: CourseContentProps) {
               <span>Course Completed!</span>
             </Flex>
           )}
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => setEditOpen(true)}
+          <Popconfirm
+            title="Delete Course"
+            description="Are you sure you want to delete this course? This action cannot be undone."
+            onConfirm={handleDeleteCourse}
+            okText="Yes"
+            cancelText="No"
           >
-            Edit
-          </Button>
+            <Button danger icon={<DeleteOutlined />} loading={deleting}>Delete</Button>
+          </Popconfirm>
         </Flex>
       </Flex>
-    </Card>;
+    </Card>
+  );
 
-  const ProgressOverview = () =>
+  const ProgressOverview = () => (
     <Card>
       <Flex vertical gap={16}>
         <Flex align="center" justify="space-between">
@@ -113,100 +120,94 @@ export function CourseContent(props: CourseContentProps) {
         </Flex>
         <Progress percent={Math.round(progressPercentage)} />
       </Flex>
-    </Card>;
-
+    </Card>
+  );
 
   const NoTasksAvailableCard = () => {
-    return <Card>
-      <Flex vertical align="center" style={{ padding: 32, textAlign: 'center' }}>
-        <CheckSquareOutlined
-          style={{
-            fontSize: 48,
-            marginBottom: 16,
-            color: token.colorTextSecondary,
-          }} />
-        <h3>No Tasks Available</h3>
-        <p style={{ color: token.colorTextSecondary }}>
-          Tasks are being generated for this chapter. Please check back later.
-        </p>
-      </Flex>
-    </Card>;
+    return (
+      <Card>
+        <Flex vertical align="center" style={{ padding: 32, textAlign: 'center' }}>
+          <CheckSquareOutlined
+            style={{
+              fontSize: 48,
+              marginBottom: 16,
+              color: token.colorTextSecondary,
+            }} />
+          <h3>No Tasks Available</h3>
+          <p style={{ color: token.colorTextSecondary }}>
+            Tasks are being generated for this chapter. Please check back later.
+          </p>
+        </Flex>
+      </Card>
+    );
   }
 
   function renderTask(task: Task, index: number) {
-    return <Card key={task.id}
-      title={<Flex align="center" justify="space-between">
-        <Flex align="stretch" gap={12}>
-          <Flex vertical justify="center">
-            <Flex
-              align="center"
-              justify="center"
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 9999,
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                backgroundColor: token.colorFillSecondary,
-                color: token.colorText,
-              }}
-            >
-              {index + 1}
+    return (
+      <Card key={task.id}
+        title={<Flex align="center" justify="space-between">
+          <Flex align="stretch" gap={12}>
+            <Flex vertical justify="center">
+              <Flex
+                align="center"
+                justify="center"
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 9999,
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  backgroundColor: token.colorFillSecondary,
+                  color: token.colorText,
+                }}
+              >
+                {index + 1}
+              </Flex>
+            </Flex>
+            <Flex vertical gap={4} justify="center">
+              <Typography.Text strong style={{ fontSize: '1rem' }}>{task.question}</Typography.Text>
             </Flex>
           </Flex>
-          <Flex vertical gap={4} justify="center">
-            <Typography.Text strong style={{ fontSize: '1rem' }}>{task.question}</Typography.Text>
-          </Flex>
-        </Flex>
-        {submitting[task.id] ? (
-          <LoadingOutlined style={{ fontSize: 20, color: token.colorTextSecondary }} spin />
-        ) : task.completed ? (
-          isTaskCorrect(task) ? (
-            <CheckCircleOutlined style={{ fontSize: 20, color: token.colorSuccess }} />
+          {submitting[task.id] ? (
+            <LoadingOutlined style={{ fontSize: 20, color: token.colorTextSecondary }} spin />
+          ) : task.completed ? (
+            isTaskCorrect(task) ? (
+              <CheckCircleOutlined style={{ fontSize: 20, color: token.colorSuccess }} />
+            ) : (
+              <CloseCircleOutlined style={{ fontSize: 20, color: token.colorError }} />
+            )
           ) : (
-            <CloseCircleOutlined style={{ fontSize: 20, color: token.colorError }} />
-          )
-        ) : (
-          <BorderOutlined style={{ fontSize: 20, color: token.colorTextSecondary }} />
-        )}
-      </Flex>}
-    >
-      <Flex vertical gap={24}>
-        <TaskItem
-          task={task}
-          value={taskAnswers[task.id]}
-          isSubmitting={!!submitting[task.id]}
-          onChange={(val) => handleTaskAnswer(task.id, val)}
-          onRetake={() => handleRetakeTask(task)} />
+            <BorderOutlined style={{ fontSize: 20, color: token.colorTextSecondary }} />
+          )}
+        </Flex>}
+      >
+        <Flex vertical gap={24}>
+          <TaskItem
+            task={task}
+            value={taskAnswers[task.id]}
+            isSubmitting={!!submitting[task.id]}
+            onChange={(val) => handleTaskAnswer(task.id, val)}
+            onRetake={() => handleRetakeTask(task)} />
 
-        {!task.completed && (
-          <Button
-            onClick={() => handleSubmitTask(task)}
-            type="primary"
-            style={{ alignSelf: 'flex-start' }}
-            loading={submitting[task.id]}
-            disabled={isSubmitButtonDisabled(task)}
-          >
-            {submitting[task.id] ? 'Submitting...' : 'Submit Answer'}
-          </Button>
-        )}
-      </Flex>
-    </Card>;
+          {!task.completed && (
+            <Button
+              onClick={() => handleSubmitTask(task)}
+              type="primary"
+              style={{ alignSelf: 'flex-start' }}
+              loading={submitting[task.id]}
+              disabled={isSubmitButtonDisabled(task)}
+            >
+              {submitting[task.id] ? 'Submitting...' : 'Submit Answer'}
+            </Button>
+          )}
+        </Flex>
+      </Card>
+    );
   }
 
-  const memoizedNotes = useMemo(() => (
-    <Flex vertical style={{ marginTop: 24 }}>
-      <Card>
-        <div className="prose prose-slate max-w-none">
-          <Flex vertical gap={24}>
-            {renderBlocks(props.course.notes)}
-          </Flex>
-        </div>
-      </Card>
-    </Flex>
-  ), [props.course.notes, token]);
+  const memoizedNotes = <RichTextEditor content={props.course.notes} onSave={saveNotes} />
 
-  const MainContent = () =>
+  const MainContent = () => (
     <Tabs
       type="card"
       activeKey={activeTab}
@@ -240,20 +241,14 @@ export function CourseContent(props: CourseContentProps) {
             </Flex>
           ),
         },
-      ]} />;
+      ]} />
+  );
 
   return (
     <Flex vertical gap={24} style={styles.pageContainer}>
       <CourseHeader />
       <ProgressOverview />
       <MainContent />
-      <MarkdownEditModal
-        open={editOpen}
-        title="Edit Notes"
-        initialValue={props.course.notes}
-        onClose={() => setEditOpen(false)}
-        onSave={handleNotesSave}
-      />
     </Flex>
   );
 }

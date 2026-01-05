@@ -1,5 +1,5 @@
-import { Button, Card, Flex, Progress, Tag, theme, Typography } from 'antd';
-import { CalendarOutlined, CheckCircleOutlined, DeleteOutlined, ReadOutlined, RightOutlined } from '@ant-design/icons';
+import { Button, Card, Flex, Progress, Tag, theme, Typography, Spin } from 'antd';
+import { CalendarOutlined, CheckCircleOutlined, DeleteOutlined, ReadOutlined, RightOutlined, LoadingOutlined } from '@ant-design/icons';
 import { useBookDetail } from '../hooks/useBookDetail.ts';
 import { useAppStyles } from '@/shared/ui/theme/AppStyles.ts';
 import type { Chapter, Book } from "@/entities/book";
@@ -162,7 +162,23 @@ export function BookDetail() {
   }
 
   function renderChapter(chapter: Chapter): ReactNode {
-    if (!chapter.isGenerated) {
+    const isGenerating = chapter.status === 'GENERATING' || generating.has(chapter.chapterId);
+
+    if (isGenerating) {
+      return (
+        <Card
+          key={chapter.chapterId}
+          title={chapter.title}
+        >
+          <Flex align="center" justify="flex-start" gap={12}>
+            Generating
+            <Spin indicator={<LoadingOutlined spin />} size="large" />
+          </Flex>
+        </Card>
+      )
+    }
+
+    if (!chapter.isGenerated && chapter.status !== 'GENERATED') {
       const isBusy = generating.has(chapter.chapterId);
       return renderNotGeneratedChapter(chapter, isBusy);
     }

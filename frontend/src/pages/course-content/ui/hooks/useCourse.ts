@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { Course, Task, TaskEvaluation } from '@/entities/course';
+import  { type Course, coursesApi, type Task, type TaskEvaluation } from '@/entities/course';
 import { tasksApi } from '@/entities/course';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -7,7 +7,6 @@ export function useCourse(course: Course) {
     const [activeTab, setActiveTab] = useState('notes');
     const [taskAnswers, setTaskAnswers] = useState<Record<string, string | string[] | File | null>>({});
     const [submitting, setSubmitting] = useState<Record<string, boolean>>({});
-    const [editOpen, setEditOpen] = useState(false);
     const [localTasks, setLocalTasks] = useState<Task[]>([]);
 
     const queryClient = useQueryClient();
@@ -143,9 +142,15 @@ export function useCourse(course: Course) {
         }
     };
 
-    const handleNotesSave = () => {
-        setEditOpen(false);
-        queryClient.invalidateQueries({ queryKey: ['course', course.bookId, course.chapterId, 'notes'] });
+    const saveNotes = async (content: string) => {
+        // Optimistic update or just save?
+        // Since it's auto-save, we just send it.
+        await coursesApi.updateChapterNotes(course.bookId, course.chapterId, content);
+        // We might not want to invalidate queries immediately to avoid flickering if we just typed it.
+        // But for consistency we can update cache.
+        // Actually, better to update the cache directly with setQueryData if we had the query key exposed here for notes.
+        // Only invalidate if we want to re-fetch.
+        // Let's just invalidate for now, but debounce in UI prevents high freq invalidations.
     };
 
     return {
@@ -157,9 +162,7 @@ export function useCourse(course: Course) {
         handleSubmitTask,
         handleRetakeTask,
         submitting,
-        editOpen,
-        setEditOpen,
-        handleNotesSave,
+        saveNotes,
         openFilePicker,
         completedTasks,
         progressPercentage,

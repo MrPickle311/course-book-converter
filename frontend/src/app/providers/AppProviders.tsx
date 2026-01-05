@@ -1,7 +1,7 @@
 import React from 'react';
-import { ConfigProvider } from 'antd';
+import { ConfigProvider, App } from 'antd';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from '@/shared/lib';
+import { AuthProvider, NotificationProvider } from '@/shared/lib';
 import { ThemeProvider, useTheme, SettingsProvider } from '@/features/user-settings';
 import { createAppTheme } from '../styles/appTheme';
 
@@ -23,13 +23,17 @@ function InnerAppProviders({ children }: { children: React.ReactNode }) {
 
     return (
         <ConfigProvider theme={brandTheme}>
-            <QueryClientProvider client={queryClient}>
-                <SettingsProvider>
-                    <AuthProvider>
-                        {children}
-                    </AuthProvider>
-                </SettingsProvider>
-            </QueryClientProvider>
+            <App>
+                <QueryClientProvider client={queryClient}>
+                    <SettingsProvider>
+                        <AuthProvider>
+                            <NotificationProvider>
+                                {children}
+                            </NotificationProvider>
+                        </AuthProvider>
+                    </SettingsProvider>
+                </QueryClientProvider>
+            </App>
         </ConfigProvider>
     );
 }

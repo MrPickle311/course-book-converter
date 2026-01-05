@@ -10,6 +10,7 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.text.PDFTextStripper
 import org.slf4j.LoggerFactory
@@ -156,7 +157,7 @@ class TaskService(
             when (def.type) {
                 "multiple-choice" -> {
                     val st: MultipleChoiceTaskState? = def.state?.let {
-                        runCatching { objectMapper.convertValue(it, MultipleChoiceTaskState::class.java) }.getOrNull()
+                        runCatching { objectMapper.readValue(it as String, MultipleChoiceTaskState::class.java) }.getOrNull()
                     }
                     if (st != null) {
                         completed += 1
@@ -167,7 +168,7 @@ class TaskService(
                 }
                 "multiple-select" -> {
                     val st: MultiselectTaskState? = def.state?.let {
-                        runCatching { objectMapper.convertValue(it, MultiselectTaskState::class.java) }.getOrNull()
+                        runCatching { objectMapper.readValue(it as String, MultiselectTaskState::class.java) }.getOrNull()
                     }
                     if (st != null) {
                         completed += 1
@@ -178,7 +179,7 @@ class TaskService(
                 }
                 "upload-pdf" -> {
                     val st: FileUploadTaskState? = def.state?.let {
-                        runCatching { objectMapper.convertValue(it, FileUploadTaskState::class.java) }.getOrNull()
+                        runCatching { objectMapper.readValue(it as String, FileUploadTaskState::class.java) }.getOrNull()
                     }
                     if (st != null) {
                         completed += 1
@@ -189,7 +190,7 @@ class TaskService(
                 }
                 else -> {
                     val st: ShortAnswerTaskState? = def.state?.let {
-                        runCatching { objectMapper.convertValue(it, ShortAnswerTaskState::class.java) }.getOrNull()
+                        runCatching { objectMapper.readValue(it as String, ShortAnswerTaskState::class.java) }.getOrNull()
                     }
                     if (st != null) {
                         completed += 1
@@ -229,6 +230,14 @@ class TaskService(
         val tasks = taskRepository.findAllByBookId(bookId)
         val ids = tasks.mapNotNull { it.id }
         taskRepository.deleteByBookId(bookId)
+        return ids
+    }
+
+    @Transactional
+    fun deleteTasks(uploadId: String, chapterId: String): List<UUID> {
+        val tasks = taskRepository.findByBookIdAndChapterId(uploadId, chapterId)
+        val ids = tasks.mapNotNull { it.id }
+        taskRepository.deleteByBookIdAndChapterId(uploadId, chapterId)
         return ids
     }
 
@@ -299,7 +308,7 @@ class TaskService(
         require(!selectedOptionId.isNullOrBlank()) { "selectedOptionId is required" }
         val uuid = UUID.fromString(taskId)
         val task = taskRepository.findById(uuid).orElseThrow()
-        val def = objectMapper.convertValue(task.definition, MultipleChoiceTaskDefinition::class.java)
+        val def = objectMapper.readValue(task.definition as String, MultipleChoiceTaskDefinition::class.java)
         val correctId = def.correctOption.id.toString()
         val isCorrect = selectedOptionId == correctId
         val evaluation = Evaluation(
@@ -321,7 +330,7 @@ class TaskService(
     fun updateMultiSelect(taskId: String, selectedOptionIds: List<String>): Evaluation {
         val uuid = UUID.fromString(taskId)
         val task = taskRepository.findById(uuid).orElseThrow()
-        val def = objectMapper.convertValue(task.definition, MultiselectTaskDefinition::class.java)
+        val def = objectMapper.readValue(task.definition as String, MultiselectTaskDefinition::class.java)
         val expected = def.correctOptions.map { it.id.toString() }
         val missing = expected.filterNot { selectedOptionIds.contains(it) }
         val extra = selectedOptionIds.filterNot { expected.contains(it) }
@@ -449,6 +458,7 @@ class TaskService(
                     "Create practice tasks for the chapter. " +
                     "Rules: type must be one of ['short-answer','multiple-choice','multiple-select','upload-pdf']; min 1, max 5 tasks; " +
                     "Each kind of task should appear at least one time. " +
+                    "Try to reuse tasks from this chapter if exsit. " +
                     "For multiple-choice provide options and correctAnswer. For multiple-select provide options and correctAnswers. " +
                     "For 'short-answer' create quite detailed question. "
         )

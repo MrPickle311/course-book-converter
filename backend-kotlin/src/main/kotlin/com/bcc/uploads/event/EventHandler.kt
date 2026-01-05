@@ -37,7 +37,7 @@ class EventHandler(
     @ApplicationModuleListener
     fun on(event: CourseContentUpdatedCreatedEvent) {
         log.info("Course content updated: $event")
-        val chapterFile = uploadService.getChapterPath(event.uploadId, event.chapterId).toFile()
+        val chapterFile = uploadService.getChapterPath(event.uploadId, event.chapterId).resolve("index.mdx").toFile()
         chapterFile.writeText(event.notes)
     }
 
@@ -52,10 +52,12 @@ class EventHandler(
         }
 
         // save notes to file
+        log.info("Saving notes to file ${event.chapterId}")
         val outDir = uploadService.getChapterPath(event.uploadId, event.chapterId)
         val mdxPath = outDir.resolve("index.mdx")
         Files.writeString(mdxPath, event.notes)
         //images extraction
+        log.info("Images extraction for ${event.chapterId}")
         val pdfPath = uploadService.getFile(event.uploadId)
         PDDocument.load(pdfPath).use { doc ->
             val firstPage = chapter.startPage

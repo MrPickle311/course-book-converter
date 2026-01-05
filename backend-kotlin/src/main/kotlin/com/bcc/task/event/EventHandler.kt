@@ -19,7 +19,7 @@ class EventHandler(
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    @ApplicationModuleListener
+//    @ApplicationModuleListener
     fun on(event: CourseCreatedEvent) {
         log.info("On course created $event")
         val chapter = booksApi.getChapter(event.chapterId)
@@ -51,6 +51,23 @@ class EventHandler(
             tasksIds.forEach { Files.deleteIfExists(Path.of("uploads/tasks").resolve(it.toString())) }
         }
         log.info("Tasks for book removed $event")
+    }
+
+    @ApplicationModuleListener
+    fun on(event: com.bcc.course.spi.CourseDeletedEvent) {
+        log.info("Course deleted $event")
+        val tasksIds = taskService.deleteTasks(event.uploadId, event.chapterId)
+        runCatching {
+            tasksIds.forEach { taskId ->
+                val taskDir = Path.of("uploads/tasks").resolve(taskId.toString())
+                if (Files.exists(taskDir)) {
+                    org.springframework.util.FileSystemUtils.deleteRecursively(taskDir)
+                }
+            }
+        }.onFailure { e ->
+            log.error("Failed to delete tasks files for ${event.uploadId}/${event.chapterId}", e)
+        }
+        log.info("Tasks for course removed $event")
     }
 
 }

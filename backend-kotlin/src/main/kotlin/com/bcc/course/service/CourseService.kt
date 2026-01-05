@@ -60,6 +60,7 @@ class CourseGeneratorService(
 
     fun generateNotesForChapter(chapterTitle: String, chapterContent: Media): String {
         //TODO: move the sample notes getting to uploads
+        logger.info("Started generating notes for $chapterTitle")
         val example = CourseGeneratorService::class.java.classLoader.getResourceAsStream("example.md").readAllBytes()
             .toString(UTF_8)
         val system = SystemMessage(
@@ -93,4 +94,17 @@ class CourseGeneratorService(
             .call()
             .chatResponse()!!.result.output.text ?: ""
     }
+}
+
+@Service
+class MissingImagesResolver(
+    private val chatClientBuilder: ChatClient.Builder,
+    private val chatClient: ChatClient = chatClientBuilder.build()
+){
+    private val log = LoggerFactory.getLogger(MissingImagesResolver::class.java)
+
+    fun getMissingImages(): List<String> {
+        TODO()
+    }
+
 }

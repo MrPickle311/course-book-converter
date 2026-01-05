@@ -14,6 +14,13 @@ class WebConfig : WebMvcConfigurer {
             .addResourceLocations("file:uploads/notes/")
             .setCachePeriod(3600)
     }
+
+    override fun addCorsMappings(registry: org.springframework.web.servlet.config.annotation.CorsRegistry) {
+        registry.addMapping("/**")
+            .allowedOrigins("*")
+            .allowedMethods("*")
+            .allowedHeaders("*")
+    }
 }
 
 

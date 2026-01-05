@@ -2,11 +2,17 @@ package com.bcc.course.spi
 
 import org.springframework.modulith.NamedInterface
 import org.springframework.modulith.PackageInfo
+import com.bcc.book.spi.Chapter
 
 data class CourseCreatedEvent(
     val uploadId: String,
     val chapterId: String,
     val notes: String
+)
+
+data class CourseCreationStartedEvent (
+    val uploadId: String,
+    val chapter: Chapter
 )
 
 interface CourseApi {

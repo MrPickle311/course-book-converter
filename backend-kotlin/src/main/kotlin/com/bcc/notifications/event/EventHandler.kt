@@ -1,4 +1,4 @@
-package com.bcc.course.event
+package com.bcc.notifications.event
 
 import com.bcc.book.spi.BookDeletedEvent
 import com.bcc.course.persistence.Course
@@ -7,6 +7,7 @@ import com.bcc.course.service.CourseGeneratorService
 import com.bcc.course.service.ImageFilterService
 import com.bcc.course.spi.CourseCreatedEvent
 import com.bcc.course.spi.CourseCreationStartedEvent
+import com.bcc.course.spi.CourseDeletedEvent
 import com.bcc.uploads.spi.CourseContentUpdatedCreatedEvent
 import com.bcc.uploads.spi.CourseFilesCreatedEvent
 import com.bcc.uploads.spi.UploadsApi
@@ -14,6 +15,9 @@ import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.modulith.events.ApplicationModuleListener
 import org.springframework.stereotype.Service
+import org.springframework.util.FileSystemUtils
+import java.nio.file.Files
+import java.nio.file.Path
 
 @Service("CourseEventHandler")
 class EventHandler(
@@ -78,14 +82,14 @@ class EventHandler(
         applicationEventPublisher.publishEvent(CourseContentUpdatedCreatedEvent(event.uploadId, event.chapterId, newContent))
     }
     @ApplicationModuleListener
-    fun on(event: com.bcc.course.spi.CourseDeletedEvent) {
+    fun on(event: CourseDeletedEvent) {
         log.info("Course deleted $event")
         courseRepository.deleteByBookIdAndChapterId(event.uploadId, event.chapterId)
         
         runCatching {
-            val notesPath = java.nio.file.Path.of("uploads").resolve("notes/${event.uploadId}/${event.chapterId}").resolve("index.mdx")
-            if (java.nio.file.Files.exists(notesPath)) {
-                org.springframework.util.FileSystemUtils.deleteRecursively(notesPath)
+            val notesPath = Path.of("uploads").resolve("notes/${event.uploadId}/${event.chapterId}").resolve("index.mdx")
+            if (Files.exists(notesPath)) {
+                FileSystemUtils.deleteRecursively(notesPath)
             } else {
                 log.warn("Could not find notes for upload: ${event.uploadId}")
             }

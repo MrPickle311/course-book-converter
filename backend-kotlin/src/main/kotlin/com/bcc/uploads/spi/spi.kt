@@ -41,6 +41,7 @@ data class FileCreatedEvent(
 interface UploadsApi{
     fun getChapterContent(uploadId: String, chapterId: String): Media?
     fun getImagesForChapter(uploadId: String, chapterId: String): List<FileSystemResource>
+    fun saveImage(uploadId: String, chapterId: String, imageName: String, image: ByteArray)
     fun deleteImages(images: List<FileSystemResource>)
 }
 

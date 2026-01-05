@@ -4,6 +4,7 @@ import com.bcc.book.spi.BooksApi
 import com.bcc.uploads.spi.UploadsApi
 import org.apache.pdfbox.multipdf.PageExtractor
 import org.apache.pdfbox.pdmodel.PDDocument
+import org.slf4j.LoggerFactory
 import org.springframework.ai.content.Media
 import org.springframework.core.io.ByteArrayResource
 import org.springframework.core.io.FileSystemResource
@@ -18,7 +19,12 @@ import kotlin.io.path.name
 import kotlin.io.path.pathString
 
 @Service
-class UploadsApiImpl(private val uploadService: UploadService, private val booksApi: BooksApi) : UploadsApi {
+class UploadsApiImpl(
+    private val uploadService: UploadService,
+    private val booksApi: BooksApi
+) : UploadsApi {
+    private val logger = LoggerFactory.getLogger(UploadsApiImpl::class.java)
+
     override fun getChapterContent(
         uploadId: String,
         chapterId: String
@@ -40,6 +46,17 @@ class UploadsApiImpl(private val uploadService: UploadService, private val books
             .filter { it.name.contains("figure") }
             .map { FileSystemResource(it) }
             .toList()
+    }
+
+    override fun saveImage(
+        uploadId: String,
+        chapterId: String,
+        imageName: String,
+        image: ByteArray
+    ) {
+        logger.info("Saving image $imageName")
+        val basePath = uploadService.getChapterPath(uploadId, chapterId)
+        basePath.resolve(imageName).toFile().writeBytes(image)
     }
 
     override fun deleteImages(images: List<FileSystemResource>) {

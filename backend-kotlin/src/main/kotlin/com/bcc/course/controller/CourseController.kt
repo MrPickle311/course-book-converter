@@ -3,7 +3,7 @@ package com.bcc.course.controller
 import com.bcc.api.CourseApi
 import com.bcc.api.model.GenerateCourseRequest
 import com.bcc.book.spi.BooksApi
-import com.bcc.course.event.CourseCreationStartedEvent
+import com.bcc.course.spi.CourseCreationStartedEvent
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.core.io.ByteArrayResource
@@ -59,6 +59,25 @@ class CourseController(
         }
     }
 
+    override fun updateChapterNotes(
+        uploadId: String,
+        chapterId: String,
+        body: String
+    ): ResponseEntity<Void> {
+        return try {
+            val mdxPath =
+                Path.of("uploads").resolve("notes/${uploadId}/${chapterId}").resolve("index.mdx").toAbsolutePath()
+            if (!Files.exists(mdxPath)) {
+                return ResponseEntity.notFound().build()
+            }
+            Files.writeString(mdxPath, body)
+            ResponseEntity.ok().build()
+        } catch (ex: Exception) {
+            logger.error("Failed to update chapter notes", ex)
+            ResponseEntity.internalServerError().build()
+        }
+    }
+
     override fun getChapterImage(
         uploadId: String,
         chapterId: String,
@@ -79,6 +98,18 @@ class CourseController(
                 .body(ByteArrayResource(bytes))
         } catch (ex: Exception) {
             logger.error("Failed to get chapter image {} for {}/{}", filename, uploadId, chapterId, ex)
+            ResponseEntity.internalServerError().build()
+        }
+    }
+
+    @Transactional
+    override fun deleteCourse(uploadId: String, chapterId: String): ResponseEntity<Void> {
+        return try {
+            logger.info("Deleting course for book={} chapter={}", uploadId, chapterId)
+            eventPublisher.publishEvent(com.bcc.course.spi.CourseDeletedEvent(uploadId, chapterId))
+            ResponseEntity.noContent().build()
+        } catch (ex: Exception) {
+            logger.error("Failed to delete course for {}/{}", uploadId, chapterId, ex)
             ResponseEntity.internalServerError().build()
         }
     }

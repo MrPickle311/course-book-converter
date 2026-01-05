@@ -53,10 +53,7 @@ interface BookRepository : JpaRepository<Book, String> {
     @Query(
         value = """
     SELECT 
-        item ->> 'id' as id,
-        item ->> 'title' as title,
-        CAST(item ->> 'startPage' AS INTEGER) as startPage,
-        CAST(item ->> 'endPage' AS INTEGER) as endPage
+        CAST(item AS TEXT)
     FROM 
         books, 
         jsonb_array_elements(table_of_contents) as item 
@@ -65,5 +62,5 @@ interface BookRepository : JpaRepository<Book, String> {
     """,
         nativeQuery = true
     )
-    fun findChapterById(@Param("chapterId") chapterId: String): Chapter?
+    fun findChapterById(@Param("chapterId") chapterId: String): String?
 }

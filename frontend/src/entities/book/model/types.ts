@@ -15,6 +15,7 @@ export type Chapter = {
     startPage: number;
     endPage: number;
     isGenerated: boolean;
+    status: 'NOT_GENERATED' | 'GENERATING' | 'GENERATED';
     progressData?: ProgressData;
 };
 

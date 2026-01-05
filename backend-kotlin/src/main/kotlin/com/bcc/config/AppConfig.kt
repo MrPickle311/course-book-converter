@@ -4,17 +4,23 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.google.genai.Client
+import com.google.genai.types.GenerateContentResponse
 import org.springframework.ai.chat.client.ChatClient
-import org.springframework.ai.chat.model.ChatModel
 import org.springframework.ai.google.genai.GoogleGenAiChatModel
 import org.springframework.ai.google.genai.GoogleGenAiChatOptions
+import org.springframework.ai.image.ImageGeneration
+import org.springframework.ai.image.ImageModel
+import org.springframework.ai.image.ImagePrompt
+import org.springframework.ai.image.ImageResponse
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
+import org.springframework.util.MimeType
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 import org.springframework.web.filter.CorsFilter
+import java.util.*
 
 
 @Configuration
@@ -41,22 +47,56 @@ class AppConfig(private val appProperties: AppProperties) {
     }
 
     @Bean("fastChatClient")
-    fun fastChatClient(
-        @Value("\${spring.ai.google.genai.api-key}") apiKey: String,
-        @Value("spring.ai.google.genai.location") location: String,
-        @Value("spring.ai.google.genai.project-id") project: String,
-    ): ChatClient {
+    fun fastChatClient(@Value("\${spring.ai.google.genai.api-key}") apiKey: String): ChatClient {
         val genAiClient: Client? = Client.builder()
             .apiKey(apiKey)
             .build()
 
-        val model =  GoogleGenAiChatModel.builder()
+        val model = GoogleGenAiChatModel.builder()
             .genAiClient(genAiClient)
-            .defaultOptions(GoogleGenAiChatOptions.builder()
-                .model("gemini-3-flash-preview")
-                .build())
+            .defaultOptions(
+                GoogleGenAiChatOptions.builder()
+                    .model("gemini-3-flash-preview")
+                    .build()
+            )
             .build()
 
         return ChatClient.builder(model).build()
     }
+
+    @Bean("imageModel")
+    fun imageModel(): ImageModel {
+        return GeminiImageModel()
+    }
+
+    class GeminiImageModel : ImageModel {
+        override fun call(request: ImagePrompt): ImageResponse {
+            TODO()
+//            return ImageResponse(listOf<ImageGeneration>());
+        }
+
+    }
+
+    private fun getImages(response: GenerateContentResponse): MutableList<Image> {
+        val responseParts = response.parts()
+        if (responseParts == null || responseParts.isEmpty()) {
+            return Collections.emptyList()
+        }
+        return responseParts
+            .map { it.inlineData() }
+            .filter { it.isPresent }
+            .map { it.get() }
+            .filter { it.data().isPresent }
+            .map {
+                Image(
+                    "${UUID.randomUUID()}.${MimeType.valueOf(it.mimeType().get()).subtype}",
+                    it.data().get(),  // imageBytes
+                    MimeType.valueOf(it.mimeType().get()).toString()
+                )
+            }
+            .toMutableList()
+    }
+
+    @JvmRecord
+    data class Image(val imageName: String?, val imageBytes: ByteArray?, val mimeType: String?)
 }
