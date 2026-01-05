@@ -81,17 +81,6 @@ class EventHandler(
     fun on(event: com.bcc.course.spi.CourseDeletedEvent) {
         log.info("Course deleted $event")
         courseRepository.deleteByBookIdAndChapterId(event.uploadId, event.chapterId)
-        
-        runCatching {
-            val notesPath = java.nio.file.Path.of("uploads").resolve("notes/${event.uploadId}/${event.chapterId}").resolve("index.mdx")
-            if (java.nio.file.Files.exists(notesPath)) {
-                org.springframework.util.FileSystemUtils.deleteRecursively(notesPath)
-            } else {
-                log.warn("Could not find notes for upload: ${event.uploadId}")
-            }
-        }.onFailure { e ->
-            log.error("Failed to delete notes directory for ${event.uploadId}/${event.chapterId}", e)
-        }
     }
 }
 

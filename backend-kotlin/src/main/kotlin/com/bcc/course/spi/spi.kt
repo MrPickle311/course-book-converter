@@ -10,9 +10,14 @@ data class CourseCreatedEvent(
     val notes: String
 )
 
-data class CourseCreationStartedEvent (
+data class CourseCreationStartedEvent(
     val uploadId: String,
     val chapter: Chapter
+)
+
+data class CourseDeletedEvent(
+    val uploadId: String,
+    val chapterId: String,
 )
 
 interface CourseApi {

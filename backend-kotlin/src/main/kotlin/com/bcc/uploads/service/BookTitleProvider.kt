@@ -16,12 +16,11 @@ class BookTitleProvider(
         log.info("Starting title extraction")
         val system = "Extract ONLY title of this book. Nothing else."
         val user = "I provided input as map<pageNumber,pageContentString>:\n\n${content}\n\n"
-        return "Linux Programming Interface";
-//        return chatClient
-//            .prompt()
-//            .system(system)
-//            .user(user)
-//            .call()
-//            .entity<String>()
+        return chatClient
+            .prompt()
+            .system(system)
+            .user(user)
+            .call()
+            .entity<String>()
     }
 }

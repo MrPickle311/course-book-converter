@@ -9,9 +9,11 @@ import org.springframework.ai.content.Media
 import org.springframework.core.io.ByteArrayResource
 import org.springframework.core.io.FileSystemResource
 import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
 import java.io.ByteArrayOutputStream
 import java.nio.file.Files
+import java.nio.file.Path
 import java.util.Comparator
 import kotlin.io.path.Path
 import kotlin.io.path.moveTo
@@ -82,5 +84,33 @@ class UploadsApiImpl(
                 it.moveTo(Path(basePath.pathString + "/" + "figure-$i.png"), true)
                 ++i
             }
+    }
+
+    override fun updateChapterContent(uploadId: String, chapterId: String, content: String) {
+        val mdxPath =
+            Path.of("uploads").resolve("notes/${uploadId}/${chapterId}").resolve("index.mdx").toAbsolutePath()
+        if (!Files.exists(mdxPath)) {
+            return
+        }
+        Files.writeString(mdxPath, content)
+    }
+
+    override fun getImage(uploadId: String, chapterId: String, filename: String): ByteArray? {
+        val imagePath = Path.of("uploads")
+            .resolve("notes/$uploadId/$chapterId")
+            .resolve(filename).toAbsolutePath()
+        if (!Files.exists(imagePath) || !Files.isRegularFile(imagePath)) {
+            return null
+        }
+        return Files.readAllBytes(imagePath)
+    }
+
+    override fun getChapterNotes(uploadId: String, chapterId: String): String? {
+        val mdxPath =
+            Path.of("uploads").resolve("notes/${uploadId}/${chapterId}").resolve("index.mdx").toAbsolutePath()
+        if (!Files.exists(mdxPath)) {
+            return null;
+        }
+        return Files.readString(mdxPath)
     }
 }

@@ -43,6 +43,9 @@ interface UploadsApi{
     fun getImagesForChapter(uploadId: String, chapterId: String): List<FileSystemResource>
     fun saveImage(uploadId: String, chapterId: String, imageName: String, image: ByteArray)
     fun deleteImages(images: List<FileSystemResource>)
+    fun updateChapterContent(uploadId: String, chapterId: String, content: String)
+    fun getChapterNotes(uploadId: String, chapterId: String): String?
+    fun getImage(uploadId: String, chapterId: String, filename: String): ByteArray?
 }
 
 @PackageInfo

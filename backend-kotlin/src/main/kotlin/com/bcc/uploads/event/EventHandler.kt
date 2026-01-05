@@ -1,5 +1,6 @@
 package com.bcc.uploads.event
 
+import com.bcc.book.spi.BookDeletedEvent
 import com.bcc.book.spi.BooksApi
 import com.bcc.course.spi.CourseCreatedEvent
 import com.bcc.uploads.spi.CourseContentUpdatedCreatedEvent
@@ -17,6 +18,7 @@ import org.springframework.modulith.events.ApplicationModuleListener
 import org.springframework.stereotype.Service
 import java.awt.image.RenderedImage
 import java.nio.file.Files
+import java.nio.file.Path
 import javax.imageio.ImageIO
 
 @Service("UploadsEventHandler")
@@ -39,6 +41,26 @@ class EventHandler(
         log.info("Course content updated: $event")
         val chapterFile = uploadService.getChapterPath(event.uploadId, event.chapterId).resolve("index.mdx").toFile()
         chapterFile.writeText(event.notes)
+    }
+
+    @ApplicationModuleListener
+    fun on(event: BookDeletedEvent) {
+        log.info("Book deleted $event")
+        runCatching {
+            val path = Path.of("uploads").resolve("${event.id}.pdf")
+            Files.deleteIfExists(path)
+            Files.deleteIfExists(Path.of("uploads/notes").resolve(event.id))
+            Files.deleteIfExists(Path.of("uploads/tasks").resolve(event.id))
+        }.onFailure { log.error("Error while deleting $event", it) }
+    }
+
+    @ApplicationModuleListener
+    fun on(event: com.bcc.course.spi.CourseDeletedEvent) {
+        log.info("Course deleted $event")
+        runCatching {
+            Files.deleteIfExists(Path.of("uploads/notes").resolve(event.uploadId).resolve(event.chapterId))
+            Files.deleteIfExists(Path.of("uploads/tasks").resolve(event.uploadId).resolve(event.chapterId))
+        }.onFailure { log.error("Error while deleting $event", it) }
     }
 
     @ApplicationModuleListener

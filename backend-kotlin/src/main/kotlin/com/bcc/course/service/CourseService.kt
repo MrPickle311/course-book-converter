@@ -14,7 +14,6 @@ import java.util.*
 import kotlin.text.Charsets.UTF_8
 
 @Service
-//TOOD: zobacz ParagraphPdfDocumentReader
 class ImageFilterService(builder: ChatClient.Builder, private val uploadsApi: UploadsApi) {
     private val chatClient: ChatClient = builder.build()
     private val log = LoggerFactory.getLogger(ImageFilterService::class.java)

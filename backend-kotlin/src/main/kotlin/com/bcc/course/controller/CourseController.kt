@@ -4,6 +4,7 @@ import com.bcc.api.CourseApi
 import com.bcc.api.model.GenerateCourseRequest
 import com.bcc.book.spi.BooksApi
 import com.bcc.course.spi.CourseCreationStartedEvent
+import com.bcc.uploads.spi.UploadsApi
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.core.io.ByteArrayResource
@@ -12,13 +13,12 @@ import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.RestController
-import java.nio.file.Files
-import java.nio.file.Path
 
 @RestController
 class CourseController(
     private val booksApi: BooksApi,
     private val eventPublisher: ApplicationEventPublisher,
+    private val uploadsApi: UploadsApi,
 ) : CourseApi {
     private val logger = LoggerFactory.getLogger(CourseController::class.java)
 
@@ -44,12 +44,7 @@ class CourseController(
 
     override fun getChapterNotes(uploadId: String, chapterId: String): ResponseEntity<String> {
         return try {
-            val mdxPath =
-                Path.of("uploads").resolve("notes/${uploadId}/${chapterId}").resolve("index.mdx").toAbsolutePath()
-            if (!Files.exists(mdxPath)) {
-                return ResponseEntity.notFound().build()
-            }
-            val content = Files.readString(mdxPath)
+            val content = uploadsApi.getChapterNotes(uploadId, chapterId) ?: return ResponseEntity.notFound().build()
             ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType("text/markdown"))
                 .body(content)
@@ -65,12 +60,7 @@ class CourseController(
         body: String
     ): ResponseEntity<Void> {
         return try {
-            val mdxPath =
-                Path.of("uploads").resolve("notes/${uploadId}/${chapterId}").resolve("index.mdx").toAbsolutePath()
-            if (!Files.exists(mdxPath)) {
-                return ResponseEntity.notFound().build()
-            }
-            Files.writeString(mdxPath, body)
+            uploadsApi.updateChapterContent(uploadId, chapterId, body)
             ResponseEntity.ok().build()
         } catch (ex: Exception) {
             logger.error("Failed to update chapter notes", ex)
@@ -85,16 +75,9 @@ class CourseController(
     ): ResponseEntity<Resource> {
         logger.info("image $filename")
         return try {
-            val imagePath = Path.of("uploads")
-                .resolve("notes/$uploadId/$chapterId")
-                .resolve(filename).toAbsolutePath()
-            if (!Files.exists(imagePath) || !Files.isRegularFile(imagePath)) {
-                return ResponseEntity.notFound().build()
-            }
-            val bytes = Files.readAllBytes(imagePath)
-            val contentType = Files.probeContentType(imagePath) ?: "application/octet-stream"
+            val bytes = uploadsApi.getImage(uploadId, chapterId, filename) ?: return ResponseEntity.notFound().build()
             ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(contentType))
+                .contentType(MediaType.parseMediaType("application/octet-stream"))
                 .body(ByteArrayResource(bytes))
         } catch (ex: Exception) {
             logger.error("Failed to get chapter image {} for {}/{}", filename, uploadId, chapterId, ex)
