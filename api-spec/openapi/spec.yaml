@@ -186,6 +186,32 @@ paths:
                 type: string
         '404':
           description: Not Found
+    put:
+      summary: Update generated notes bundle for a chapter
+      operationId: updateChapterNotes
+      tags: ['course']
+      parameters:
+        - in: path
+          name: uploadId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: chapterId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+      responses:
+        '200':
+          description: OK
+        '404':
+          description: Not Found
   /api/v1/books/{uploadId}/chapters/{chapterId}/tasks:
     get:
       summary: Get tasks for a chapter with current user state
@@ -211,6 +237,27 @@ paths:
                 $ref: '#/components/schemas/ChapterTasksResponse'
         '404':
           description: Not Found
+  /api/v1/books/{uploadId}/chapters/{chapterId}/course:
+    delete:
+      summary: Delete course for a chapter
+      operationId: deleteCourse
+      tags: ['course']
+      parameters:
+        - in: path
+          name: uploadId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: chapterId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not found
   /api/v1/books/{uploadId}/chapters/{chapterId}/images/{filename}:
     get:
       summary: Get generated image asset for a chapter
@@ -385,6 +432,9 @@ components:
           format: int32
         isGenerated:
           type: boolean
+        status:
+          type: string
+          enum: [NOT_GENERATED, GENERATING, GENERATED]
         progressData:
           $ref: '#/components/schemas/ProgressData'
     ProcessPdfResponse:
